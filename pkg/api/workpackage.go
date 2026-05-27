@@ -9,6 +9,7 @@ import (
 // WorkPackage represents an OpenProject work package.
 type WorkPackage struct {
 	ID             int    `json:"id"`
+	LockVersion    int    `json:"lockVersion"`
 	Subject        string `json:"subject"`
 	Description    *Formattable `json:"description,omitempty"`
 	StoryPoints    *int   `json:"storyPoints,omitempty"`
@@ -81,6 +82,7 @@ func (r *CreateWPRequest) SetMultiLink(field string, links []Link) {
 
 // UpdateWPRequest is the request body for updating a work package.
 type UpdateWPRequest struct {
+	LockVersion    int                  `json:"lockVersion"`
 	Subject        string              `json:"subject,omitempty"`
 	Description    *Formattable        `json:"description,omitempty"`
 	StoryPoints    *int                `json:"storyPoints,omitempty"`
@@ -158,7 +160,17 @@ func (c *Client) CreateWorkPackage(project string, req *CreateWPRequest) (*WorkP
 }
 
 // UpdateWorkPackage updates an existing work package.
+// Automatically fetches lockVersion to avoid conflicts.
 func (c *Client) UpdateWorkPackage(id int, req *UpdateWPRequest) (*WorkPackage, error) {
+	// Fetch current lockVersion if not set
+	if req.LockVersion == 0 {
+		current, err := c.GetWorkPackage(id)
+		if err != nil {
+			return nil, fmt.Errorf("fetching lockVersion: %w", err)
+		}
+		req.LockVersion = current.LockVersion
+	}
+
 	var wp WorkPackage
 	path := fmt.Sprintf("/work_packages/%d", id)
 	if err := c.Patch(path, req, &wp); err != nil {
