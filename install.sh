@@ -6,7 +6,7 @@ set -e
 
 GITLAB_URL="https://gitlab-tw.ddns.net"
 PROJECT="gmedtn/op-cli"
-VERSION="v0.2.0"
+VERSION="v0.3.0"
 INSTALL_DIR="/usr/local/bin"
 OP_URL="https://openpr.epochbase.com"
 
