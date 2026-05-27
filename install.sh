@@ -59,24 +59,20 @@ else
   # Try to get a GitLab token from: env var → glab CLI → prompt user
 
   if [ -z "$GITLAB_TOKEN" ]; then
-    # Try glab CLI
+    # Try glab CLI first
     if command -v glab &>/dev/null; then
-      echo "    Found glab CLI, checking auth..."
-      GLAB_TOKEN=$(GITLAB_HOST=gitlab-tw.ddns.net glab auth status -t 2>&1 | grep "Token:" | head -1 | awk '{print $NF}')
-      if [ -n "$GLAB_TOKEN" ] && [ "$GLAB_TOKEN" != "**************************" ]; then
-        GITLAB_TOKEN="$GLAB_TOKEN"
-        echo "    Using token from glab."
+      echo "    Found glab CLI, downloading via glab..."
+      GITLAB_HOST=gitlab-tw.ddns.net glab release download \
+        --repo gmedtn/op-cli --include-external \
+        --asset-name="${BINARY}" -D /tmp 2>/dev/null
+      if [ -f "/tmp/${BINARY}" ]; then
+        mv "/tmp/${BINARY}" /tmp/op-install
+        echo "    Downloaded via glab."
+        DOWNLOADED=true
       else
-        # glab is authenticated but token is masked — use glab to download instead
-        echo "    Using glab to download ${BINARY}..."
-        GITLAB_HOST=gitlab-tw.ddns.net glab release download \
-          --repo gmedtn/op-cli --include-external \
-          --asset-name="${BINARY}" -D /tmp 2>/dev/null
-        if [ -f "/tmp/${BINARY}" ]; then
-          mv "/tmp/${BINARY}" /tmp/op-install
-          echo "    Downloaded via glab."
-          DOWNLOADED=true
-        fi
+        echo "    glab download failed. You may need to authenticate:"
+        echo "      GITLAB_HOST=gitlab-tw.ddns.net glab auth login"
+        echo ""
       fi
     fi
   fi

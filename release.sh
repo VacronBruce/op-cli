@@ -71,11 +71,11 @@ BASE_API="https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/releases/${
 PKG="${PKG_BASE}/latest"
 
 curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type: application/json" \
-  -d "{\"name\":\"op-darwin-arm64 (macOS Apple Silicon)\",\"url\":\"${PKG}/op-darwin-arm64\",\"link_type\":\"package\"}" "$BASE_API" > /dev/null
+  -d "{\"name\":\"op-darwin-arm64\",\"url\":\"${PKG}/op-darwin-arm64\",\"link_type\":\"package\"}" "$BASE_API" > /dev/null
 curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type: application/json" \
-  -d "{\"name\":\"op-darwin-amd64 (macOS Intel)\",\"url\":\"${PKG}/op-darwin-amd64\",\"link_type\":\"package\"}" "$BASE_API" > /dev/null
+  -d "{\"name\":\"op-darwin-amd64\",\"url\":\"${PKG}/op-darwin-amd64\",\"link_type\":\"package\"}" "$BASE_API" > /dev/null
 curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type: application/json" \
-  -d "{\"name\":\"op-linux-amd64 (Linux)\",\"url\":\"${PKG}/op-linux-amd64\",\"link_type\":\"package\"}" "$BASE_API" > /dev/null
+  -d "{\"name\":\"op-linux-amd64\",\"url\":\"${PKG}/op-linux-amd64\",\"link_type\":\"package\"}" "$BASE_API" > /dev/null
 curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type: application/json" \
   -d "{\"name\":\"install.sh\",\"url\":\"${PKG}/install.sh\",\"link_type\":\"other\"}" "$BASE_API" > /dev/null
 
