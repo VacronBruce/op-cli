@@ -4,55 +4,69 @@ A lean CLI for managing OpenProject sprints, backlogs, and work packages. Built 
 
 ## Install
 
-### Option 1: Download binary
+### Prerequisites
 
-Download from the [Releases](../../-/releases) page, then:
+Install `glab` (GitLab CLI) if you don't have it:
 
 ```bash
-chmod +x op-*
-sudo mv op-* /usr/local/bin/op
+# macOS
+brew install glab
+
+# Linux
+brew install glab
+# or: sudo apt install glab
 ```
 
-### Option 2: Build from source
+Authenticate to our GitLab (one-time):
+
+```bash
+GITLAB_HOST=gitlab-tw.ddns.net glab auth login
+```
+
+### Quick Install (recommended)
+
+```bash
+mkdir -p /tmp/op-cli && cd /tmp/op-cli && GITLAB_HOST=gitlab-tw.ddns.net glab release download --repo gmedtn/op-cli --include-external --asset-name="install.sh" && bash install.sh
+```
+
+The script will:
+1. Auto-detect your platform (macOS/Linux, ARM/Intel)
+2. Download the correct binary via glab
+3. Ask for your OpenProject API key
+4. Install Claude Code `/openproject` skill
+
+### Alternative: Clone + Build (needs Go)
 
 ```bash
 git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git
-cd op-cli
-go build -o op .
-sudo mv op /usr/local/bin/
+cd op-cli && git checkout develop && bash install.sh
+```
+
+### Alternative: curl + GitLab Token
+
+```bash
+curl -fsSH "PRIVATE-TOKEN: your-token" \
+  "https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest/install.sh" | bash
 ```
 
 ## Setup
 
-### 1. Get your API key
+Your OpenProject API key is required. Get it from:
 
-1. Log in to OpenProject: https://openpr.epochbase.com
+1. Log in to https://openpr.epochbase.com
 2. Go to **My Account** > **Access Tokens**
 3. Create a new API token
 
-### 2. Create config file
-
-```bash
-cp .oprc.example ~/.oprc
-```
-
-Edit `~/.oprc`:
+The install script creates `~/.oprc` automatically. To edit manually:
 
 ```yaml
 url: https://openpr.epochbase.com
 api_key: your-api-key-here
-project: web  # optional default project
+project: app
+sprint: "App_05/19/2026"
 ```
 
-Or use environment variables:
-
-```bash
-export OP_URL=https://openpr.epochbase.com
-export OP_API_KEY=your-api-key-here
-export OP_PROJECT=web
-```
-
-### 3. Verify
+Verify:
 
 ```bash
 op projects
@@ -64,20 +78,23 @@ op projects
 
 ```bash
 op board                           # Current sprint board (kanban view)
-op board -p web                    # Board for specific project
 op my                              # My assigned items
 op my-team                         # Team items grouped by person
 op blocked                         # Blocked items in sprint
+op show 12345                      # View ticket details
+op show 12345 --download           # Download attachments
 ```
 
 ### Create & update
 
 ```bash
 op create task "Fix login page" --assignee="Ken Peng" --priority=high
-op create bug "Crash on save" --priority=immediate
+op create bug "Crash on save" --priority=immediate \
+  --epic="NTD+" --component=android --product=entd \
+  --tech-area=app --label=team#appandroid --attach=screenshot.png
 op update 12345 --status=in-progress
-op update 12345 --assignee="Ken Peng" --points=5 --done=80
 op assign 12345 "Ken Peng"
+op attach 12345 screenshot.png
 ```
 
 ### Sprint management
@@ -85,7 +102,6 @@ op assign 12345 "Ken Peng"
 ```bash
 op sprint plan                     # Show backlog items for planning
 op sprint add 101 102 103          # Move items to current sprint
-op sprint add 101 --points=5       # Add with story points
 op sprint progress                 # Sprint progress summary
 op sprint close                    # Sprint close summary
 ```
@@ -96,27 +112,34 @@ op sprint close                    # Sprint close summary
 op backlog                         # Items not in any sprint
 op backlog groom                   # Unestimated items
 op report                          # Sprint report for stakeholders
+op projects                        # List all projects
 ```
 
 ### Global flags
 
 ```
 -p, --project <id>    Override default project (e.g. -p web, -p bug, -p app)
+--sprint <name>       Override default sprint
 -h, --help            Help for any command
+```
+
+### Claude Code
+
+Use `/openproject` in Claude Code for natural language access:
+
+```
+/openproject create a high priority bug for NTD+, assign to Bruce
+/openproject show the sprint board
+/openproject what's blocked?
 ```
 
 ## Troubleshooting
 
 **"missing config: set OP_URL and OP_API_KEY"**
-Create `~/.oprc` or set environment variables.
+Create `~/.oprc` or set environment variables (`OP_URL`, `OP_API_KEY`).
 
 **"no active sprint found"**
 The project has no open version. Use `--sprint="Name"` to specify one.
 
 **"unknown type/status/priority"**
 Names are case-insensitive with prefix match. The error message shows available options.
-
-## Requirements
-
-- Go 1.22+ (to build from source only)
-- OpenProject account with API token
