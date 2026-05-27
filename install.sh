@@ -2,69 +2,100 @@
 set -e
 
 # op-cli installer
-# Usage:
-#   git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git && cd op-cli && bash install.sh
+#
+# Method 1 (curl + GitLab token):
+#   GITLAB_TOKEN=your-token bash <(curl -fsSH "PRIVATE-TOKEN: $GITLAB_TOKEN" https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/0.3.0/install.sh)
+#
+# Method 2 (clone + build):
+#   git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git && cd op-cli && git checkout develop && bash install.sh
 
-VERSION="v0.3.0"
+VERSION="0.3.0"
+GITLAB_URL="https://gitlab-tw.ddns.net"
+PKG_URL="${GITLAB_URL}/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/${VERSION}"
 INSTALL_DIR="/usr/local/bin"
 OP_URL="https://openpr.epochbase.com"
 
 echo "================================"
-echo "  op-cli installer ($VERSION)"
+echo "  op-cli installer (v${VERSION})"
 echo "================================"
 echo ""
 
-# Step 1: Build or locate binary
-echo "1/3 Building op binary..."
+# Detect platform
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m)
+
+case "$OS" in
+  darwin) OS="darwin" ;;
+  linux)  OS="linux" ;;
+  *)      echo "Error: unsupported OS: $OS"; exit 1 ;;
+esac
+
+case "$ARCH" in
+  arm64|aarch64) ARCH="arm64" ;;
+  x86_64|amd64)  ARCH="amd64" ;;
+  *)             echo "Error: unsupported architecture: $ARCH"; exit 1 ;;
+esac
+
+BINARY="op-${OS}-${ARCH}"
+echo "Platform: ${OS}/${ARCH}"
+echo ""
+
+# Step 1: Get the binary
+echo "1/3 Installing op binary..."
 
 if [ -f "go.mod" ] && [ -f "main.go" ]; then
-  # We're inside the cloned repo — build from source
+  # Mode: clone — build from source
   if command -v go &>/dev/null; then
     echo "    Building from source..."
-    go build -o /tmp/op .
+    go build -o /tmp/op-install .
     echo "    Built successfully."
   else
     echo "    Error: Go is required to build from source."
-    echo "    Install Go: https://go.dev/dl/"
-    echo ""
-    echo "    Or download a pre-built binary from:"
-    echo "    https://gitlab-tw.ddns.net/gmedtn/op-cli/-/releases/${VERSION}"
+    echo "    Install Go from https://go.dev/dl/ or use the curl method instead."
     exit 1
   fi
+elif [ -n "$GITLAB_TOKEN" ]; then
+  # Mode: curl — download pre-built binary
+  echo "    Downloading ${BINARY}..."
+  curl -fsSL -o /tmp/op-install -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "${PKG_URL}/${BINARY}"
+  echo "    Downloaded."
 else
-  echo "    Error: Run this script from the op-cli repo directory."
+  echo "    Error: No source code found and no GITLAB_TOKEN set."
   echo ""
-  echo "    git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git"
-  echo "    cd op-cli"
-  echo "    bash install.sh"
+  echo "    Option A — curl install (need GitLab personal access token):"
+  echo "      export GITLAB_TOKEN=your-gitlab-token"
+  echo "      curl -fsSH \"PRIVATE-TOKEN: \$GITLAB_TOKEN\" ${PKG_URL}/install.sh | GITLAB_TOKEN=\$GITLAB_TOKEN bash"
+  echo ""
+  echo "    Option B — clone install (need Go + SSH access):"
+  echo "      git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git"
+  echo "      cd op-cli && git checkout develop && bash install.sh"
   exit 1
 fi
 
-chmod +x /tmp/op
+chmod +x /tmp/op-install
 
-# Install binary
 echo "    Installing to ${INSTALL_DIR}/op..."
 if [ -w "$INSTALL_DIR" ]; then
-  mv /tmp/op "${INSTALL_DIR}/op"
+  mv /tmp/op-install "${INSTALL_DIR}/op"
 else
-  sudo mv /tmp/op "${INSTALL_DIR}/op"
+  sudo mv /tmp/op-install "${INSTALL_DIR}/op"
 fi
 echo "    Done: $(which op)"
 echo ""
 
-# Step 2: Config setup
+# Step 2: Config
 echo "2/3 Config setup"
 if [ -f "$HOME/.oprc" ]; then
-  echo "    Config already exists at ~/.oprc, skipping."
+  echo "    Already exists at ~/.oprc, skipping."
 else
   echo ""
-  echo "    You need an API key from: ${OP_URL}"
+  echo "    You need an OpenProject API key from: ${OP_URL}"
   echo "    Go to: My Account > Access Tokens > Create new token"
   echo ""
   read -p "    Paste your API key: " API_KEY < /dev/tty
 
   if [ -z "$API_KEY" ]; then
-    echo "    No API key provided. You can set it later in ~/.oprc"
+    echo "    No API key provided. Edit ~/.oprc later."
     cat > "$HOME/.oprc" <<EOF
 url: ${OP_URL}
 api_key: YOUR_API_KEY_HERE
@@ -79,13 +110,8 @@ EOF
 url: ${OP_URL}
 api_key: ${API_KEY}
 EOF
-
-    if [ -n "$DEFAULT_PROJECT" ]; then
-      echo "project: ${DEFAULT_PROJECT}" >> "$HOME/.oprc"
-    fi
-    if [ -n "$DEFAULT_SPRINT" ]; then
-      echo "sprint: \"${DEFAULT_SPRINT}\"" >> "$HOME/.oprc"
-    fi
+    [ -n "$DEFAULT_PROJECT" ] && echo "project: ${DEFAULT_PROJECT}" >> "$HOME/.oprc"
+    [ -n "$DEFAULT_SPRINT" ] && echo "sprint: \"${DEFAULT_SPRINT}\"" >> "$HOME/.oprc"
   fi
 
   chmod 600 "$HOME/.oprc"
@@ -93,7 +119,7 @@ EOF
 fi
 echo ""
 
-# Step 3: Install Claude Code skill (embedded)
+# Step 3: Claude Code skill (embedded)
 echo "3/3 Claude Code skill"
 SKILL_DIR="$HOME/.claude/skills/openproject"
 if command -v claude &>/dev/null || [ -d "$HOME/.claude" ]; then
@@ -109,80 +135,49 @@ user_invocable: true
 
 Translate natural language requests into `op` CLI commands and execute them.
 
-## Prerequisites
-- `op` CLI installed (see install script in repo)
-- Config at `~/.oprc` with `url`, `api_key`, `project`, and `sprint` fields
-
 ## Command Reference
 
-### Daily Operations
 ```bash
-op board                              # Sprint board (kanban view)
-op my                                 # My assigned items
-op my-team                            # Team items grouped by person
-op blocked                            # Blocked items in sprint
-op projects                           # List all projects
-op show <id>                          # View ticket details
-op show <id> --download               # Download attachments
-```
+op board                    # Sprint board
+op my                       # My items
+op my-team                  # Team items by person
+op blocked                  # Blocked items
+op show <id>                # Ticket details
+op show <id> --download     # Download attachments
+op projects                 # List projects
 
-### Create & Update
-```bash
-op create <type> "<subject>" [flags]  # Create work package
-  # Types: task, bug, feature, epic, user-story, milestone
-  # Flags:
-  #   --assignee="Name"    --priority=P1
-  #   --epic="NTD+"        --component=android
-  #   --product=entd       --tech-area=app
-  #   --label=team#appandroid
-  #   --points=5           --sprint="Sprint 1"
-  #   --description="..."  --attach=screenshot.png
+op create <type> "subject"  # Create (task/bug/feature/story)
+  --assignee="Name" --priority=P1 --epic="NTD+"
+  --component=android --product=entd --tech-area=app
+  --label=team#appandroid --attach=file.png
+op update <id> --status=in-progress --assignee="Name"
+op assign <id> "Name"
+op attach <id> file.png
 
-op update <id> [flags]                # Update work package
-op assign <id> "Person Name"          # Quick reassign
-op attach <id> file.png [file2.jpg]   # Upload attachments
-```
-
-### Sprint Management
-```bash
-op sprint plan                        # Show backlog items for planning
-op sprint add <id> [<id>...]          # Move items to sprint
-op sprint progress                    # Sprint progress summary
-op sprint close                       # Sprint close summary
-```
-
-### Backlog & Reporting
-```bash
-op backlog                            # All items not in a sprint
-op backlog groom                      # Unestimated items
-op report                             # Sprint report for stakeholders
+op sprint plan/add/progress/close
+op backlog / op backlog groom
+op report
 ```
 
 ## How to Handle Requests
 
-1. **"create a task/bug"** → `op create task/bug "subject" --flags`
-2. **"show board"** → `op board`
-3. **"what am I working on?"** → `op my`
-4. **"prep for standup"** → Run `op my-team` then `op blocked`, summarize
-5. **"assign X to Y"** → `op assign <id> "Person"`
-6. **"attach this screenshot"** → Save image, then `op attach <id> /path/to/file`
-7. **"show ticket 123"** → `op show 123 --download --out=/tmp`, then read images
+1. "create a bug" → `op create bug "subject" --flags`
+2. "show board" → `op board`
+3. "what am I working on?" → `op my`
+4. "prep standup" → `op my-team` + `op blocked`
+5. "assign X to Y" → `op assign <id> "Name"`
+6. "attach screenshot" → save image, `op attach <id> /path`
+7. "show ticket" → `op show <id> --download --out=/tmp`, read images
 
-## Custom Field Values
-
-### Components: android, ios, ott, engineering, analytics
-### Products: eet, entd, djy, cntd, others
-### Tech Areas: web, app, adtech, video, infra, portal, seo
-### Labels: team#appios, team#appandroid, team#appall, team#web, ntd, seo
-
-## Global Flags
-- `-p, --project <id>` — Override default project
-- `--sprint <name>` — Override default sprint
+## Custom Fields
+Components: android, ios, ott, engineering, analytics
+Products: eet, entd, djy, cntd, others
+Tech Areas: web, app, adtech, video, infra, portal, seo
+Labels: team#appios, team#appandroid, team#appall, team#web, ntd, seo
 SKILL_EOF
   echo "    Installed /openproject skill to ${SKILL_DIR}"
 else
-  echo "    Claude Code not detected, skipping skill."
-  echo "    To install later: mkdir -p ~/.claude/skills/openproject && copy SKILL.md from repo"
+  echo "    Claude Code not detected, skipping."
 fi
 
 echo ""
@@ -200,10 +195,8 @@ if op projects 2>/dev/null | head -3; then
   echo "  op my             # My items"
   echo "  op show <id>      # View ticket"
   echo "  op --help         # All commands"
-  echo ""
-  echo "  Claude Code: /openproject create a bug for NTD+"
 else
   echo ""
-  echo "Binary installed but could not connect to OpenProject."
+  echo "Binary installed but could not connect."
   echo "Check your API key in ~/.oprc"
 fi
