@@ -1,6 +1,7 @@
 # Binary
 op
 op-cli
+dist/
 
 # IDE
 .idea/
