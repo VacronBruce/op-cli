@@ -2,13 +2,19 @@
 set -e
 
 # op-cli installer
-# Usage: curl -fsSL https://gitlab-tw.ddns.net/gmedtn/op-cli/-/releases/v0.3.0/downloads/install.sh | bash
+# Usage: curl -fsSL https://gitlab-tw.ddns.net/gmedtn/op-cli/uploads/5c6f8b8930a81dd63249a3a37ae8e7fe/install.sh | bash
 
 GITLAB_URL="https://gitlab-tw.ddns.net"
 PROJECT="gmedtn/op-cli"
 VERSION="v0.3.0"
 INSTALL_DIR="/usr/local/bin"
 OP_URL="https://openpr.epochbase.com"
+
+# Direct upload URLs (these work for logged-in GitLab users without API auth)
+declare -A BINARY_URLS
+BINARY_URLS[op-darwin-arm64]="${GITLAB_URL}/${PROJECT}/uploads/27966c315689016fe7d27eae2bf7a879/op-darwin-arm64"
+BINARY_URLS[op-darwin-amd64]="${GITLAB_URL}/${PROJECT}/uploads/2bf708f7797fa91830513678ff037332/op-darwin-amd64"
+BINARY_URLS[op-linux-amd64]="${GITLAB_URL}/${PROJECT}/uploads/e0951c2c56d7d985151555aa0c4082b9/op-linux-amd64"
 
 echo "================================"
 echo "  op-cli installer ($VERSION)"
@@ -32,7 +38,12 @@ case "$ARCH" in
 esac
 
 BINARY="op-${OS}-${ARCH}"
-DOWNLOAD_URL="${GITLAB_URL}/${PROJECT}/-/releases/${VERSION}/downloads/${BINARY}"
+DOWNLOAD_URL="${BINARY_URLS[$BINARY]}"
+
+if [ -z "$DOWNLOAD_URL" ]; then
+  echo "Error: no binary available for ${BINARY}"
+  exit 1
+fi
 
 echo "Platform: ${OS}/${ARCH}"
 echo "Binary:   ${BINARY}"
