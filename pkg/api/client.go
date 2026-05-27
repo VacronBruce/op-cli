@@ -1,10 +1,15 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -137,4 +142,118 @@ func (c *Client) RequireProject() (string, error) {
 		return "", fmt.Errorf("no project specified: use -p flag or set OP_PROJECT")
 	}
 	return c.Project, nil
+}
+
+// Attachment represents an uploaded attachment.
+type Attachment struct {
+	ID          int    `json:"id"`
+	FileName    string `json:"fileName"`
+	FileSize    int    `json:"fileSize"`
+	ContentType string `json:"contentType"`
+	Links       struct {
+		Self             Link `json:"self"`
+		DownloadLocation Link `json:"downloadLocation"`
+	} `json:"_links"`
+}
+
+// UploadAttachment uploads a file to a work package.
+func (c *Client) UploadAttachment(wpID int, filePath string, description string) (*Attachment, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("opening file: %w", err)
+	}
+	defer f.Close()
+
+	fileName := filepath.Base(filePath)
+
+	// Build multipart body
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	// Part 1: metadata (application/json)
+	metaHeader := make(textproto.MIMEHeader)
+	metaHeader.Set("Content-Disposition", `form-data; name="metadata"`)
+	metaHeader.Set("Content-Type", "application/json")
+	metaPart, err := writer.CreatePart(metaHeader)
+	if err != nil {
+		return nil, fmt.Errorf("creating metadata part: %w", err)
+	}
+
+	meta := map[string]string{"fileName": fileName}
+	if description != "" {
+		meta["description"] = description
+	}
+	if err := json.NewEncoder(metaPart).Encode(meta); err != nil {
+		return nil, fmt.Errorf("writing metadata: %w", err)
+	}
+
+	// Part 2: file
+	fileHeader := make(textproto.MIMEHeader)
+	fileHeader.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, fileName))
+	fileHeader.Set("Content-Type", detectContentType(fileName))
+	filePart, err := writer.CreatePart(fileHeader)
+	if err != nil {
+		return nil, fmt.Errorf("creating file part: %w", err)
+	}
+	if _, err := io.Copy(filePart, f); err != nil {
+		return nil, fmt.Errorf("writing file: %w", err)
+	}
+
+	writer.Close()
+
+	// Send request
+	url := fmt.Sprintf("%s/api/v3/work_packages/%d/attachments", c.BaseURL, wpID)
+	req, err := http.NewRequest("POST", url, &buf)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	req.SetBasicAuth("apikey", c.APIKey)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("uploading: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		data, _ := io.ReadAll(resp.Body)
+		apiErr := &APIError{StatusCode: resp.StatusCode}
+		if json.Unmarshal(data, apiErr) != nil {
+			apiErr.Message = string(data)
+		}
+		return nil, apiErr
+	}
+
+	var att Attachment
+	if err := json.NewDecoder(resp.Body).Decode(&att); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	return &att, nil
+}
+
+func detectContentType(name string) string {
+	ext := strings.ToLower(filepath.Ext(name))
+	switch ext {
+	case ".png":
+		return "image/png"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".gif":
+		return "image/gif"
+	case ".webp":
+		return "image/webp"
+	case ".svg":
+		return "image/svg+xml"
+	case ".pdf":
+		return "application/pdf"
+	case ".mp4":
+		return "video/mp4"
+	case ".mov":
+		return "video/quicktime"
+	default:
+		return "application/octet-stream"
+	}
 }

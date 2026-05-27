@@ -37,6 +37,7 @@ func init() {
 	createCmd.Flags().String("product", "", "Product (eet, entd, djy, cntd, others)")
 	createCmd.Flags().String("tech-area", "", "Tech area (web, app, adtech, video, infra, seo)")
 	createCmd.Flags().StringSlice("label", nil, "Label (team#appios, team#appandroid, team#appall, ntd, seo)")
+	createCmd.Flags().StringSlice("attach", nil, "File path(s) to attach (images, PDFs, etc.)")
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
@@ -178,5 +179,18 @@ func runCreate(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Created #%d\n", wp.ID)
 	display.WorkPackageDetail(wp)
+
+	// Upload attachments
+	if attachments, _ := cmd.Flags().GetStringSlice("attach"); len(attachments) > 0 {
+		for _, filePath := range attachments {
+			att, err := client.UploadAttachment(wp.ID, filePath, "")
+			if err != nil {
+				fmt.Printf("  Warning: failed to attach %s: %s\n", filePath, err)
+				continue
+			}
+			fmt.Printf("  Attached: %s (%d bytes)\n", att.FileName, att.FileSize)
+		}
+	}
+
 	return nil
 }
