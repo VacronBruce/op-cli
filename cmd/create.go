@@ -6,6 +6,7 @@ import (
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/display"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var createCmd = &cobra.Command{
@@ -28,7 +29,8 @@ func init() {
 	createCmd.Flags().String("priority", "Normal", "Priority (Low, Normal, High, Immediate)")
 	createCmd.Flags().StringP("description", "d", "", "Description (markdown)")
 	createCmd.Flags().Int("points", 0, "Story points")
-	createCmd.Flags().String("sprint", "", "Sprint/version name")
+	createCmd.Flags().String("sprint", "", "Sprint/version name (default from config)")
+	_ = viper.BindPFlag("sprint", createCmd.Flags().Lookup("sprint"))
 	createCmd.Flags().String("start", "", "Start date (YYYY-MM-DD)")
 	createCmd.Flags().String("due", "", "Due date (YYYY-MM-DD)")
 	createCmd.Flags().String("parent", "", "Parent work package ID")
@@ -99,8 +101,8 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		req.SetLink("assignee", api.Link{Href: user.Href})
 	}
 
-	// Optional: sprint/version
-	if sprintName, _ := cmd.Flags().GetString("sprint"); sprintName != "" {
+	// Optional: sprint/version (flag overrides config)
+	if sprintName := viper.GetString("sprint"); sprintName != "" {
 		versions, err := client.ListVersions(project)
 		if err != nil {
 			return fmt.Errorf("listing versions: %w", err)
