@@ -65,12 +65,12 @@ func runMy(cmd *cobra.Command, args []string) error {
 	noSprint, _ := cmd.Flags().GetBool("no-sprint")
 	if !noSprint {
 		sprintName, _ := cmd.Flags().GetString("sprint")
-		versionID, sprintLabel, err := resolveSprintID(project, sprintName)
+		version, err := client.ResolveVersion(project, sprintName)
 		if err != nil {
 			return err
 		}
-		filters = append(filters, api.NewFilter("version", "=", versionID))
-		fmt.Printf("Sprint: %s\n", sprintLabel)
+		filters = append(filters, api.NewFilter("version", "=", fmt.Sprintf("%d", version.ID)))
+		fmt.Printf("Sprint: %s\n", version.Name)
 	}
 
 	result, err := client.ListWorkPackages(project, filters,
@@ -91,14 +91,14 @@ func runMyTeam(cmd *cobra.Command, args []string) error {
 	}
 
 	sprintName, _ := cmd.Flags().GetString("sprint")
-	versionID, sprintLabel, err := resolveSprintID(project, sprintName)
+	version, err := client.ResolveVersion(project, sprintName)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Sprint: %s\n", sprintLabel)
+	fmt.Printf("Sprint: %s\n", version.Name)
 
 	filters := []api.Filter{
-		api.NewFilter("version", "=", versionID),
+		api.NewFilter("version", "=", fmt.Sprintf("%d", version.ID)),
 		api.NewFilter("status", "o", ""),
 	}
 
@@ -109,26 +109,4 @@ func runMyTeam(cmd *cobra.Command, args []string) error {
 
 	display.GroupByAssignee(result.Embedded.Elements)
 	return nil
-}
-
-// resolveSprintID finds the version ID by name or returns the active sprint.
-func resolveSprintID(project, sprintName string) (string, string, error) {
-	if sprintName != "" {
-		versions, err := client.ListVersions(project)
-		if err != nil {
-			return "", "", fmt.Errorf("listing versions: %w", err)
-		}
-		for _, v := range versions.Embedded.Elements {
-			if v.Name == sprintName {
-				return fmt.Sprintf("%d", v.ID), v.Name, nil
-			}
-		}
-		return "", "", fmt.Errorf("sprint %q not found", sprintName)
-	}
-
-	sprint, err := client.FindActiveSprint(project)
-	if err != nil {
-		return "", "", err
-	}
-	return fmt.Sprintf("%d", sprint.ID), sprint.Name, nil
 }

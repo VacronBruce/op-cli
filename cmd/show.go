@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -86,11 +85,6 @@ func runShow(cmd *cobra.Command, args []string) error {
 }
 
 func downloadAttachment(href, outPath string) error {
-	// The href may be relative or absolute
-	var resp *json.RawMessage
-	_ = resp
-
-	// Use the client's do method to get authenticated download
 	httpResp, err := client.DoRaw("GET", href)
 	if err != nil {
 		return err

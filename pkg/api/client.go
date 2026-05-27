@@ -14,6 +14,38 @@ import (
 	"time"
 )
 
+// APIClient defines the interface for OpenProject API operations.
+// *Client satisfies this interface. Tests can inject a mock implementation.
+type APIClient interface {
+	RequireProject() (string, error)
+	Get(path string, result interface{}) error
+	Post(path string, body interface{}, result interface{}) error
+	Patch(path string, body interface{}, result interface{}) error
+	DoRaw(method, href string) (*http.Response, error)
+
+	// Work packages
+	GetWorkPackage(id int) (*WorkPackage, error)
+	ListWorkPackages(project string, filters []Filter, sortBy string, pageSize int) (*WPCollection, error)
+	CreateWorkPackage(project string, req *CreateWPRequest) (*WorkPackage, error)
+	UpdateWorkPackage(id int, req *UpdateWPRequest) (*WorkPackage, error)
+
+	// Versions/sprints
+	ListVersions(project string) (*VersionCollection, error)
+	CreateVersion(req *CreateVersionRequest) (*Version, error)
+	FindActiveSprint(project string) (*Version, error)
+	ResolveVersion(project, name string) (*Version, error)
+
+	// Projects
+	ListProjects() (*ProjectCollection, error)
+	GetProject(identifier string) (*Project, error)
+
+	// Users
+	GetMe() (*User, error)
+
+	// Attachments
+	UploadAttachment(wpID int, filePath string, description string) (*Attachment, error)
+}
+
 // Client is the OpenProject API v3 client.
 type Client struct {
 	BaseURL    string

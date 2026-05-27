@@ -31,33 +31,14 @@ func runBoard(cmd *cobra.Command, args []string) error {
 	}
 
 	sprintName, _ := cmd.Flags().GetString("sprint")
-
-	var versionID string
-	if sprintName != "" {
-		versions, err := client.ListVersions(project)
-		if err != nil {
-			return fmt.Errorf("listing versions: %w", err)
-		}
-		for _, v := range versions.Embedded.Elements {
-			if v.Name == sprintName {
-				versionID = fmt.Sprintf("%d", v.ID)
-				break
-			}
-		}
-		if versionID == "" {
-			return fmt.Errorf("sprint %q not found", sprintName)
-		}
-	} else {
-		sprint, err := client.FindActiveSprint(project)
-		if err != nil {
-			return err
-		}
-		versionID = fmt.Sprintf("%d", sprint.ID)
-		fmt.Printf("Sprint: %s\n", sprint.Name)
+	version, err := client.ResolveVersion(project, sprintName)
+	if err != nil {
+		return err
 	}
+	fmt.Printf("Sprint: %s\n", version.Name)
 
 	filters := []api.Filter{
-		api.NewFilter("version", "=", versionID),
+		api.NewFilter("version", "=", fmt.Sprintf("%d", version.ID)),
 	}
 
 	result, err := client.ListWorkPackages(project, filters, "", 200)

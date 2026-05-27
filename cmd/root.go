@@ -10,7 +10,12 @@ import (
 	"github.com/spf13/viper"
 )
 
-var client *api.Client
+var client api.APIClient
+
+// SetClient allows tests to inject a mock client.
+func SetClient(c api.APIClient) {
+	client = c
+}
 
 var rootCmd = &cobra.Command{
 	Use:   "op",

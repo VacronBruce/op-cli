@@ -17,7 +17,7 @@ type NamedResource struct {
 
 // Resolver caches types, statuses, priorities, and users for name→href lookup.
 type Resolver struct {
-	client     *Client
+	client     APIClient
 	project    string
 	mu         sync.Mutex
 	types      []NamedResource
@@ -27,8 +27,8 @@ type Resolver struct {
 }
 
 // NewResolver creates a resolver attached to the given client.
-func NewResolver(c *Client) *Resolver {
-	return &Resolver{client: c, project: c.Project}
+func NewResolver(c APIClient, project string) *Resolver {
+	return &Resolver{client: c, project: project}
 }
 
 type collectionResponse struct {
@@ -225,8 +225,8 @@ func (r *Resolver) ResolveUser(name string) (NamedResource, error) {
 	return NamedResource{}, fmt.Errorf("unknown user %q, available: %s", name, strings.Join(names, ", "))
 }
 
-// CustomFieldOption maps for the App project.
-// These are the known custom field IDs and their option values.
+// TODO: make configurable via .oprc custom_fields section.
+// Currently hardcoded for the epochbase.com OpenProject instance.
 var (
 	// Components (customField12)
 	ComponentOptions = map[string]string{

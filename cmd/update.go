@@ -39,7 +39,8 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid work package ID: %s", args[0])
 	}
 
-	resolver := api.NewResolver(client)
+	project, _ := client.RequireProject()
+	resolver := api.NewResolver(client, project)
 	req := &api.UpdateWPRequest{
 		Links: make(map[string]api.LinkValue),
 	}
@@ -96,25 +97,14 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 	// Sprint
 	if sprintName, _ := cmd.Flags().GetString("sprint"); sprintName != "" {
-		project, err := client.RequireProject()
+		if project == "" {
+			return fmt.Errorf("no project specified: use -p flag or set OP_PROJECT")
+		}
+		version, err := client.ResolveVersion(project, sprintName)
 		if err != nil {
-			return err
+			return fmt.Errorf("resolving sprint: %w", err)
 		}
-		versions, err := client.ListVersions(project)
-		if err != nil {
-			return fmt.Errorf("listing versions: %w", err)
-		}
-		found := false
-		for _, v := range versions.Embedded.Elements {
-			if v.Name == sprintName {
-				req.Links["version"] = api.Link{Href: v.Links.Self.Href}
-				found = true
-				break
-			}
-		}
-		if !found {
-			return fmt.Errorf("sprint %q not found", sprintName)
-		}
+		req.Links["version"] = api.Link{Href: version.Links.Self.Href}
 		hasChanges = true
 	}
 

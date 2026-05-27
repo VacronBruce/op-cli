@@ -30,7 +30,8 @@ func runAssign(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid work package ID: %s", args[0])
 	}
 
-	resolver := api.NewResolver(client)
+	project, _ := client.RequireProject()
+	resolver := api.NewResolver(client, project)
 	user, err := resolver.ResolveUser(args[1])
 	if err != nil {
 		return fmt.Errorf("resolving user: %w", err)

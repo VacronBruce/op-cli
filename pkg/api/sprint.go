@@ -66,3 +66,20 @@ func (c *Client) FindActiveSprint(project string) (*Version, error) {
 
 	return nil, fmt.Errorf("no active sprint found in project %q", project)
 }
+
+// ResolveVersion finds a version by name, or returns the active sprint if name is empty.
+func (c *Client) ResolveVersion(project, name string) (*Version, error) {
+	if name == "" {
+		return c.FindActiveSprint(project)
+	}
+	versions, err := c.ListVersions(project)
+	if err != nil {
+		return nil, fmt.Errorf("listing versions: %w", err)
+	}
+	for _, v := range versions.Embedded.Elements {
+		if v.Name == name {
+			return &v, nil
+		}
+	}
+	return nil, fmt.Errorf("sprint %q not found", name)
+}

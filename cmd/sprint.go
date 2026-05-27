@@ -88,27 +88,9 @@ func runSprintAdd(cmd *cobra.Command, args []string) error {
 
 	// Find target sprint
 	sprintName, _ := cmd.Flags().GetString("sprint")
-	var targetVersion *api.Version
-
-	if sprintName != "" {
-		versions, err := client.ListVersions(project)
-		if err != nil {
-			return err
-		}
-		for _, v := range versions.Embedded.Elements {
-			if v.Name == sprintName {
-				targetVersion = &v
-				break
-			}
-		}
-		if targetVersion == nil {
-			return fmt.Errorf("sprint %q not found", sprintName)
-		}
-	} else {
-		targetVersion, err = client.FindActiveSprint(project)
-		if err != nil {
-			return err
-		}
+	targetVersion, err := client.ResolveVersion(project, sprintName)
+	if err != nil {
+		return err
 	}
 
 	points, _ := cmd.Flags().GetInt("points")

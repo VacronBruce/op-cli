@@ -51,7 +51,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	typeName := args[0]
 	subject := args[1]
 
-	resolver := api.NewResolver(client)
+	resolver := api.NewResolver(client, project)
 
 	// Resolve type
 	wpType, err := resolver.ResolveType(typeName)
@@ -103,21 +103,11 @@ func runCreate(cmd *cobra.Command, args []string) error {
 
 	// Optional: sprint/version (flag overrides config)
 	if sprintName := viper.GetString("sprint"); sprintName != "" {
-		versions, err := client.ListVersions(project)
+		version, err := client.ResolveVersion(project, sprintName)
 		if err != nil {
-			return fmt.Errorf("listing versions: %w", err)
+			return fmt.Errorf("resolving sprint: %w", err)
 		}
-		found := false
-		for _, v := range versions.Embedded.Elements {
-			if v.Name == sprintName {
-				req.SetLink("version", api.Link{Href: v.Links.Self.Href})
-				found = true
-				break
-			}
-		}
-		if !found {
-			return fmt.Errorf("sprint %q not found", sprintName)
-		}
+		req.SetLink("version", api.Link{Href: version.Links.Self.Href})
 	}
 
 	// Optional: epic
