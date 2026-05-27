@@ -4,16 +4,19 @@ stages:
 
 variables:
   GO_VERSION: "1.24.2"
-  GOROOT: /tmp/go
+  GOROOT: /tmp/goroot/go
   GOPATH: /tmp/gopath
+  GOMODCACHE: /tmp/gomodcache
 
 before_script:
-  - export PATH=/tmp/go/bin:/tmp/gopath/bin:$PATH
+  - export PATH=/tmp/goroot/go/bin:/tmp/gopath/bin:$PATH
+  - export GOMODCACHE=/tmp/gomodcache
   - |
-    if [ ! -x /tmp/go/bin/go ]; then
+    if [ ! -x /tmp/goroot/go/bin/go ]; then
       echo "Installing Go ${GO_VERSION}..."
+      mkdir -p /tmp/goroot
       wget -q "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -O /tmp/go.tar.gz
-      tar -C /tmp -xzf /tmp/go.tar.gz
+      tar -C /tmp/goroot -xzf /tmp/go.tar.gz
       rm /tmp/go.tar.gz
     fi
   - go version
