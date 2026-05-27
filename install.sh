@@ -2,62 +2,41 @@
 set -e
 
 # op-cli installer
-# Usage: curl -fsSL https://gitlab-tw.ddns.net/gmedtn/op-cli/uploads/5c6f8b8930a81dd63249a3a37ae8e7fe/install.sh | bash
+# Usage:
+#   git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git && cd op-cli && bash install.sh
 
-GITLAB_URL="https://gitlab-tw.ddns.net"
-PROJECT="gmedtn/op-cli"
 VERSION="v0.3.0"
 INSTALL_DIR="/usr/local/bin"
 OP_URL="https://openpr.epochbase.com"
-
-# Package registry URLs (works for authenticated GitLab users)
-PKG_BASE="${GITLAB_URL}/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/${VERSION#v}"
-declare -A BINARY_URLS
-BINARY_URLS[op-darwin-arm64]="${PKG_BASE}/op-darwin-arm64"
-BINARY_URLS[op-darwin-amd64]="${PKG_BASE}/op-darwin-amd64"
-BINARY_URLS[op-linux-amd64]="${PKG_BASE}/op-linux-amd64"
 
 echo "================================"
 echo "  op-cli installer ($VERSION)"
 echo "================================"
 echo ""
 
-# Detect platform
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-ARCH=$(uname -m)
+# Step 1: Build or locate binary
+echo "1/3 Building op binary..."
 
-case "$OS" in
-  darwin) OS="darwin" ;;
-  linux)  OS="linux" ;;
-  *)      echo "Error: unsupported OS: $OS"; exit 1 ;;
-esac
-
-case "$ARCH" in
-  arm64|aarch64) ARCH="arm64" ;;
-  x86_64|amd64)  ARCH="amd64" ;;
-  *)             echo "Error: unsupported architecture: $ARCH"; exit 1 ;;
-esac
-
-BINARY="op-${OS}-${ARCH}"
-DOWNLOAD_URL="${BINARY_URLS[$BINARY]}"
-
-if [ -z "$DOWNLOAD_URL" ]; then
-  echo "Error: no binary available for ${BINARY}"
-  exit 1
-fi
-
-echo "Platform: ${OS}/${ARCH}"
-echo "Binary:   ${BINARY}"
-echo ""
-
-# Download binary
-echo "1/3 Downloading ${BINARY}..."
-if command -v curl &>/dev/null; then
-  curl -fSL -o /tmp/op "$DOWNLOAD_URL"
-elif command -v wget &>/dev/null; then
-  wget -q -O /tmp/op "$DOWNLOAD_URL"
+if [ -f "go.mod" ] && [ -f "main.go" ]; then
+  # We're inside the cloned repo — build from source
+  if command -v go &>/dev/null; then
+    echo "    Building from source..."
+    go build -o /tmp/op .
+    echo "    Built successfully."
+  else
+    echo "    Error: Go is required to build from source."
+    echo "    Install Go: https://go.dev/dl/"
+    echo ""
+    echo "    Or download a pre-built binary from:"
+    echo "    https://gitlab-tw.ddns.net/gmedtn/op-cli/-/releases/${VERSION}"
+    exit 1
+  fi
 else
-  echo "Error: curl or wget required"
+  echo "    Error: Run this script from the op-cli repo directory."
+  echo ""
+  echo "    git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git"
+  echo "    cd op-cli"
+  echo "    bash install.sh"
   exit 1
 fi
 
@@ -73,7 +52,7 @@ fi
 echo "    Done: $(which op)"
 echo ""
 
-# Config setup
+# Step 2: Config setup
 echo "2/3 Config setup"
 if [ -f "$HOME/.oprc" ]; then
   echo "    Config already exists at ~/.oprc, skipping."
@@ -114,7 +93,7 @@ EOF
 fi
 echo ""
 
-# Install Claude Code skill (embedded — no extra download needed)
+# Step 3: Install Claude Code skill (embedded)
 echo "3/3 Claude Code skill"
 SKILL_DIR="$HOME/.claude/skills/openproject"
 if command -v claude &>/dev/null || [ -d "$HOME/.claude" ]; then
