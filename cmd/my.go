@@ -14,8 +14,10 @@ var myCmd = &cobra.Command{
 	Long: `List work packages assigned to you.
 
 Examples:
-  op my
-  op my --all   (include closed items)`,
+  op my                              (current sprint)
+  op my --sprint="App_05/19/2026"    (specific sprint)
+  op my --all                        (include closed items)
+  op my --no-sprint                  (all items, no sprint filter)`,
 	RunE: runMy,
 }
 
@@ -34,6 +36,8 @@ func init() {
 	rootCmd.AddCommand(myCmd)
 	rootCmd.AddCommand(myTeamCmd)
 	myCmd.Flags().Bool("all", false, "Include closed items")
+	myCmd.Flags().String("sprint", "", "Sprint name (defaults to active sprint)")
+	myCmd.Flags().Bool("no-sprint", false, "Show all items without sprint filter")
 	myTeamCmd.Flags().String("sprint", "", "Sprint name (defaults to active sprint)")
 }
 
@@ -54,8 +58,19 @@ func runMy(cmd *cobra.Command, args []string) error {
 
 	showAll, _ := cmd.Flags().GetBool("all")
 	if !showAll {
-		// Exclude closed statuses
 		filters = append(filters, api.NewFilter("status", "o", ""))
+	}
+
+	// Sprint filter
+	noSprint, _ := cmd.Flags().GetBool("no-sprint")
+	if !noSprint {
+		sprintName, _ := cmd.Flags().GetString("sprint")
+		versionID, sprintLabel, err := resolveSprintID(project, sprintName)
+		if err != nil {
+			return err
+		}
+		filters = append(filters, api.NewFilter("version", "=", versionID))
+		fmt.Printf("Sprint: %s\n", sprintLabel)
 	}
 
 	result, err := client.ListWorkPackages(project, filters,
@@ -76,30 +91,11 @@ func runMyTeam(cmd *cobra.Command, args []string) error {
 	}
 
 	sprintName, _ := cmd.Flags().GetString("sprint")
-
-	var versionID string
-	if sprintName != "" {
-		versions, err := client.ListVersions(project)
-		if err != nil {
-			return fmt.Errorf("listing versions: %w", err)
-		}
-		for _, v := range versions.Embedded.Elements {
-			if v.Name == sprintName {
-				versionID = fmt.Sprintf("%d", v.ID)
-				break
-			}
-		}
-		if versionID == "" {
-			return fmt.Errorf("sprint %q not found", sprintName)
-		}
-	} else {
-		sprint, err := client.FindActiveSprint(project)
-		if err != nil {
-			return err
-		}
-		versionID = fmt.Sprintf("%d", sprint.ID)
-		fmt.Printf("Sprint: %s\n", sprint.Name)
+	versionID, sprintLabel, err := resolveSprintID(project, sprintName)
+	if err != nil {
+		return err
 	}
+	fmt.Printf("Sprint: %s\n", sprintLabel)
 
 	filters := []api.Filter{
 		api.NewFilter("version", "=", versionID),
@@ -113,4 +109,26 @@ func runMyTeam(cmd *cobra.Command, args []string) error {
 
 	display.GroupByAssignee(result.Embedded.Elements)
 	return nil
+}
+
+// resolveSprintID finds the version ID by name or returns the active sprint.
+func resolveSprintID(project, sprintName string) (string, string, error) {
+	if sprintName != "" {
+		versions, err := client.ListVersions(project)
+		if err != nil {
+			return "", "", fmt.Errorf("listing versions: %w", err)
+		}
+		for _, v := range versions.Embedded.Elements {
+			if v.Name == sprintName {
+				return fmt.Sprintf("%d", v.ID), v.Name, nil
+			}
+		}
+		return "", "", fmt.Errorf("sprint %q not found", sprintName)
+	}
+
+	sprint, err := client.FindActiveSprint(project)
+	if err != nil {
+		return "", "", err
+	}
+	return fmt.Sprintf("%d", sprint.ID), sprint.Name, nil
 }
