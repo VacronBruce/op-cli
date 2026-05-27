@@ -55,23 +55,37 @@ type WPCollection struct {
 	} `json:"_embedded"`
 }
 
+// LinkValue can be a single Link or a []Link for multi-value custom fields.
+// Both serialize correctly to JSON.
+type LinkValue interface{}
+
 // CreateWPRequest is the request body for creating a work package.
 type CreateWPRequest struct {
-	Subject     string       `json:"subject"`
-	Description *Formattable `json:"description,omitempty"`
-	StoryPoints *int         `json:"storyPoints,omitempty"`
-	StartDate   string       `json:"startDate,omitempty"`
-	DueDate     string       `json:"dueDate,omitempty"`
-	Links       map[string]Link `json:"_links"`
+	Subject     string                `json:"subject"`
+	Description *Formattable          `json:"description,omitempty"`
+	StoryPoints *int                  `json:"storyPoints,omitempty"`
+	StartDate   string                `json:"startDate,omitempty"`
+	DueDate     string                `json:"dueDate,omitempty"`
+	Links       map[string]LinkValue  `json:"_links"`
+}
+
+// SetLink sets a single-value link field.
+func (r *CreateWPRequest) SetLink(field string, link Link) {
+	r.Links[field] = link
+}
+
+// SetMultiLink sets a multi-value link field (for custom fields like components, labels).
+func (r *CreateWPRequest) SetMultiLink(field string, links []Link) {
+	r.Links[field] = links
 }
 
 // UpdateWPRequest is the request body for updating a work package.
 type UpdateWPRequest struct {
-	Subject        string       `json:"subject,omitempty"`
-	Description    *Formattable `json:"description,omitempty"`
-	StoryPoints    *int         `json:"storyPoints,omitempty"`
-	PercentageDone *int         `json:"percentageDone,omitempty"`
-	Links          map[string]Link `json:"_links,omitempty"`
+	Subject        string              `json:"subject,omitempty"`
+	Description    *Formattable        `json:"description,omitempty"`
+	StoryPoints    *int                `json:"storyPoints,omitempty"`
+	PercentageDone *int                `json:"percentageDone,omitempty"`
+	Links          map[string]LinkValue `json:"_links,omitempty"`
 }
 
 // ListWorkPackages lists work packages with optional filters.

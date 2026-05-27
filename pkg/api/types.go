@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"sync"
 )
@@ -17,6 +18,7 @@ type NamedResource struct {
 // Resolver caches types, statuses, priorities, and users for name→href lookup.
 type Resolver struct {
 	client     *Client
+	project    string
 	mu         sync.Mutex
 	types      []NamedResource
 	statuses   []NamedResource
@@ -26,7 +28,7 @@ type Resolver struct {
 
 // NewResolver creates a resolver attached to the given client.
 func NewResolver(c *Client) *Resolver {
-	return &Resolver{client: c}
+	return &Resolver{client: c, project: c.Project}
 }
 
 type collectionResponse struct {
@@ -119,7 +121,8 @@ func (r *Resolver) Priorities() ([]NamedResource, error) {
 	return r.priorities, nil
 }
 
-// Users returns all visible users (cached).
+// Users returns available assignees for the project (cached).
+// Falls back to global /users if no project is set.
 func (r *Resolver) Users() ([]NamedResource, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -128,7 +131,12 @@ func (r *Resolver) Users() ([]NamedResource, error) {
 		return r.users, nil
 	}
 
-	users, err := r.fetchCollection("/users?pageSize=200")
+	path := "/users?pageSize=200"
+	if r.project != "" {
+		path = fmt.Sprintf("/projects/%s/available_assignees?pageSize=200", r.project)
+	}
+
+	users, err := r.fetchCollection(path)
 	if err != nil {
 		return nil, fmt.Errorf("fetching users: %w", err)
 	}
@@ -215,4 +223,113 @@ func (r *Resolver) ResolveUser(name string) (NamedResource, error) {
 		names[i] = u.Name
 	}
 	return NamedResource{}, fmt.Errorf("unknown user %q, available: %s", name, strings.Join(names, ", "))
+}
+
+// CustomFieldOption maps for the App project.
+// These are the known custom field IDs and their option values.
+var (
+	// Components (customField12)
+	ComponentOptions = map[string]string{
+		"android":     "/api/v3/custom_options/42",
+		"ios":         "/api/v3/custom_options/43",
+		"ott":         "/api/v3/custom_options/44",
+		"engineering": "/api/v3/custom_options/45",
+		"analytics":   "/api/v3/custom_options/46",
+	}
+
+	// Product (customField4)
+	ProductOptions = map[string]string{
+		"eet":         "/api/v3/custom_options/237",
+		"entd":        "/api/v3/custom_options/238",
+		"others":      "/api/v3/custom_options/239",
+		"djy":         "/api/v3/custom_options/240",
+		"cntd":        "/api/v3/custom_options/241",
+		"competition": "/api/v3/custom_options/242",
+	}
+
+	// Tech Area (customField6)
+	TechAreaOptions = map[string]string{
+		"web":       "/api/v3/custom_options/255",
+		"adtech":    "/api/v3/custom_options/256",
+		"app":       "/api/v3/custom_options/259",
+		"video":     "/api/v3/custom_options/266",
+		"infra":     "/api/v3/custom_options/268",
+		"portal":    "/api/v3/custom_options/271",
+		"seo":       "/api/v3/custom_options/273",
+	}
+
+	// Labels (customField13)
+	LabelOptions = map[string]string{
+		"team#appios":     "/api/v3/custom_options/447",
+		"team#appandroid": "/api/v3/custom_options/448",
+		"team#appall":     "/api/v3/custom_options/452",
+		"team#web":        "/api/v3/custom_options/453",
+		"ntd":             "/api/v3/custom_options/449",
+		"seo":             "/api/v3/custom_options/450",
+		"roku":            "/api/v3/custom_options/451",
+	}
+)
+
+// ResolveCustomOption resolves a name to an href from a custom field option map.
+func ResolveCustomOption(options map[string]string, name string) (string, error) {
+	lower := strings.ToLower(name)
+	if href, ok := options[lower]; ok {
+		return href, nil
+	}
+	// Prefix match
+	for k, href := range options {
+		if strings.HasPrefix(k, lower) {
+			return href, nil
+		}
+	}
+	names := make([]string, 0, len(options))
+	for k := range options {
+		names = append(names, k)
+	}
+	return "", fmt.Errorf("unknown %q, available: %s", name, strings.Join(names, ", "))
+}
+
+// ResolveEpic finds an epic work package by name in the project.
+func (r *Resolver) ResolveEpic(name string) (NamedResource, error) {
+	if r.project == "" {
+		return NamedResource{}, fmt.Errorf("project required to resolve epic")
+	}
+
+	// Fetch epics (type ID 5)
+	filterJSON := url.QueryEscape(`[{"type":{"operator":"=","values":["5"]}}]`)
+	path := fmt.Sprintf("/projects/%s/work_packages?filters=%s&pageSize=50",
+		r.project, filterJSON)
+
+	var result struct {
+		Embedded struct {
+			Elements []struct {
+				ID      int    `json:"id"`
+				Subject string `json:"subject"`
+				Links   struct {
+					Self Link `json:"self"`
+				} `json:"_links"`
+			} `json:"elements"`
+		} `json:"_embedded"`
+	}
+
+	if err := r.client.Get(path, &result); err != nil {
+		return NamedResource{}, fmt.Errorf("fetching epics: %w", err)
+	}
+
+	lower := strings.ToLower(name)
+	for _, e := range result.Embedded.Elements {
+		if strings.Contains(strings.ToLower(e.Subject), lower) {
+			return NamedResource{
+				ID:   e.ID,
+				Name: e.Subject,
+				Href: e.Links.Self.Href,
+			}, nil
+		}
+	}
+
+	var names []string
+	for _, e := range result.Embedded.Elements {
+		names = append(names, e.Subject)
+	}
+	return NamedResource{}, fmt.Errorf("unknown epic %q, available: %s", name, strings.Join(names, ", "))
 }

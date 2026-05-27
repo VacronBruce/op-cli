@@ -37,8 +37,8 @@ func runAssign(cmd *cobra.Command, args []string) error {
 	}
 
 	req := &api.UpdateWPRequest{
-		Links: map[string]api.Link{
-			"assignee": {Href: user.Href},
+		Links: map[string]api.LinkValue{
+			"assignee": api.Link{Href: user.Href},
 		},
 	}
 

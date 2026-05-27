@@ -41,7 +41,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 	resolver := api.NewResolver(client)
 	req := &api.UpdateWPRequest{
-		Links: make(map[string]api.Link),
+		Links: make(map[string]api.LinkValue),
 	}
 
 	hasChanges := false

@@ -121,8 +121,8 @@ func runSprintAdd(cmd *cobra.Command, args []string) error {
 		}
 
 		req := &api.UpdateWPRequest{
-			Links: map[string]api.Link{
-				"version": {Href: targetVersion.Links.Self.Href},
+			Links: map[string]api.LinkValue{
+				"version": api.Link{Href: targetVersion.Links.Self.Href},
 			},
 		}
 		if points > 0 {
