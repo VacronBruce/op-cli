@@ -4,16 +4,17 @@ stages:
 
 variables:
   GO_VERSION: "1.24.2"
-  GOROOT: /usr/local/go
+  GOROOT: ${CI_PROJECT_DIR}/.goroot/go
   GOPATH: ${CI_PROJECT_DIR}/.go
 
 before_script:
-  - export PATH=/usr/local/go/bin:${CI_PROJECT_DIR}/.go/bin:$PATH
+  - export PATH=${CI_PROJECT_DIR}/.goroot/go/bin:${CI_PROJECT_DIR}/.go/bin:$PATH
   - |
     if ! command -v go >/dev/null 2>&1; then
       echo "Installing Go ${GO_VERSION}..."
+      mkdir -p ${CI_PROJECT_DIR}/.goroot
       wget -q "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -O /tmp/go.tar.gz
-      tar -C /usr/local -xzf /tmp/go.tar.gz
+      tar -C ${CI_PROJECT_DIR}/.goroot -xzf /tmp/go.tar.gz
       rm /tmp/go.tar.gz
     fi
   - go version
