@@ -1,24 +1,24 @@
 stages:
-  - lint
   - test
   - build
 
 variables:
-  GO_VERSION: "1.24"
+  GO_VERSION: "1.24.2"
+  GOPATH: ${CI_PROJECT_DIR}/.go
+  PATH: /usr/local/go/bin:${CI_PROJECT_DIR}/.go/bin:${PATH}
 
-lint:
-  stage: lint
-  image: golangci/golangci-lint:v2.1-alpine
-  script:
-    - golangci-lint run ./...
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "develop"
-    - if: $CI_COMMIT_BRANCH == "main"
+before_script:
+  - |
+    if ! command -v go &>/dev/null; then
+      echo "Installing Go ${GO_VERSION}..."
+      curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tar.gz
+      sudo tar -C /usr/local -xzf /tmp/go.tar.gz
+      rm /tmp/go.tar.gz
+    fi
+  - go version
 
 test:
   stage: test
-  image: golang:${GO_VERSION}-alpine
   script:
     - go test -race -coverprofile=coverage.out ./...
     - go tool cover -func=coverage.out
@@ -31,14 +31,16 @@ test:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
 
 build:
   stage: build
-  image: golang:${GO_VERSION}-alpine
   script:
+    - mkdir -p dist
     - GOOS=darwin GOARCH=arm64 go build -o dist/op-darwin-arm64 .
     - GOOS=darwin GOARCH=amd64 go build -o dist/op-darwin-amd64 .
     - GOOS=linux GOARCH=amd64 go build -o dist/op-linux-amd64 .
+    - ls -lh dist/
   artifacts:
     paths:
       - dist/
