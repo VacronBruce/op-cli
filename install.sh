@@ -71,17 +71,20 @@ else
   echo "You need an API key from: ${OP_URL}"
   echo "Go to: My Account > Access Tokens > Create new token"
   echo ""
-  read -p "Paste your API key: " API_KEY
+  # Read from /dev/tty so it works even when piped (curl | bash)
+  read -p "Paste your API key: " API_KEY < /dev/tty
 
   if [ -z "$API_KEY" ]; then
     echo "No API key provided. You can set it later in ~/.oprc"
     cat > "$HOME/.oprc" <<EOF
 url: ${OP_URL}
 api_key: YOUR_API_KEY_HERE
-# project: web
+# project: app
+# sprint: "App_05/19/2026"
 EOF
   else
-    read -p "Default project (leave empty to skip): " DEFAULT_PROJECT
+    read -p "Default project (leave empty to skip): " DEFAULT_PROJECT < /dev/tty
+    read -p "Default sprint (leave empty to skip): " DEFAULT_SPRINT < /dev/tty
 
     cat > "$HOME/.oprc" <<EOF
 url: ${OP_URL}
@@ -90,6 +93,9 @@ EOF
 
     if [ -n "$DEFAULT_PROJECT" ]; then
       echo "project: ${DEFAULT_PROJECT}" >> "$HOME/.oprc"
+    fi
+    if [ -n "$DEFAULT_SPRINT" ]; then
+      echo "sprint: \"${DEFAULT_SPRINT}\"" >> "$HOME/.oprc"
     fi
   fi
 
