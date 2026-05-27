@@ -54,22 +54,69 @@ if [ -f "go.mod" ] && [ -f "main.go" ]; then
     echo "    Install Go from https://go.dev/dl/ or use the curl method instead."
     exit 1
   fi
-elif [ -n "$GITLAB_TOKEN" ]; then
-  # Mode: curl — download pre-built binary
-  echo "    Downloading ${BINARY}..."
-  curl -fsSL -o /tmp/op-install -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "${PKG_URL}/${BINARY}"
-  echo "    Downloaded."
 else
-  echo "    Error: No source code found and no GITLAB_TOKEN set."
-  echo ""
-  echo "    Option A — curl install (need GitLab personal access token):"
-  echo "      export GITLAB_TOKEN=your-gitlab-token"
-  echo "      curl -fsSH \"PRIVATE-TOKEN: \$GITLAB_TOKEN\" ${PKG_URL}/install.sh | GITLAB_TOKEN=\$GITLAB_TOKEN bash"
-  echo ""
-  echo "    Option B — clone install (need Go + SSH access):"
-  echo "      git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git"
-  echo "      cd op-cli && git checkout develop && bash install.sh"
-  exit 1
+  # Mode: download pre-built binary
+  # Try to get a GitLab token from: env var → glab CLI → prompt user
+
+  if [ -z "$GITLAB_TOKEN" ]; then
+    # Try glab CLI
+    if command -v glab &>/dev/null; then
+      echo "    Found glab CLI, checking auth..."
+      GLAB_TOKEN=$(GITLAB_HOST=gitlab-tw.ddns.net glab auth status -t 2>&1 | grep "Token:" | head -1 | awk '{print $NF}')
+      if [ -n "$GLAB_TOKEN" ] && [ "$GLAB_TOKEN" != "**************************" ]; then
+        GITLAB_TOKEN="$GLAB_TOKEN"
+        echo "    Using token from glab."
+      else
+        # glab is authenticated but token is masked — use glab to download instead
+        echo "    Using glab to download ${BINARY}..."
+        GITLAB_HOST=gitlab-tw.ddns.net glab release download v${VERSION} \
+          --repo gmedtn/op-cli --include-external \
+          --asset-name="${BINARY}" -D /tmp 2>/dev/null
+        if [ -f "/tmp/${BINARY}" ]; then
+          mv "/tmp/${BINARY}" /tmp/op-install
+          echo "    Downloaded via glab."
+          DOWNLOADED=true
+        fi
+      fi
+    fi
+  fi
+
+  # If glab didn't work, try curl with token
+  if [ -z "$DOWNLOADED" ]; then
+    if [ -z "$GITLAB_TOKEN" ]; then
+      echo ""
+      echo "    GitLab authentication required to download the binary."
+      echo ""
+      echo "    You need a GitLab Personal Access Token (PAT):"
+      echo "    1. Go to: https://gitlab-tw.ddns.net/-/user_settings/personal_access_tokens"
+      echo "    2. Create a token with 'read_api' scope"
+      echo ""
+      read -p "    Paste your GitLab token (or press Enter to skip): " GITLAB_TOKEN < /dev/tty
+
+      if [ -z "$GITLAB_TOKEN" ]; then
+        echo ""
+        echo "    No token provided. Alternative install methods:"
+        echo ""
+        echo "    Option A — set token and retry:"
+        echo "      export GITLAB_TOKEN=your-gitlab-token"
+        echo "      bash install.sh"
+        echo ""
+        echo "    Option B — use glab CLI:"
+        echo "      brew install glab"
+        echo "      GITLAB_HOST=gitlab-tw.ddns.net glab auth login"
+        echo "      bash install.sh"
+        echo ""
+        echo "    Option C — clone and build (needs Go):"
+        echo "      git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git"
+        echo "      cd op-cli && git checkout develop && bash install.sh"
+        exit 1
+      fi
+    fi
+
+    echo "    Downloading ${BINARY}..."
+    curl -fsSL -o /tmp/op-install -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "${PKG_URL}/${BINARY}"
+    echo "    Downloaded."
+  fi
 fi
 
 chmod +x /tmp/op-install
