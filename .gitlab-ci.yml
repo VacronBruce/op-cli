@@ -2,29 +2,13 @@ stages:
   - test
   - build
 
-variables:
-  GO_VERSION: "1.24.2"
-  GOROOT: /tmp/goroot/go
-  GOPATH: /tmp/gopath
-  GOMODCACHE: /tmp/gomodcache
-
-before_script:
-  - export PATH=/tmp/goroot/go/bin:/tmp/gopath/bin:$PATH
-  - export GOMODCACHE=/tmp/gomodcache
-  - |
-    if [ ! -x /tmp/goroot/go/bin/go ]; then
-      echo "Installing Go ${GO_VERSION}..."
-      mkdir -p /tmp/goroot
-      wget -q "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -O /tmp/go.tar.gz
-      tar -C /tmp/goroot -xzf /tmp/go.tar.gz
-      rm /tmp/go.tar.gz
-    fi
-  - go version
-
 test:
   stage: test
+  image: golang:1.24-alpine
+  variables:
+    CGO_ENABLED: "0"
   script:
-    - go test -race -coverprofile=coverage.out ./...
+    - go test -coverprofile=coverage.out ./...
     - go tool cover -func=coverage.out
   coverage: '/total:\s+\(statements\)\s+(\d+\.\d+)%/'
   artifacts:
@@ -39,6 +23,9 @@ test:
 
 build:
   stage: build
+  image: golang:1.24-alpine
+  variables:
+    CGO_ENABLED: "0"
   script:
     - mkdir -p dist
     - GOOS=darwin GOARCH=arm64 go build -o dist/op-darwin-arm64 .
