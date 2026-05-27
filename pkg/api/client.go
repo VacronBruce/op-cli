@@ -136,6 +136,34 @@ func (c *Client) Patch(path string, body interface{}, result interface{}) error 
 	return nil
 }
 
+// DoRaw performs an authenticated GET request and returns the raw response.
+// The href can be a full URL or a path relative to the API base.
+func (c *Client) DoRaw(method, href string) (*http.Response, error) {
+	url := href
+	if !strings.HasPrefix(href, "http") {
+		url = c.BaseURL + href
+	}
+
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	req.SetBasicAuth("apikey", c.APIKey)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("executing request: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		resp.Body.Close()
+		return nil, &APIError{StatusCode: resp.StatusCode, Message: fmt.Sprintf("HTTP %d", resp.StatusCode)}
+	}
+
+	return resp, nil
+}
+
 // RequireProject returns the project identifier or an error if not set.
 func (c *Client) RequireProject() (string, error) {
 	if c.Project == "" {
