@@ -10,11 +10,12 @@ VERSION="v0.3.0"
 INSTALL_DIR="/usr/local/bin"
 OP_URL="https://openpr.epochbase.com"
 
-# Direct upload URLs (these work for logged-in GitLab users without API auth)
+# Package registry URLs (works for authenticated GitLab users)
+PKG_BASE="${GITLAB_URL}/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/${VERSION#v}"
 declare -A BINARY_URLS
-BINARY_URLS[op-darwin-arm64]="${GITLAB_URL}/${PROJECT}/uploads/27966c315689016fe7d27eae2bf7a879/op-darwin-arm64"
-BINARY_URLS[op-darwin-amd64]="${GITLAB_URL}/${PROJECT}/uploads/2bf708f7797fa91830513678ff037332/op-darwin-amd64"
-BINARY_URLS[op-linux-amd64]="${GITLAB_URL}/${PROJECT}/uploads/e0951c2c56d7d985151555aa0c4082b9/op-linux-amd64"
+BINARY_URLS[op-darwin-arm64]="${PKG_BASE}/op-darwin-arm64"
+BINARY_URLS[op-darwin-amd64]="${PKG_BASE}/op-darwin-amd64"
+BINARY_URLS[op-linux-amd64]="${PKG_BASE}/op-linux-amd64"
 
 echo "================================"
 echo "  op-cli installer ($VERSION)"
