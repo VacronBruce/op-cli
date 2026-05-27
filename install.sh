@@ -105,6 +105,29 @@ fi
 
 echo ""
 
+# Install Claude Code skill
+SKILL_DIR="$HOME/.claude/skills/openproject"
+SKILL_URL="${GITLAB_URL}/${PROJECT}/-/raw/develop/skill/SKILL.md"
+
+echo "--- Claude Code Skill ---"
+if command -v claude &>/dev/null || [ -d "$HOME/.claude" ]; then
+  mkdir -p "$SKILL_DIR"
+  if curl -fsSL -o "${SKILL_DIR}/SKILL.md" "$SKILL_URL" 2>/dev/null; then
+    echo "Installed /openproject skill to ${SKILL_DIR}"
+    echo "Use '/openproject' in Claude Code for natural language access."
+  else
+    echo "Warning: could not download skill file. You can copy it manually from:"
+    echo "  ${SKILL_URL}"
+  fi
+else
+  echo "Claude Code not detected. Skipping skill installation."
+  echo "To install later, run:"
+  echo "  mkdir -p ~/.claude/skills/openproject"
+  echo "  curl -fsSL -o ~/.claude/skills/openproject/SKILL.md ${SKILL_URL}"
+fi
+
+echo ""
+
 # Verify
 echo "--- Verifying ---"
 if op projects 2>/dev/null | head -3; then
@@ -113,11 +136,15 @@ if op projects 2>/dev/null | head -3; then
   echo "  Setup complete!"
   echo "================================"
   echo ""
-  echo "Try these commands:"
+  echo "CLI commands:"
   echo "  op projects          # List all projects"
-  echo "  op board -p web      # Sprint board"
-  echo "  op my -p web         # My items"
+  echo "  op board             # Sprint board"
+  echo "  op my                # My items"
   echo "  op --help            # All commands"
+  echo ""
+  echo "Claude Code:"
+  echo "  /openproject show board"
+  echo "  /openproject create a bug for NTD+"
 else
   echo ""
   echo "Installed but could not connect."
