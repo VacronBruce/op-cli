@@ -1,0 +1,11 @@
+# OpenProject CLI configuration
+# Copy to ~/.oprc and fill in your values
+
+# Your OpenProject instance URL (required)
+url: https://openproject.example.com
+
+# API key from My Account > Access Tokens (required)
+api_key: your-api-key-here
+
+# Default project identifier (optional, can override with -p flag)
+project: my-project

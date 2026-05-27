@@ -1,0 +1,14 @@
+# Binary
+op
+op-cli
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# Config with secrets
+.oprc
