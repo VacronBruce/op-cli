@@ -5,6 +5,8 @@ stages:
 test:
   stage: test
   image: golang:1.24-alpine
+  tags:
+    - golang
   variables:
     CGO_ENABLED: "0"
   script:
@@ -24,6 +26,8 @@ test:
 build:
   stage: build
   image: golang:1.24-alpine
+  tags:
+    - golang
   variables:
     CGO_ENABLED: "0"
   script:
