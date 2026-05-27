@@ -11,7 +11,7 @@ set -e
 
 VERSION="0.3.0"
 GITLAB_URL="https://gitlab-tw.ddns.net"
-PKG_URL="${GITLAB_URL}/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/${VERSION}"
+PKG_URL="${GITLAB_URL}/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest"
 INSTALL_DIR="/usr/local/bin"
 OP_URL="https://openpr.epochbase.com"
 
@@ -69,7 +69,7 @@ else
       else
         # glab is authenticated but token is masked — use glab to download instead
         echo "    Using glab to download ${BINARY}..."
-        GITLAB_HOST=gitlab-tw.ddns.net glab release download v${VERSION} \
+        GITLAB_HOST=gitlab-tw.ddns.net glab release download \
           --repo gmedtn/op-cli --include-external \
           --asset-name="${BINARY}" -D /tmp 2>/dev/null
         if [ -f "/tmp/${BINARY}" ]; then
