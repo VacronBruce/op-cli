@@ -99,3 +99,30 @@ If you can't be sure something worked, say so explicitly.
 "Tests pass" is wrong if you skipped any.
 "Feature works" is wrong if you didn't verify the edge case I asked about.
 Default to surfacing uncertainty, not hiding it.
+
+## Release
+
+### GitLab release asset URLs
+
+**Use Generic Package Registry URLs** for release links. Do NOT use `/uploads/` paths.
+
+```
+# CORRECT — works with glab, curl + token, and browser cookie
+https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest/<filename>
+
+# WRONG — only works with browser cookie, fails with glab and curl
+https://gitlab-tw.ddns.net/gmedtn/op-cli/uploads/<hash>/<filename>
+```
+
+### Release process
+
+```bash
+export GITLAB_TOKEN=your-token
+bash release.sh v0.5.0
+```
+
+The script uploads to both `<version>/` and `latest/` in the package registry. Release links always point to `latest/` so developers get the newest version.
+
+### Browser download limitation
+
+The `/api/v4/` package registry URLs return 401 when clicked in browser (browser sends cookies, not API token). For browser downloads, the release page description tells users to use glab or clone instead. This is a GitLab limitation for internal repos — no workaround exists.
