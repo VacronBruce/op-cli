@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+# Don't use set -e — install scripts need to handle partial failures gracefully
 
 # op-cli installer
 #
@@ -47,7 +47,10 @@ if [ -f "go.mod" ] && [ -f "main.go" ]; then
   # Mode: clone — build from source
   if command -v go &>/dev/null; then
     echo "    Building from source..."
-    go build -o /tmp/op-install .
+    if ! go build -o /tmp/op-install .; then
+      echo "    Error: build failed."
+      exit 1
+    fi
     echo "    Built successfully."
   else
     echo "    Error: Go is required to build from source."
@@ -110,7 +113,10 @@ else
     fi
 
     echo "    Downloading ${BINARY}..."
-    curl -fsSL -o /tmp/op-install -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "${PKG_URL}/${BINARY}"
+    if ! curl -fsSL -o /tmp/op-install -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "${PKG_URL}/${BINARY}"; then
+      echo "    Error: download failed. Check your token."
+      exit 1
+    fi
     echo "    Downloaded."
   fi
 fi
@@ -123,7 +129,11 @@ if [ -w "$INSTALL_DIR" ]; then
 else
   sudo mv /tmp/op-install "${INSTALL_DIR}/op"
 fi
-echo "    Done: $(which op)"
+if ! command -v op &>/dev/null; then
+  echo "    Warning: op not found in PATH. You may need to add ${INSTALL_DIR} to your PATH."
+else
+  echo "    Done: $(which op)"
+fi
 echo ""
 
 # Step 2: Config
