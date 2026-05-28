@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/display"
@@ -31,6 +32,7 @@ func init() {
 	updateCmd.Flags().Int("done", -1, "Percentage done (0-100)")
 	updateCmd.Flags().String("subject", "", "New subject/title")
 	updateCmd.Flags().String("sprint", "", "Move to sprint/version")
+	updateCmd.Flags().StringSlice("component", nil, "Component (android, ios, ott, engineering, analytics)")
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {
@@ -39,7 +41,10 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid work package ID: %s", args[0])
 	}
 
-	project, _ := client.RequireProject()
+	project, err := client.RequireProject()
+	if err != nil {
+		return err
+	}
 	resolver := api.NewResolver(client, project)
 	req := &api.UpdateWPRequest{
 		Links: make(map[string]api.LinkValue),
@@ -108,8 +113,22 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		hasChanges = true
 	}
 
+	// Component (customField12, multi-value)
+	if components, _ := cmd.Flags().GetStringSlice("component"); len(components) > 0 {
+		var links []api.Link
+		for _, c := range components {
+			href, ok := api.ComponentOptions[strings.ToLower(c)]
+			if !ok {
+				return fmt.Errorf("unknown component %q", c)
+			}
+			links = append(links, api.Link{Href: href})
+		}
+		req.Links["customField12"] = links
+		hasChanges = true
+	}
+
 	if !hasChanges {
-		return fmt.Errorf("no changes specified (use --status, --assignee, --points, etc.)")
+		return fmt.Errorf("no changes specified (use --status, --assignee, --points, --component, etc.)")
 	}
 
 	// Remove empty links map to avoid sending it

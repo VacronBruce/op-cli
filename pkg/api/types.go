@@ -270,6 +270,21 @@ var (
 	}
 )
 
+// OptionID extracts the numeric ID from an option href and returns a filter.
+// Returns the option ID string and an error if the name is not found.
+func OptionID(options map[string]string, name string) (string, error) {
+	href, ok := options[strings.ToLower(name)]
+	if !ok {
+		names := make([]string, 0, len(options))
+		for k := range options {
+			names = append(names, k)
+		}
+		return "", fmt.Errorf("unknown value %q, available: %s", name, strings.Join(names, ", "))
+	}
+	parts := strings.Split(href, "/")
+	return parts[len(parts)-1], nil
+}
+
 // ResolveCustomOption resolves a name to an href from a custom field option map.
 func ResolveCustomOption(options map[string]string, name string) (string, error) {
 	lower := strings.ToLower(name)

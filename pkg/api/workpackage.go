@@ -34,6 +34,7 @@ type WPLinks struct {
 	Type       Link `json:"type"`
 	Status     Link `json:"status"`
 	Priority   Link `json:"priority"`
+	Author     Link `json:"author"`
 	Assignee   Link `json:"assignee"`
 	Project    Link `json:"project"`
 	Version    Link `json:"version"`

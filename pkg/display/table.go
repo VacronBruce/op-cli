@@ -39,6 +39,12 @@ func WorkPackageDetail(wp *api.WorkPackage) {
 	fmt.Printf("  Type:       %s\n", wp.Links.Type.Title)
 	fmt.Printf("  Status:     %s\n", wp.Links.Status.Title)
 	fmt.Printf("  Priority:   %s\n", wp.Links.Priority.Title)
+	if wp.Links.Author.Title != "" {
+		fmt.Printf("  Author:     %s\n", wp.Links.Author.Title)
+	}
+	if len(wp.CreatedAt) >= 10 {
+		fmt.Printf("  Created:    %s\n", wp.CreatedAt[:10])
+	}
 	fmt.Printf("  Assignee:   %s\n", assigneeName(*wp))
 	if wp.StoryPoints != nil {
 		fmt.Printf("  Points:     %d\n", *wp.StoryPoints)
@@ -94,6 +100,46 @@ func GroupByAssignee(wps []api.WorkPackage) {
 			)
 		}
 	}
+}
+
+// GroupBySprint groups work packages by sprint/version and prints them.
+func GroupBySprint(wps []api.WorkPackage) {
+	if len(wps) == 0 {
+		fmt.Println("No work packages found.")
+		return
+	}
+
+	groups := make(map[string][]api.WorkPackage)
+	var order []string
+
+	for _, wp := range wps {
+		sprint := wp.Links.Version.Title
+		if sprint == "" {
+			sprint = "(backlog)"
+		}
+		if _, seen := groups[sprint]; !seen {
+			order = append(order, sprint)
+		}
+		groups[sprint] = append(groups[sprint], wp)
+	}
+
+	total := 0
+	for _, sprint := range order {
+		items := groups[sprint]
+		total += len(items)
+		fmt.Printf("\n%s (%d items)\n", sprint, len(items))
+		fmt.Println(strings.Repeat("-", len(sprint)+15))
+		for _, wp := range items {
+			fmt.Printf("  #%-6d %-12s %-10s %-14s %s\n",
+				wp.ID,
+				wp.Links.Status.Title,
+				wp.Links.Priority.Title,
+				assigneeName(wp),
+				truncate(wp.Subject, 45),
+			)
+		}
+	}
+	fmt.Printf("\nTotal: %d items across %d sprints\n", total, len(order))
 }
 
 func assigneeName(wp api.WorkPackage) string {
