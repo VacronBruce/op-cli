@@ -14,6 +14,9 @@ dist/
 # Config with secrets
 .oprc
 
+# Claude Code local config (skills copied for container mode)
+.claude/
+
 # Claude Code bridge runtime files
 .op-bridge/request.txt
 .op-bridge/result.txt

@@ -123,12 +123,33 @@ op projects                        # List all projects
 -h, --help            Help for any command
 ```
 
-### Claude Code (host bridge)
+### Claude Code (Docker / container mode)
 
-When Claude Code runs inside a container (e.g. Docker), it cannot execute `op` directly.
-The `.op-bridge/` scripts bridge the container to the host binary via shared files:
+When Claude Code runs inside a container, it cannot execute `op` directly and does not
+have access to host-side `~/.claude/skills/`. Two things are needed: installing the skill
+into the container, and bridging `op` commands back to the host.
 
-1. Start the watcher **on the host** once per session:
+#### 1. Install the skill into the container
+
+The container's `~/.claude/` directory is mounted from the **project root**'s `.claude/`
+folder. Copy the skill there so the containerized Claude Code can see it:
+
+```bash
+# From the project root (run on host, one-time setup)
+mkdir -p .claude/skills/openproject
+cp ~/.claude/skills/openproject/SKILL.md .claude/skills/openproject/SKILL.md
+```
+
+> **Tip:** `.claude/` in the project root is already gitignored. If it isn't, add it.
+
+After this, `/openproject` will be available inside the container.
+
+#### 2. Start the host bridge
+
+The `.op-bridge/` scripts relay `op` commands from the container to the host binary
+via shared files:
+
+1. Start the watcher **on the host** (once per session):
    ```bash
    bash .op-bridge/host-watcher.sh
    ```
