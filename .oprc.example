@@ -9,3 +9,27 @@ api_key: your-api-key-here
 
 # Default project identifier (optional, can override with -p flag)
 project: my-project
+
+# Default description templates per ticket type (optional)
+# Used when --description is not provided. Override with -d flag.
+# templates:
+#   bug: |
+#     ## Issue
+#     [Describe the issue]
+#
+#     ## Steps to Reproduce
+#     1.
+#     2.
+#     3.
+#     4. **Expected:**
+#     5. **Actual:**
+#
+#     ## Screenshot
+#     [Attach screenshot or recording]
+#   task: |
+#     ## Summary
+#     [What needs to be done]
+#
+#     ## Acceptance Criteria
+#     - [ ]
+#     - [ ]

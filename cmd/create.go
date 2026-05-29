@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/display"
@@ -74,8 +75,12 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	req.SetLink("type", api.Link{Href: wpType.Href})
 	req.SetLink("priority", api.Link{Href: priority.Href})
 
-	// Optional: description
-	if desc, _ := cmd.Flags().GetString("description"); desc != "" {
+	// Description: explicit flag > template from config > none
+	desc, _ := cmd.Flags().GetString("description")
+	if desc == "" {
+		desc = viper.GetString("templates." + strings.ToLower(wpType.Name))
+	}
+	if desc != "" {
 		req.Description = &api.Formattable{Format: "markdown", Raw: desc}
 	}
 
