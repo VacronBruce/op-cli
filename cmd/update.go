@@ -31,6 +31,7 @@ func init() {
 	updateCmd.Flags().Int("points", 0, "Story points")
 	updateCmd.Flags().Int("done", -1, "Percentage done (0-100)")
 	updateCmd.Flags().String("subject", "", "New subject/title")
+	updateCmd.Flags().StringP("description", "d", "", "New description (markdown)")
 	updateCmd.Flags().String("sprint", "", "Move to sprint/version")
 	updateCmd.Flags().StringSlice("component", nil, "Component (android, ios, ott, engineering, analytics)")
 }
@@ -97,6 +98,12 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	// Subject
 	if subject, _ := cmd.Flags().GetString("subject"); subject != "" {
 		req.Subject = subject
+		hasChanges = true
+	}
+
+	// Description
+	if desc, _ := cmd.Flags().GetString("description"); desc != "" {
+		req.Description = &api.Formattable{Format: "markdown", Raw: desc}
 		hasChanges = true
 	}
 
