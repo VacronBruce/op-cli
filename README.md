@@ -123,7 +123,25 @@ op projects                        # List all projects
 -h, --help            Help for any command
 ```
 
-### Claude Code
+### Claude Code (host bridge)
+
+When Claude Code runs inside a container (e.g. Docker), it cannot execute `op` directly.
+The `.op-bridge/` scripts bridge the container to the host binary via shared files:
+
+1. Start the watcher **on the host** once per session:
+   ```bash
+   bash .op-bridge/host-watcher.sh
+   ```
+2. Inside the container, call `op` via the bridge:
+   ```bash
+   .op-bridge/op.sh show 123
+   .op-bridge/op.sh update 456 --status=in-progress
+   ```
+
+The watcher reads requests from `.op-bridge/request.txt`, runs them against the host `op`
+binary, and writes the result to `.op-bridge/result.txt`.
+
+### Claude Code (skill)
 
 Use `/openproject` in Claude Code for natural language access:
 

@@ -13,3 +13,8 @@ dist/
 
 # Config with secrets
 .oprc
+
+# Claude Code bridge runtime files
+.op-bridge/request.txt
+.op-bridge/result.txt
+.op-bridge/status.txt
