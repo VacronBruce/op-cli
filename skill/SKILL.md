@@ -58,6 +58,15 @@ op backlog groom                      # Unestimated items
 op report                             # Sprint report for stakeholders
 ```
 
+### Quality Checks
+```bash
+op check <id>                         # Check ticket readiness
+op check <id> --strict                # Treat warnings as failures
+op check <id> --comment               # Post results to ticket
+op check --sprint                     # Check all sprint tickets
+op check --sprint --component=android # Filter + check
+```
+
 ## How to Handle Requests
 
 1. **"create a task/bug"** → `op create task/bug "subject" --flags`
@@ -71,6 +80,10 @@ op report                             # Sprint report for stakeholders
 9. **"plan next sprint"** → `op sprint plan` then `op sprint add`
 10. **"close sprint"** → `op sprint close`
 11. **"generate report"** → `op report`
+12. **"is this ticket ready?"** → `op check <id>`
+13. **"check sprint quality"** → `op check --sprint`
+14. **"review as PM"** → invoke /ticket-prep skill
+15. **"verify as developer"** → invoke /ticket-verify skill
 
 ## Custom Field Values
 

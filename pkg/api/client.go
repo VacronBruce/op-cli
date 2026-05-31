@@ -44,6 +44,9 @@ type APIClient interface {
 
 	// Attachments
 	UploadAttachment(wpID int, filePath string, description string) (*Attachment, error)
+
+	// Activities/comments
+	PostComment(wpID int, markdown string) error
 }
 
 // Client is the OpenProject API v3 client.
@@ -292,6 +295,20 @@ func (c *Client) UploadAttachment(wpID int, filePath string, description string)
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 	return &att, nil
+}
+
+// commentRequest is the body for posting a comment on a work package.
+type commentRequest struct {
+	Comment *Formattable `json:"comment"`
+}
+
+// PostComment posts a markdown comment on a work package as an activity.
+func (c *Client) PostComment(wpID int, markdown string) error {
+	body := commentRequest{
+		Comment: &Formattable{Format: "markdown", Raw: markdown},
+	}
+	path := fmt.Sprintf("/work_packages/%d/activities", wpID)
+	return c.Post(path, body, nil)
 }
 
 func detectContentType(name string) string {

@@ -28,6 +28,7 @@ type MockClient struct {
 	GetProjectFn        func(identifier string) (*api.Project, error)
 	GetMeFn             func() (*api.User, error)
 	UploadAttachmentFn  func(wpID int, filePath string, description string) (*api.Attachment, error)
+	PostCommentFn       func(wpID int, markdown string) error
 }
 
 func (m *MockClient) RequireProject() (string, error) {
@@ -150,4 +151,11 @@ func (m *MockClient) UploadAttachment(wpID int, filePath string, description str
 		return m.UploadAttachmentFn(wpID, filePath, description)
 	}
 	return nil, fmt.Errorf("UploadAttachment not mocked")
+}
+
+func (m *MockClient) PostComment(wpID int, markdown string) error {
+	if m.PostCommentFn != nil {
+		return m.PostCommentFn(wpID, markdown)
+	}
+	return nil
 }

@@ -13,23 +13,77 @@ project: my-project
 # Default description templates per ticket type (optional)
 # Used when --description is not provided. Override with -d flag.
 # templates:
-#   bug: |
-#     ## Issue
-#     [Describe the issue]
+#   feature: |
+#     ## User Story
+#     As a [role], I want [action], so that [benefit].
 #
-#     ## Steps to Reproduce
-#     1.
-#     2.
-#     3.
-#     4. **Expected:**
-#     5. **Actual:**
+#     ## Business Justification
+#     [Why now? Data, user requests, competitor pressure]
 #
-#     ## Screenshot
-#     [Attach screenshot or recording]
-#   task: |
-#     ## Summary
-#     [What needs to be done]
+#     ## Use Case
+#     1. User navigates to ...
+#     2. User taps/clicks ...
+#     3. System responds with ...
 #
 #     ## Acceptance Criteria
-#     - [ ]
-#     - [ ]
+#     - [ ] Given [context], when [action], then [result]
+#     - [ ] Given [context], when [action], then [result]
+#     - [ ] [Edge case handled]
+#
+#     ## UI/UX
+#     [Attach Figma link or mockup screenshot]
+#
+#     ## Implementation Notes
+#     - Frontend: [screens affected, components to change]
+#     - Backend: [API endpoints, data model changes]
+#     - Dependencies: [other tickets, external services]
+#
+#     ## Out of Scope
+#     [What this ticket does NOT cover]
+#
+#   bug: |
+#     ## Steps to Reproduce
+#     1. Open [screen/page]
+#     2. Tap/click [element]
+#     3. Observe [behavior]
+#
+#     ## Expected Behavior
+#     [What should happen]
+#
+#     ## Actual Behavior
+#     [What actually happens]
+#
+#     ## Environment
+#     - Device: [model]
+#     - OS: [version]
+#     - App/Browser version: [version]
+#
+#     ## Screenshot / Crash Log
+#     [Attach screenshot, video, or crash log]
+#
+#     ## Acceptance Criteria
+#     - [ ] Bug no longer reproduces on [device/OS]
+#     - [ ] No regression in [related feature]
+#
+#   user-story: |
+#     ## User Story
+#     As a [role], I want [action], so that [benefit].
+#
+#     ## Acceptance Criteria
+#     - [ ] Given [context], when [action], then [result]
+#     - [ ] Given [context], when [action], then [result]
+#
+#     ## UI/UX
+#     [Attach mockup or Figma link]
+#
+#     ## Technical Notes
+#     - Frontend: [changes needed]
+#     - Backend: [API changes needed]
+#
+#   task: |
+#     ## Summary
+#     [What needs to be done and why]
+#
+#     ## Acceptance Criteria
+#     - [ ] [Done condition]
+#     - [ ] [Done condition]
