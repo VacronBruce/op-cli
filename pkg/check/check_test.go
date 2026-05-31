@@ -248,6 +248,7 @@ func TestRulesForType(t *testing.T) {
 		{"Bug", 7},
 		{"Feature", 8},
 		{"User Story", 8},
+		{"Story", 8},
 		{"Task", 6},
 		{"Epic", 2},
 		{"Unknown", 4},

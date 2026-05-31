@@ -141,7 +141,7 @@ func RulesForType(typeName string) []CheckFunc {
 			CheckAttachments,
 			CheckParentEpic,
 		}
-	case t == "feature" || t == "user story":
+	case t == "feature" || t == "user story" || t == "story":
 		return []CheckFunc{
 			CheckDescription,
 			CheckAcceptanceCriteria,
