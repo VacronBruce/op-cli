@@ -46,6 +46,9 @@ func WorkPackageDetail(wp *api.WorkPackage) {
 		fmt.Printf("  Created:    %s\n", wp.CreatedAt[:10])
 	}
 	fmt.Printf("  Assignee:   %s\n", assigneeName(*wp))
+	if wp.JiraID != "" {
+		fmt.Printf("  JIRA ID:    %s\n", wp.JiraID)
+	}
 	if wp.StoryPoints != nil {
 		fmt.Printf("  Points:     %d\n", *wp.StoryPoints)
 	}

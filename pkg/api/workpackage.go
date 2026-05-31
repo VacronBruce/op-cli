@@ -18,6 +18,7 @@ type WorkPackage struct {
 	DueDate        string `json:"dueDate,omitempty"`
 	CreatedAt      string `json:"createdAt"`
 	UpdatedAt      string `json:"updatedAt"`
+	JiraID         string `json:"customField3,omitempty"`
 	Links          WPLinks `json:"_links"`
 }
 
