@@ -86,7 +86,7 @@ op check --sprint --component=android # Filter + check
 5. **"sprint progress"** → `op sprint progress`
 6. **"assign X to Y"** → `op update <id> --assignee="Person"`
 7. **"move to in progress"** → `op update <id> --status=in-progress`
-8. **"attach this screenshot"** → Save image to temp file, then `op attach <id> /path/to/file`
+8. **"attach this screenshot"** → Save image to file, then `op attach <id> /path/to/file` (see Attaching Images below)
 9. **"plan next sprint"** → `op backlog` then `op sprint add`
 10. **"close sprint"** → `op sprint close`
 11. **"generate report"** → `op sprint progress -v`
@@ -112,6 +112,18 @@ op check --sprint --component=android # Filter + check
 ## Global Flags
 - `-p, --project <id>` — Override default project
 - `--sprint <name>` — Override default sprint
+
+## Attaching Images
+
+When the user provides an image (pasted or screenshot) to attach to a ticket:
+
+1. Save the image to a file first (use `/tmp/` or current directory)
+2. Then run `op attach <id> /path/to/saved-image.png`
+
+**Container mode (`.op-bridge/`):** The bridge automatically handles file transfer.
+When `op.sh attach` detects file arguments, it copies them to the shared `.op-bridge/`
+directory so the host watcher can access them. No special handling needed — just call
+`.op-bridge/op.sh attach <id> /path/to/file` and the bridge handles the rest.
 
 ## Output
 Always show the raw CLI output to the user. Summarize if they asked a question rather than a command.
