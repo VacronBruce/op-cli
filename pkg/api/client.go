@@ -48,6 +48,9 @@ type APIClient interface {
 	// Activities/comments
 	ListActivities(wpID int) (*ActivityCollection, error)
 	PostComment(wpID int, markdown string) error
+
+	// Relations
+	CreateRelation(fromID int, relType string, toID int) error
 }
 
 // Client is the OpenProject API v3 client.

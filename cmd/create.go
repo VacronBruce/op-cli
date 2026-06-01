@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
@@ -113,6 +114,15 @@ func runCreate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("resolving sprint: %w", err)
 		}
 		req.SetLink("version", api.Link{Href: version.Links.Self.Href})
+	}
+
+	// Optional: parent
+	if parentStr, _ := cmd.Flags().GetString("parent"); parentStr != "" {
+		parentInt, err := strconv.Atoi(parentStr)
+		if err != nil {
+			return fmt.Errorf("invalid parent ID: %s", parentStr)
+		}
+		req.SetLink("parent", api.Link{Href: fmt.Sprintf("/api/v3/work_packages/%d", parentInt)})
 	}
 
 	// Optional: epic

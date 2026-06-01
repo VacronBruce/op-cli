@@ -30,6 +30,7 @@ type MockClient struct {
 	UploadAttachmentFn  func(wpID int, filePath string, description string) (*api.Attachment, error)
 	ListActivitiesFn    func(wpID int) (*api.ActivityCollection, error)
 	PostCommentFn       func(wpID int, markdown string) error
+	CreateRelationFn    func(fromID int, relType string, toID int) error
 }
 
 func (m *MockClient) RequireProject() (string, error) {
@@ -164,6 +165,13 @@ func (m *MockClient) ListActivities(wpID int) (*api.ActivityCollection, error) {
 func (m *MockClient) PostComment(wpID int, markdown string) error {
 	if m.PostCommentFn != nil {
 		return m.PostCommentFn(wpID, markdown)
+	}
+	return nil
+}
+
+func (m *MockClient) CreateRelation(fromID int, relType string, toID int) error {
+	if m.CreateRelationFn != nil {
+		return m.CreateRelationFn(fromID, relType, toID)
 	}
 	return nil
 }

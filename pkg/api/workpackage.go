@@ -161,6 +161,24 @@ func (c *Client) CreateWorkPackage(project string, req *CreateWPRequest) (*WorkP
 	return &wp, nil
 }
 
+// createRelationRequest is the body for creating a relation.
+type createRelationRequest struct {
+	Type  string               `json:"type"`
+	Links map[string]LinkValue `json:"_links"`
+}
+
+// CreateRelation creates a relation between two work packages.
+func (c *Client) CreateRelation(fromID int, relType string, toID int) error {
+	body := createRelationRequest{
+		Type: relType,
+		Links: map[string]LinkValue{
+			"to": Link{Href: fmt.Sprintf("/api/v3/work_packages/%d", toID)},
+		},
+	}
+	path := fmt.Sprintf("/work_packages/%d/relations", fromID)
+	return c.Post(path, body, nil)
+}
+
 // UpdateWorkPackage updates an existing work package.
 // Automatically fetches lockVersion to avoid conflicts.
 func (c *Client) UpdateWorkPackage(id int, req *UpdateWPRequest) (*WorkPackage, error) {
