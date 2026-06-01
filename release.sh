@@ -19,9 +19,10 @@ echo ""
 
 # Step 1: Build
 echo "1/4 Building binaries..."
-GOOS=darwin GOARCH=arm64 go build -o dist/op-darwin-arm64 .
-GOOS=darwin GOARCH=amd64 go build -o dist/op-darwin-amd64 .
-GOOS=linux GOARCH=amd64 go build -o dist/op-linux-amd64 .
+LDFLAGS="-X github.com/chenhuijun/op-cli/cmd.Version=${VERSION#v}"
+GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/op-darwin-arm64 .
+GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/op-darwin-amd64 .
+GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/op-linux-amd64 .
 echo "    Done."
 
 # Step 2: Update version in install.sh

@@ -47,7 +47,7 @@ if [ -f "go.mod" ] && [ -f "main.go" ]; then
   # Mode: clone — build from source
   if command -v go &>/dev/null; then
     echo "    Building from source..."
-    if ! go build -o /tmp/op-install .; then
+    if ! go build -ldflags "-X github.com/chenhuijun/op-cli/cmd.Version=${VERSION}" -o /tmp/op-install .; then
       echo "    Error: build failed."
       exit 1
     fi
