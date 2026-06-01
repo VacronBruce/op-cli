@@ -9,7 +9,7 @@
 # Method 2 (clone + build):
 #   git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git && cd op-cli && git checkout develop && bash install.sh
 
-VERSION="0.7.0"
+VERSION="0.6.1"
 GITLAB_URL="https://gitlab-tw.ddns.net"
 PKG_URL="${GITLAB_URL}/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest"
 INSTALL_DIR="/usr/local/bin"
