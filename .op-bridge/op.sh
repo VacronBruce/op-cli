@@ -6,6 +6,7 @@ if [ -z "$*" ]; then
   exit 1
 fi
 
+rm -f "$BRIDGE/result.txt" "$BRIDGE/status.txt"
 printf '%q ' "$@" > "$BRIDGE/request.txt"
 
 for i in $(seq 50); do
