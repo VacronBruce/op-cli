@@ -17,8 +17,10 @@ Translate natural language requests into `op` CLI commands and execute them.
 ### Daily Operations
 ```bash
 op board                              # Sprint board (kanban view)
+op board --status=blocked             # Board filtered by status
+op board --component=android          # Board filtered by component
 op my                                 # My assigned items
-op my-team                            # Team items grouped by person
+op my team                            # Team items grouped by person
 op blocked                            # Blocked items in sprint
 op projects                           # List all projects
 ```
@@ -38,8 +40,8 @@ op create <type> "<subject>" [flags]  # Create work package
 
 op update <id> [flags]                # Update work package
   # Flags: --status=in-progress --assignee="Name" --points=5 --done=80
+  #        --sprint="Sprint 1" --component=android --subject="..." --done=80
 
-op assign <id> "Person Name"          # Quick reassign
 op attach <id> file.png [file2.jpg]   # Upload attachments
 op comment <id>                       # List comments on ticket
 op comment <id> "message"             # Post a comment
@@ -48,17 +50,16 @@ op comment <id> "message"             # Post a comment
 ### Sprint Management
 ```bash
 op sprint list                        # List all sprints (ID, status, dates)
-op sprint plan                        # Show backlog items for planning
 op sprint add <id> [<id>...]          # Move items to sprint
-op sprint progress                    # Sprint progress summary
+op sprint progress                    # Sprint progress summary (compact)
+op sprint progress -v                 # Full sprint report for stakeholders
 op sprint close                       # Sprint close summary + carryover list
 ```
 
-### Backlog & Reporting
+### Backlog
 ```bash
 op backlog                            # All items not in a sprint
-op backlog groom                      # Unestimated items
-op report                             # Sprint report for stakeholders
+op backlog --unestimated              # Unestimated items needing grooming
 ```
 
 ### Version & Upgrade
@@ -81,14 +82,14 @@ op check --sprint --component=android # Filter + check
 1. **"create a task/bug"** → `op create task/bug "subject" --flags`
 2. **"show board"** → `op board`
 3. **"what am I working on?"** → `op my`
-4. **"prep for standup"** → Run `op my-team` then `op blocked`, summarize
+4. **"prep for standup"** → Run `op my team` then `op blocked`, summarize
 5. **"sprint progress"** → `op sprint progress`
-6. **"assign X to Y"** → `op assign <id> "Person"`
+6. **"assign X to Y"** → `op update <id> --assignee="Person"`
 7. **"move to in progress"** → `op update <id> --status=in-progress`
 8. **"attach this screenshot"** → Save image to temp file, then `op attach <id> /path/to/file`
-9. **"plan next sprint"** → `op sprint plan` then `op sprint add`
+9. **"plan next sprint"** → `op backlog` then `op sprint add`
 10. **"close sprint"** → `op sprint close`
-11. **"generate report"** → `op report`
+11. **"generate report"** → `op sprint progress -v`
 12. **"is this ticket ready?"** → `op check <id>`
 13. **"check sprint quality"** → `op check --sprint`
 14. **"what's the discussion on X?"** → `op comment <id>`
@@ -96,8 +97,10 @@ op check --sprint --component=android # Filter + check
 16. **"list sprints"** → `op sprint list`
 17. **"what version?"** → `op version`
 18. **"update op"** → `op upgrade`
-19. **"review as PM"** → invoke /ticket-prep skill
-20. **"verify as developer"** → invoke /ticket-verify skill
+19. **"show blocked items"** → `op blocked` or `op board --status=blocked`
+20. **"unestimated backlog"** → `op backlog --unestimated`
+21. **"review as PM"** → invoke /ticket-prep skill
+22. **"verify as developer"** → invoke /ticket-verify skill
 
 ## Custom Field Values
 

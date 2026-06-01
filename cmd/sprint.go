@@ -16,9 +16,11 @@ var sprintCmd = &cobra.Command{
 }
 
 var sprintPlanCmd = &cobra.Command{
-	Use:   "plan",
-	Short: "Show backlog items available for sprint planning",
-	RunE:  runSprintPlan,
+	Use:        "plan",
+	Short:      "Show backlog items available for sprint planning",
+	Hidden:     true,
+	Deprecated: "use 'op backlog' instead",
+	RunE:       runSprintPlan,
 }
 
 var sprintAddCmd = &cobra.Command{
@@ -62,6 +64,7 @@ func init() {
 
 	sprintAddCmd.Flags().Int("points", 0, "Set story points when adding")
 	sprintAddCmd.Flags().String("sprint", "", "Target sprint name (defaults to active)")
+	sprintProgressCmd.Flags().BoolP("verbose", "v", false, "Show full report with item details")
 }
 
 func runSprintPlan(cmd *cobra.Command, args []string) error {
@@ -155,6 +158,15 @@ func runSprintProgress(cmd *cobra.Command, args []string) error {
 	}
 
 	wps := result.Embedded.Elements
+
+	// Verbose mode: full report with item details
+	verbose, _ := cmd.Flags().GetBool("verbose")
+	if verbose {
+		display.SprintReport(wps, sprint.Name, sprint.StartDate, sprint.EndDate)
+		return nil
+	}
+
+	// Compact summary
 	total := len(wps)
 	totalPoints := 0
 	doneCount := 0

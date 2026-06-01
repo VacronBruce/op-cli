@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/display"
@@ -28,6 +29,7 @@ func init() {
 	boardCmd.Flags().Bool("no-sprint", false, "Show all items without sprint filter")
 	boardCmd.Flags().String("component", "", "Filter by component (android, ios, ott, engineering, analytics)")
 	boardCmd.Flags().String("label", "", "Filter by label (team#appios, team#appandroid, etc.)")
+	boardCmd.Flags().String("status", "", "Filter by status (e.g. blocked, in-progress, new)")
 }
 
 func runBoard(cmd *cobra.Command, args []string) error {
@@ -81,6 +83,17 @@ func runBoard(cmd *cobra.Command, args []string) error {
 	result, err := client.ListWorkPackages(project, filters, "", 200)
 	if err != nil {
 		return fmt.Errorf("listing work packages: %w", err)
+	}
+
+	// Status filter (client-side)
+	if statusFilter, _ := cmd.Flags().GetString("status"); statusFilter != "" {
+		var filtered []api.WorkPackage
+		for _, wp := range result.Embedded.Elements {
+			if strings.EqualFold(wp.Links.Status.Title, statusFilter) {
+				filtered = append(filtered, wp)
+			}
+		}
+		result.Embedded.Elements = filtered
 	}
 
 	if noSprint {

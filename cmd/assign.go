@@ -9,8 +9,10 @@ import (
 )
 
 var assignCmd = &cobra.Command{
-	Use:   "assign <id> <@person>",
-	Short: "Assign a work package to someone",
+	Use:        "assign <id> <@person>",
+	Short:      "Assign a work package to someone",
+	Hidden:     true,
+	Deprecated: "use 'op update <id> --assignee=<person>' instead",
 	Long: `Quick shorthand to reassign a work package.
 
 Examples:
@@ -30,7 +32,10 @@ func runAssign(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid work package ID: %s", args[0])
 	}
 
-	project, _ := client.RequireProject()
+	project, err := client.RequireProject()
+	if err != nil {
+		return err
+	}
 	resolver := api.NewResolver(client, project)
 	user, err := resolver.ResolveUser(args[1])
 	if err != nil {

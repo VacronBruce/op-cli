@@ -78,12 +78,14 @@ op projects
 
 ```bash
 op board                           # Current sprint board (kanban view)
+op board --status=blocked          # Board filtered by status
+op board --component=android       # Board filtered by component
 op my                              # My assigned items
 op my --no-sprint                  # All my items (no sprint filter)
 op my --author --since=2w          # Items I created in last 2 weeks
 op my --component=android          # My Android items only
 op my --by-sprint                  # My items grouped by sprint
-op my-team                         # Team items grouped by person
+op my team                         # Team items grouped by person
 op blocked                         # Blocked items in sprint
 op show 12345                      # View ticket details (includes JIRA ID)
 op show 12345 --download           # Download attachments
@@ -101,7 +103,7 @@ op update 12345 --status=in-progress
 op update 12345 --assignee="Bruce Chen" --points=3
 op update 12345 --description="Updated description here"
 op update 12345 --subject="New title" --done=50
-op assign 12345 "Ken Peng"
+op update 12345 --assignee="Ken Peng"
 op attach 12345 screenshot.png
 ```
 
@@ -118,19 +120,18 @@ op comment 12345 "LGTM"           # Post a comment
 
 ```bash
 op sprint list                     # List all sprints in the project
-op sprint plan                     # Show backlog items for planning
 op sprint add 101 102 103          # Move items to current sprint
 op sprint add 101 --sprint="App_06/02/2026"  # Move to specific sprint
-op sprint progress                 # Sprint progress summary
+op sprint progress                 # Sprint progress summary (compact)
+op sprint progress -v              # Full sprint report for stakeholders
 op sprint close                    # Sprint close summary
 ```
 
-### Backlog & reporting
+### Backlog
 
 ```bash
 op backlog                         # Items not in any sprint
-op backlog groom                   # Unestimated items needing grooming
-op report                          # Sprint report for stakeholders
+op backlog --unestimated           # Unestimated items needing grooming
 op projects                        # List all projects
 ```
 

@@ -29,19 +29,28 @@ Examples:
 }
 
 var myTeamCmd = &cobra.Command{
-	Use:   "my-team",
+	Use:   "team",
 	Short: "Show all team work packages grouped by person",
 	Long: `List all work packages in the current sprint, grouped by assignee.
 
 Examples:
-  op my-team
-  op my-team --sprint="Sprint 24"`,
+  op my team
+  op my team --sprint="Sprint 24"`,
 	RunE: runMyTeam,
+}
+
+var myTeamAliasCmd = &cobra.Command{
+	Use:        "my-team",
+	Short:      "Show all team work packages grouped by person",
+	Hidden:     true,
+	Deprecated: "use 'op my team' instead",
+	RunE:       runMyTeam,
 }
 
 func init() {
 	rootCmd.AddCommand(myCmd)
-	rootCmd.AddCommand(myTeamCmd)
+	myCmd.AddCommand(myTeamCmd)
+	rootCmd.AddCommand(myTeamAliasCmd)
 	myCmd.Flags().Bool("all", false, "Include closed items")
 	myCmd.Flags().String("sprint", "", "Sprint name (defaults to active sprint)")
 	myCmd.Flags().Bool("no-sprint", false, "Show all items without sprint filter")
@@ -50,6 +59,7 @@ func init() {
 	myCmd.Flags().String("component", "", "Filter by component (android, ios, ott, engineering, analytics)")
 	myCmd.Flags().Bool("by-sprint", false, "Group results by sprint")
 	myTeamCmd.Flags().String("sprint", "", "Sprint name (defaults to active sprint)")
+	myTeamAliasCmd.Flags().String("sprint", "", "Sprint name (defaults to active sprint)")
 }
 
 func runMy(cmd *cobra.Command, args []string) error {

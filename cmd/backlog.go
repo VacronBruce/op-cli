@@ -15,19 +15,13 @@ var backlogCmd = &cobra.Command{
 
 Examples:
   op backlog
-  op backlog groom`,
+  op backlog --unestimated`,
 	RunE: runBacklog,
-}
-
-var backlogGroomCmd = &cobra.Command{
-	Use:   "groom",
-	Short: "Show items needing grooming (unestimated, stale)",
-	RunE:  runBacklogGroom,
 }
 
 func init() {
 	rootCmd.AddCommand(backlogCmd)
-	backlogCmd.AddCommand(backlogGroomCmd)
+	backlogCmd.Flags().Bool("unestimated", false, "Show only unestimated items (no story points)")
 }
 
 func runBacklog(cmd *cobra.Command, args []string) error {
@@ -47,40 +41,26 @@ func runBacklog(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("listing backlog: %w", err)
 	}
 
-	fmt.Printf("Backlog (%d items):\n", result.Total)
-	display.WorkPackageTable(result.Embedded.Elements)
-	return nil
-}
+	items := result.Embedded.Elements
 
-func runBacklogGroom(cmd *cobra.Command, args []string) error {
-	project, err := client.RequireProject()
-	if err != nil {
-		return err
-	}
-
-	filters := []api.Filter{
-		api.NewFilter("version", "!*", ""),
-		api.NewFilter("status", "o", ""),
-	}
-
-	result, err := client.ListWorkPackages(project, filters, "", 100)
-	if err != nil {
-		return fmt.Errorf("listing backlog: %w", err)
-	}
-
-	var unestimated []api.WorkPackage
-	for _, wp := range result.Embedded.Elements {
-		if wp.StoryPoints == nil || *wp.StoryPoints == 0 {
-			unestimated = append(unestimated, wp)
+	unestimated, _ := cmd.Flags().GetBool("unestimated")
+	if unestimated {
+		var filtered []api.WorkPackage
+		for _, wp := range items {
+			if wp.StoryPoints == nil || *wp.StoryPoints == 0 {
+				filtered = append(filtered, wp)
+			}
 		}
-	}
-
-	if len(unestimated) > 0 {
-		fmt.Printf("Unestimated items (%d):\n", len(unestimated))
-		display.WorkPackageTable(unestimated)
+		items = filtered
+		if len(items) == 0 {
+			fmt.Println("All backlog items have estimates!")
+			return nil
+		}
+		fmt.Printf("Unestimated backlog items (%d):\n", len(items))
 	} else {
-		fmt.Println("All backlog items have estimates!")
+		fmt.Printf("Backlog (%d items):\n", len(items))
 	}
 
+	display.WorkPackageTable(items)
 	return nil
 }
