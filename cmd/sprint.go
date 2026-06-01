@@ -46,12 +46,19 @@ var sprintCloseCmd = &cobra.Command{
 	RunE:  runSprintClose,
 }
 
+var sprintListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all sprints (versions) for the project",
+	RunE:  runSprintList,
+}
+
 func init() {
 	rootCmd.AddCommand(sprintCmd)
 	sprintCmd.AddCommand(sprintPlanCmd)
 	sprintCmd.AddCommand(sprintAddCmd)
 	sprintCmd.AddCommand(sprintProgressCmd)
 	sprintCmd.AddCommand(sprintCloseCmd)
+	sprintCmd.AddCommand(sprintListCmd)
 
 	sprintAddCmd.Flags().Int("points", 0, "Set story points when adding")
 	sprintAddCmd.Flags().String("sprint", "", "Target sprint name (defaults to active)")
@@ -178,6 +185,33 @@ func runSprintProgress(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Points:   %d/%d (%.0f%%)\n", donePoints, totalPoints, pct)
 	}
 
+	return nil
+}
+
+func runSprintList(cmd *cobra.Command, args []string) error {
+	project, err := client.RequireProject()
+	if err != nil {
+		return err
+	}
+
+	versions, err := client.ListVersions(project)
+	if err != nil {
+		return fmt.Errorf("listing versions: %w", err)
+	}
+
+	fmt.Printf("%-6s  %-8s  %-12s  %-12s  %s\n", "ID", "STATUS", "START", "END", "NAME")
+	fmt.Printf("%-6s  %-8s  %-12s  %-12s  %s\n", "--", "------", "-----", "---", "----")
+	for _, v := range versions.Embedded.Elements {
+		start := v.StartDate
+		if start == "" {
+			start = "-"
+		}
+		end := v.EndDate
+		if end == "" {
+			end = "-"
+		}
+		fmt.Printf("%-6d  %-8s  %-12s  %-12s  %s\n", v.ID, v.Status, start, end, v.Name)
+	}
 	return nil
 }
 
