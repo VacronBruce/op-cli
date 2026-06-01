@@ -41,6 +41,8 @@ op update <id> [flags]                # Update work package
 
 op assign <id> "Person Name"          # Quick reassign
 op attach <id> file.png [file2.jpg]   # Upload attachments
+op comment <id>                       # List comments on ticket
+op comment <id> "message"             # Post a comment
 ```
 
 ### Sprint Management
@@ -82,8 +84,10 @@ op check --sprint --component=android # Filter + check
 11. **"generate report"** → `op report`
 12. **"is this ticket ready?"** → `op check <id>`
 13. **"check sprint quality"** → `op check --sprint`
-14. **"review as PM"** → invoke /ticket-prep skill
-15. **"verify as developer"** → invoke /ticket-verify skill
+14. **"what's the discussion on X?"** → `op comment <id>`
+15. **"leave a comment"** → `op comment <id> "message"`
+16. **"review as PM"** → invoke /ticket-prep skill
+17. **"verify as developer"** → invoke /ticket-verify skill
 
 ## Custom Field Values
 

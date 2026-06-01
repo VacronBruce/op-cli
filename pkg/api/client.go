@@ -46,6 +46,7 @@ type APIClient interface {
 	UploadAttachment(wpID int, filePath string, description string) (*Attachment, error)
 
 	// Activities/comments
+	ListActivities(wpID int) (*ActivityCollection, error)
 	PostComment(wpID int, markdown string) error
 }
 
@@ -295,6 +296,35 @@ func (c *Client) UploadAttachment(wpID int, filePath string, description string)
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 	return &att, nil
+}
+
+// Activity represents a single activity (comment or change) on a work package.
+type Activity struct {
+	ID        int          `json:"id"`
+	Comment   *Formattable `json:"comment"`
+	CreatedAt string       `json:"createdAt"`
+	UpdatedAt string       `json:"updatedAt"`
+	Links     struct {
+		User Link `json:"user"`
+	} `json:"_links"`
+}
+
+// ActivityCollection is the response from listing activities.
+type ActivityCollection struct {
+	Total    int `json:"total"`
+	Embedded struct {
+		Elements []Activity `json:"elements"`
+	} `json:"_embedded"`
+}
+
+// ListActivities lists all activities (comments and changes) for a work package.
+func (c *Client) ListActivities(wpID int) (*ActivityCollection, error) {
+	var result ActivityCollection
+	path := fmt.Sprintf("/work_packages/%d/activities", wpID)
+	if err := c.Get(path, &result); err != nil {
+		return nil, fmt.Errorf("listing activities for work package %d: %w", wpID, err)
+	}
+	return &result, nil
 }
 
 // commentRequest is the body for posting a comment on a work package.
