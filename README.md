@@ -206,7 +206,7 @@ Three slash commands are available in Claude Code for natural language access:
 **`/openproject`** — Translates natural language into `op` commands:
 
 ```
-/openproject create a P1 bug "Crash on save" for NTD+, assign to Bruce, android component
+/openproject create a SEV1 bug "Crash on save" for NTD+, assign to Bruce, android component
 /openproject show the sprint board filtered by blocked status
 /openproject what's blocked in the current sprint?
 /openproject show my team's work for this sprint
