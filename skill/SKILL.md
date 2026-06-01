@@ -47,6 +47,7 @@ op comment <id> "message"             # Post a comment
 
 ### Sprint Management
 ```bash
+op sprint list                        # List all sprints (ID, status, dates)
 op sprint plan                        # Show backlog items for planning
 op sprint add <id> [<id>...]          # Move items to sprint
 op sprint progress                    # Sprint progress summary
@@ -58,6 +59,12 @@ op sprint close                       # Sprint close summary + carryover list
 op backlog                            # All items not in a sprint
 op backlog groom                      # Unestimated items
 op report                             # Sprint report for stakeholders
+```
+
+### Version & Upgrade
+```bash
+op version                            # Show current version
+op upgrade                            # Self-update to latest release
 ```
 
 ### Quality Checks
@@ -86,8 +93,11 @@ op check --sprint --component=android # Filter + check
 13. **"check sprint quality"** → `op check --sprint`
 14. **"what's the discussion on X?"** → `op comment <id>`
 15. **"leave a comment"** → `op comment <id> "message"`
-16. **"review as PM"** → invoke /ticket-prep skill
-17. **"verify as developer"** → invoke /ticket-verify skill
+16. **"list sprints"** → `op sprint list`
+17. **"what version?"** → `op version`
+18. **"update op"** → `op upgrade`
+19. **"review as PM"** → invoke /ticket-prep skill
+20. **"verify as developer"** → invoke /ticket-verify skill
 
 ## Custom Field Values
 

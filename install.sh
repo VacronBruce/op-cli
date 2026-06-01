@@ -207,9 +207,15 @@ op update <id> --status=in-progress --assignee="Name"
 op assign <id> "Name"
 op attach <id> file.png
 
+op sprint list                  # List all sprints
 op sprint plan/add/progress/close
 op backlog / op backlog groom
 op report
+op check <id>                   # Ticket readiness check
+op comment <id>                 # List comments
+op comment <id> "msg"           # Post comment
+op version                      # Show version
+op upgrade                      # Self-update
 ```
 
 ## How to Handle Requests
@@ -221,12 +227,14 @@ op report
 5. "assign X to Y" → `op assign <id> "Name"`
 6. "attach screenshot" → save image, `op attach <id> /path`
 7. "show ticket" → `op show <id> --download --out=/tmp`, read images
+8. "list sprints" → `op sprint list`
+9. "update op" → `op upgrade`
 
 ## Custom Fields
 Components: android, ios, ott, engineering, analytics
-Products: eet, entd, djy, cntd, others
+Products: eet, entd, djy, cntd, others, competition
 Tech Areas: web, app, adtech, video, infra, portal, seo
-Labels: team#appios, team#appandroid, team#appall, team#web, ntd, seo
+Labels: team#appios, team#appandroid, team#appall, team#web, ntd, seo, roku
 SKILL_EOF
   echo "    Installed /openproject skill to ${SKILL_DIR}"
 else
