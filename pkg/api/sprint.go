@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -81,39 +82,43 @@ func (c *Client) ResolveVersion(project, name string) (*Version, error) {
 		return nil, fmt.Errorf("listing versions: %w", err)
 	}
 
-	// Try exact match first, then case-insensitive match.
+	// Prefer a name match (exact, then case-insensitive).
 	var caseMatch *Version
-	for _, v := range versions.Embedded.Elements {
+	for i := range versions.Embedded.Elements {
+		v := &versions.Embedded.Elements[i]
 		if v.Name == name {
-			return &v, nil
+			return v, nil
 		}
 		if caseMatch == nil && strings.EqualFold(v.Name, name) {
-			v := v
-			caseMatch = &v
+			caseMatch = v
 		}
 	}
 	if caseMatch != nil {
 		return caseMatch, nil
 	}
+
+	// Fall back to numeric ID lookup (IDs are shown in 'op sprint list').
+	if id, err := strconv.Atoi(name); err == nil {
+		for i := range versions.Embedded.Elements {
+			if versions.Embedded.Elements[i].ID == id {
+				return &versions.Embedded.Elements[i], nil
+			}
+		}
+	}
 	return nil, fmt.Errorf("sprint %q not found", name)
 }
 
 // VersionFilter creates a version filter for work package queries.
-// It validates the version belongs to the given project. Shared versions
-// from other projects are visible in the versions list but may be rejected
-// by the work package filter API.
+//
+// It does not compare the version's definingProject against the project
+// argument: that href uses the numeric project ID (e.g. "/api/v3/projects/382")
+// while callers pass the project identifier (e.g. "app"), so the comparison
+// produced false positives for versions genuinely owned by the project.
+// OpenProject validates the version server-side and accepts filtering by both
+// owned and shared versions, so we only guard against an invalid ID here.
 func VersionFilter(v *Version, project string) (Filter, error) {
 	if v.ID <= 0 {
 		return nil, fmt.Errorf("sprint %q has invalid ID %d", v.Name, v.ID)
-	}
-	// Check if this is a shared version from another project.
-	if href := v.Links.DefiningProject.Href; href != "" {
-		if !strings.HasSuffix(href, "/"+project) {
-			return nil, fmt.Errorf(
-				"sprint %q (ID %d) belongs to another project and cannot be used to filter work packages here.\n"+
-					"Use 'op sprint list' to see sprints defined in this project",
-				v.Name, v.ID)
-		}
 	}
 	return NewFilter("version", "=", fmt.Sprintf("%d", v.ID)), nil
 }

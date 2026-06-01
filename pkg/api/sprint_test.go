@@ -131,6 +131,58 @@ func TestResolveVersion_NotFound(t *testing.T) {
 	}
 }
 
+func TestResolveVersion_ByID(t *testing.T) {
+	// Users pass the numeric ID shown in 'op sprint list', e.g. --sprint=1782.
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(VersionCollection{
+			Total: 2,
+			Embedded: struct {
+				Elements []Version `json:"elements"`
+			}{
+				Elements: []Version{
+					{ID: 1, Name: "Sprint 1", Status: "closed"},
+					{ID: 1782, Name: "OpenProject TUI", Status: "open"},
+				},
+			},
+		})
+	})
+	defer ts.Close()
+
+	v, err := c.ResolveVersion("myproject", "1782")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if v.ID != 1782 {
+		t.Errorf("expected ID 1782, got %d", v.ID)
+	}
+}
+
+func TestResolveVersion_NameWinsOverID(t *testing.T) {
+	// A sprint literally named "2" must beat the numeric-ID fallback.
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(VersionCollection{
+			Total: 2,
+			Embedded: struct {
+				Elements []Version `json:"elements"`
+			}{
+				Elements: []Version{
+					{ID: 2, Name: "Sprint A", Status: "open"},
+					{ID: 99, Name: "2", Status: "open"},
+				},
+			},
+		})
+	})
+	defer ts.Close()
+
+	v, err := c.ResolveVersion("myproject", "2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if v.ID != 99 {
+		t.Errorf("expected name match (ID 99), got ID %d", v.ID)
+	}
+}
+
 func TestListVersions(t *testing.T) {
 	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
@@ -196,12 +248,20 @@ func TestVersionFilter_ZeroID(t *testing.T) {
 }
 
 func TestVersionFilter_SharedVersion(t *testing.T) {
+	// A version may report a definingProject that differs from the project
+	// argument either because it is genuinely shared, or because the href uses
+	// the numeric project ID while the caller passes the project identifier
+	// (e.g. "/api/v3/projects/382" vs "app"). OpenProject filters work packages
+	// by such versions server-side, so VersionFilter must not reject them.
 	v := &Version{ID: 42, Name: "Shared Sprint"}
 	v.Links.DefiningProject = Link{Href: "/api/v3/projects/other-project"}
 
-	_, err := VersionFilter(v, "myproject")
-	if err == nil {
-		t.Error("expected error for shared version from different project")
+	f, err := VersionFilter(v, "myproject")
+	if err != nil {
+		t.Fatalf("unexpected error for shared/cross-identifier version: %v", err)
+	}
+	if f == nil {
+		t.Fatal("expected filter, got nil")
 	}
 }
 
