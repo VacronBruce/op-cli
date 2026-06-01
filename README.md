@@ -63,7 +63,7 @@ The install script creates `~/.oprc` automatically. To edit manually:
 url: https://openpr.epochbase.com
 api_key: your-api-key-here
 project: app
-sprint: "App_05/19/2026"
+sprint: "App_06/02/2026"    # Update this each sprint
 ```
 
 Verify:
@@ -79,29 +79,48 @@ op projects
 ```bash
 op board                           # Current sprint board (kanban view)
 op my                              # My assigned items
+op my --no-sprint                  # All my items (no sprint filter)
+op my --author --since=2w          # Items I created in last 2 weeks
+op my --component=android          # My Android items only
+op my --by-sprint                  # My items grouped by sprint
 op my-team                         # Team items grouped by person
 op blocked                         # Blocked items in sprint
-op show 12345                      # View ticket details
+op show 12345                      # View ticket details (includes JIRA ID)
 op show 12345 --download           # Download attachments
 ```
 
 ### Create & update
 
 ```bash
-op create task "Fix login page" --assignee="Ken Peng" --priority=high
-op create bug "Crash on save" --priority=immediate \
+op create task "Fix login page" --assignee="Ken Peng" --priority=P1
+op create bug "Crash on save" --priority=SEV1 \
   --epic="NTD+" --component=android --product=entd \
   --tech-area=app --label=team#appandroid --attach=screenshot.png
+op create feature "Dark mode" --points=3 --sprint="App_06/02/2026"
 op update 12345 --status=in-progress
+op update 12345 --assignee="Bruce Chen" --points=3
+op update 12345 --description="Updated description here"
+op update 12345 --subject="New title" --done=50
 op assign 12345 "Ken Peng"
 op attach 12345 screenshot.png
+```
+
+Priority values: `P0`, `P1`, `P2`, `P3` (tasks/stories) | `SEV0`, `SEV1`, `SEV2`, `SEV3` (bugs)
+
+### Comments
+
+```bash
+op comment 12345                   # List all comments on a ticket
+op comment 12345 "LGTM"           # Post a comment
 ```
 
 ### Sprint management
 
 ```bash
+op sprint list                     # List all sprints in the project
 op sprint plan                     # Show backlog items for planning
 op sprint add 101 102 103          # Move items to current sprint
+op sprint add 101 --sprint="App_06/02/2026"  # Move to specific sprint
 op sprint progress                 # Sprint progress summary
 op sprint close                    # Sprint close summary
 ```
@@ -110,9 +129,15 @@ op sprint close                    # Sprint close summary
 
 ```bash
 op backlog                         # Items not in any sprint
-op backlog groom                   # Unestimated items
+op backlog groom                   # Unestimated items needing grooming
 op report                          # Sprint report for stakeholders
 op projects                        # List all projects
+```
+
+### Quality checks
+
+```bash
+op check 12345                     # Check ticket readiness (description, AC, points, etc.)
 ```
 
 ### Global flags
@@ -162,14 +187,28 @@ via shared files:
 The watcher reads requests from `.op-bridge/request.txt`, runs them against the host `op`
 binary, and writes the result to `.op-bridge/result.txt`.
 
-### Claude Code (skill)
+### Claude Code skills
 
-Use `/openproject` in Claude Code for natural language access:
+Three skills are available for natural language access in Claude Code:
+
+**`/openproject`** — General sprint management:
 
 ```
-/openproject create a high priority bug for NTD+, assign to Bruce
+/openproject create a P1 bug for NTD+, assign to Bruce
 /openproject show the sprint board
 /openproject what's blocked?
+```
+
+**`/ticket-prep`** — PM ticket quality review before business review:
+
+```
+/ticket-prep 12345
+```
+
+**`/ticket-verify`** — Developer readiness check before implementation:
+
+```
+/ticket-verify 12345
 ```
 
 ## Troubleshooting
@@ -182,3 +221,6 @@ The project has no open version. Use `--sprint="Name"` to specify one.
 
 **"unknown type/status/priority"**
 Names are case-insensitive with prefix match. The error message shows available options.
+
+**"Version filter has invalid values"**
+The default sprint in `~/.oprc` may be stale. Update the `sprint:` field or use `--sprint` flag. Run `op sprint list` to see available sprints.
