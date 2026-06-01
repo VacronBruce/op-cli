@@ -37,7 +37,7 @@ func init() {
 	createCmd.Flags().String("parent", "", "Parent work package ID")
 	createCmd.Flags().StringP("epic", "e", "", "Epic name (partial match)")
 	createCmd.Flags().StringSlice("component", nil, "Component (android, ios, ott, engineering, analytics)")
-	createCmd.Flags().String("product", "", "Product (eet, entd, djy, cntd, others)")
+	createCmd.Flags().StringSlice("product", nil, "Product (eet, entd, djy, cntd, others)")
 	createCmd.Flags().String("tech-area", "", "Tech area (web, app, adtech, video, infra, seo)")
 	createCmd.Flags().StringSlice("label", nil, "Label (team#appios, team#appandroid, team#appall, ntd, seo)")
 	createCmd.Flags().StringSlice("attach", nil, "File path(s) to attach (images, PDFs, etc.)")
@@ -138,12 +138,16 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	// Optional: product (multi-value, customField4)
-	if product, _ := cmd.Flags().GetString("product"); product != "" {
-		href, err := api.ResolveCustomOption(api.ProductOptions, product)
-		if err != nil {
-			return fmt.Errorf("resolving product: %w", err)
+	if products, _ := cmd.Flags().GetStringSlice("product"); len(products) > 0 {
+		var links []api.Link
+		for _, p := range products {
+			href, err := api.ResolveCustomOption(api.ProductOptions, p)
+			if err != nil {
+				return fmt.Errorf("resolving product: %w", err)
+			}
+			links = append(links, api.Link{Href: href})
 		}
-		req.SetMultiLink("customField4", []api.Link{{Href: href}})
+		req.SetMultiLink("customField4", links)
 	}
 
 	// Optional: tech area (multi-value, customField6)
