@@ -132,13 +132,24 @@ op sprint close                    # Sprint close summary
 ```bash
 op backlog                         # Items not in any sprint
 op backlog --unestimated           # Unestimated items needing grooming
-op projects                        # List all projects
 ```
 
 ### Quality checks
 
 ```bash
-op check 12345                     # Check ticket readiness (description, AC, points, etc.)
+op check 12345                     # Check ticket readiness
+op check 12345 --strict            # Treat warnings as failures
+op check 12345 --comment           # Post check results to ticket
+op check --sprint                  # Check all tickets in current sprint
+op check --sprint --component=android  # Check android tickets only
+```
+
+### Project & CLI info
+
+```bash
+op projects                        # List all accessible projects
+op version                         # Print CLI version
+op upgrade                         # Upgrade to latest version
 ```
 
 ### Global flags
@@ -190,27 +201,35 @@ binary, and writes the result to `.op-bridge/result.txt`.
 
 ### Claude Code skills
 
-Three skills are available for natural language access in Claude Code:
+Three slash commands are available in Claude Code for natural language access:
 
-**`/openproject`** — General sprint management:
+**`/openproject`** — Translates natural language into `op` commands:
 
 ```
-/openproject create a P1 bug for NTD+, assign to Bruce
-/openproject show the sprint board
-/openproject what's blocked?
+/openproject create a P1 bug "Crash on save" for NTD+, assign to Bruce, android component
+/openproject show the sprint board filtered by blocked status
+/openproject what's blocked in the current sprint?
+/openproject show my team's work for this sprint
+/openproject generate the sprint report
+/openproject add tickets 101 102 103 to current sprint
+/openproject what's in the backlog that needs estimation?
 ```
 
-**`/ticket-prep`** — PM ticket quality review before business review:
+**`/ticket-prep`** — PM self-review for ticket quality before business review:
 
 ```
 /ticket-prep 12345
 ```
 
-**`/ticket-verify`** — Developer readiness check before implementation:
+Checks: completeness, clarity, business justification, acceptance criteria quality, visual assets, and scope definition. Outputs a structured review with rewrite suggestions.
+
+**`/ticket-verify`** — Developer readiness check before starting implementation:
 
 ```
 /ticket-verify 12345
 ```
+
+Checks: implementability, technical gaps, ambiguities, dependencies, risk assessment, and estimation sanity. Detects team context (android/ios/web) for team-specific checks.
 
 ## Troubleshooting
 
