@@ -140,8 +140,13 @@ func runSprintProgress(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	vf, err := api.VersionFilter(sprint, project)
+	if err != nil {
+		return err
+	}
+
 	filters := []api.Filter{
-		api.NewFilter("version", "=", fmt.Sprintf("%d", sprint.ID)),
+		vf,
 	}
 
 	result, err := client.ListWorkPackages(project, filters, "", 200)
@@ -226,8 +231,13 @@ func runSprintClose(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	vf, err := api.VersionFilter(sprint, project)
+	if err != nil {
+		return err
+	}
+
 	filters := []api.Filter{
-		api.NewFilter("version", "=", fmt.Sprintf("%d", sprint.ID)),
+		vf,
 	}
 
 	result, err := client.ListWorkPackages(project, filters, "", 200)

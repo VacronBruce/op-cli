@@ -64,10 +64,12 @@ func TestResolveVersion_ByName(t *testing.T) {
 			}{
 				Elements: []Version{
 					{ID: 1, Name: "Sprint 1", Status: "closed", Links: struct {
-						Self Link `json:"self"`
+						Self            Link `json:"self"`
+						DefiningProject Link `json:"definingProject"`
 					}{Self: Link{Href: "/api/v3/versions/1"}}},
 					{ID: 2, Name: "Sprint 2", Status: "open", Links: struct {
-						Self Link `json:"self"`
+						Self            Link `json:"self"`
+						DefiningProject Link `json:"definingProject"`
 					}{Self: Link{Href: "/api/v3/versions/2"}}},
 				},
 			},
@@ -147,13 +149,72 @@ func TestListVersions(t *testing.T) {
 	}
 }
 
-func versionHandler(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(VersionCollection{
-		Total: 1,
-		Embedded: struct {
-			Elements []Version `json:"elements"`
-		}{
-			Elements: []Version{{ID: 1, Name: "Sprint 1", Status: "open"}},
-		},
+func TestResolveVersion_CaseInsensitive(t *testing.T) {
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(VersionCollection{
+			Total: 1,
+			Embedded: struct {
+				Elements []Version `json:"elements"`
+			}{
+				Elements: []Version{
+					{ID: 3, Name: "App_EET_Test 123", Status: "open"},
+				},
+			},
+		})
 	})
+	defer ts.Close()
+
+	v, err := c.ResolveVersion("myproject", "app_eet_test 123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if v.Name != "App_EET_Test 123" {
+		t.Errorf("expected 'App_EET_Test 123', got %s", v.Name)
+	}
+}
+
+func TestVersionFilter_Valid(t *testing.T) {
+	v := &Version{ID: 42, Name: "Sprint 1"}
+	v.Links.DefiningProject = Link{Href: "/api/v3/projects/myproject"}
+
+	f, err := VersionFilter(v, "myproject")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if f == nil {
+		t.Fatal("expected filter, got nil")
+	}
+}
+
+func TestVersionFilter_ZeroID(t *testing.T) {
+	v := &Version{ID: 0, Name: "Bad Sprint"}
+
+	_, err := VersionFilter(v, "myproject")
+	if err == nil {
+		t.Error("expected error for zero ID")
+	}
+}
+
+func TestVersionFilter_SharedVersion(t *testing.T) {
+	v := &Version{ID: 42, Name: "Shared Sprint"}
+	v.Links.DefiningProject = Link{Href: "/api/v3/projects/other-project"}
+
+	_, err := VersionFilter(v, "myproject")
+	if err == nil {
+		t.Error("expected error for shared version from different project")
+	}
+}
+
+func TestVersionFilter_NoDefiningProject(t *testing.T) {
+	// When definingProject link is empty (older API or missing field),
+	// the filter should still work.
+	v := &Version{ID: 42, Name: "Sprint 1"}
+
+	f, err := VersionFilter(v, "myproject")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if f == nil {
+		t.Fatal("expected filter, got nil")
+	}
 }

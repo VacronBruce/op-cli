@@ -86,8 +86,13 @@ func runCheckSprint(cmd *cobra.Command, runner *check.Runner, strict, comment bo
 		return fmt.Errorf("finding active sprint: %w", err)
 	}
 
+	vf, err := api.VersionFilter(activeSprint, project)
+	if err != nil {
+		return err
+	}
+
 	filters := []api.Filter{
-		api.NewFilter("version", "=", fmt.Sprintf("%d", activeSprint.ID)),
+		vf,
 	}
 
 	// Component filter

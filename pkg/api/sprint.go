@@ -1,6 +1,9 @@
 package api
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Version represents an OpenProject version (used as sprint in Scrum).
 type Version struct {
@@ -11,7 +14,8 @@ type Version struct {
 	EndDate     string       `json:"endDate,omitempty"`
 	Status      string       `json:"status"`
 	Links       struct {
-		Self Link `json:"self"`
+		Self            Link `json:"self"`
+		DefiningProject Link `json:"definingProject"`
 	} `json:"_links"`
 }
 
@@ -76,10 +80,40 @@ func (c *Client) ResolveVersion(project, name string) (*Version, error) {
 	if err != nil {
 		return nil, fmt.Errorf("listing versions: %w", err)
 	}
+
+	// Try exact match first, then case-insensitive match.
+	var caseMatch *Version
 	for _, v := range versions.Embedded.Elements {
 		if v.Name == name {
 			return &v, nil
 		}
+		if caseMatch == nil && strings.EqualFold(v.Name, name) {
+			v := v
+			caseMatch = &v
+		}
+	}
+	if caseMatch != nil {
+		return caseMatch, nil
 	}
 	return nil, fmt.Errorf("sprint %q not found", name)
+}
+
+// VersionFilter creates a version filter for work package queries.
+// It validates the version belongs to the given project. Shared versions
+// from other projects are visible in the versions list but may be rejected
+// by the work package filter API.
+func VersionFilter(v *Version, project string) (Filter, error) {
+	if v.ID <= 0 {
+		return nil, fmt.Errorf("sprint %q has invalid ID %d", v.Name, v.ID)
+	}
+	// Check if this is a shared version from another project.
+	if href := v.Links.DefiningProject.Href; href != "" {
+		if !strings.HasSuffix(href, "/"+project) {
+			return nil, fmt.Errorf(
+				"sprint %q (ID %d) belongs to another project and cannot be used to filter work packages here.\n"+
+					"Use 'op sprint list' to see sprints defined in this project",
+				v.Name, v.ID)
+		}
+	}
+	return NewFilter("version", "=", fmt.Sprintf("%d", v.ID)), nil
 }

@@ -47,8 +47,12 @@ func runBoard(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+		vf, err := api.VersionFilter(version, project)
+		if err != nil {
+			return err
+		}
 		fmt.Printf("Sprint: %s\n", version.Name)
-		filters = append(filters, api.NewFilter("version", "=", fmt.Sprintf("%d", version.ID)))
+		filters = append(filters, vf)
 	}
 
 	// Only show open items when querying across sprints
