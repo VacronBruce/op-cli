@@ -87,8 +87,9 @@ op my --component=android          # My Android items only
 op my --by-sprint                  # My items grouped by sprint
 op my team                         # Team items grouped by person
 op blocked                         # Blocked items in sprint
-op show 12345                      # View ticket details (includes JIRA ID)
+op show 12345                      # View ticket details (includes JIRA ID + User Story)
 op show 12345 --download           # Download attachments
+op search WP-23                    # Map a JIRA ID to its OpenProject number
 ```
 
 ### Create & update
@@ -112,8 +113,9 @@ Priority values: `P0`, `P1`, `P2`, `P3` (tasks/stories) | `SEV0`, `SEV1`, `SEV2`
 ### Comments
 
 ```bash
-op comment 12345                   # List all comments on a ticket
+op comment 12345                   # List all comments (shows comment IDs)
 op comment 12345 "LGTM"           # Post a comment
+op comment 12345 "fixed typo" --edit=6789  # Edit comment #6789
 ```
 
 ### Sprint management

@@ -100,6 +100,16 @@ If you can't be sure something worked, say so explicitly.
 "Feature works" is wrong if you didn't verify the edge case I asked about.
 Default to surfacing uncertainty, not hiding it.
 
+## 13. Keep docs in sync after CLI changes
+After any change to `op` behavior (new/renamed command, flag, output format, or field),
+check and update the docs that demonstrate it — they drift silently otherwise:
+- The skills under `skill/` (especially `skill/SKILL.md` command reference and how-to
+  list, plus `ticket-prep` / `ticket-verify` / `ticket-review`) and their installed copies
+  under `~/.claude/skills/`.
+- `README.md` examples.
+Every command/flag/output example shown in those files must still match real `op` output.
+If a change touches them, update them in the same commit; if you can't verify an example, say so.
+
 ## Release
 
 ### GitLab release asset URLs
