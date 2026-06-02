@@ -165,3 +165,41 @@ func TestRequireProject(t *testing.T) {
 		t.Error("expected error for empty project")
 	}
 }
+
+func TestEditComment_SendsPlainStringBody(t *testing.T) {
+	// Regression: the activity-update endpoint expects `comment` as a plain
+	// string, not the {format, raw} Formattable object the create endpoint uses.
+	// Sending the object form returns 400 "comment is invalid".
+	var gotMethod, gotPath string
+	var gotBody map[string]json.RawMessage
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"_type": "Activity", "id": 42})
+	})
+	defer ts.Close()
+
+	if err := c.EditComment(42, "updated text"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotMethod != "PATCH" {
+		t.Errorf("expected PATCH, got %s", gotMethod)
+	}
+	if gotPath != "/api/v3/activities/42" {
+		t.Errorf("expected /api/v3/activities/42, got %s", gotPath)
+	}
+	// comment must be a JSON string, not an object.
+	raw, ok := gotBody["comment"]
+	if !ok {
+		t.Fatal("body missing `comment` field")
+	}
+	var asString string
+	if err := json.Unmarshal(raw, &asString); err != nil {
+		t.Fatalf("expected `comment` to be a JSON string, got %s", raw)
+	}
+	if asString != "updated text" {
+		t.Errorf("expected 'updated text', got %q", asString)
+	}
+}

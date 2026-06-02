@@ -77,11 +77,11 @@ func (e *APIError) Error() string {
 
 // Collection represents a paginated API response.
 type Collection struct {
-	Type    string            `json:"_type"`
-	Total   int               `json:"total"`
-	Count   int               `json:"count"`
-	Offset  int               `json:"offset"`
-	Items   []json.RawMessage `json:"_embedded"`
+	Type   string            `json:"_type"`
+	Total  int               `json:"total"`
+	Count  int               `json:"count"`
+	Offset int               `json:"offset"`
+	Items  []json.RawMessage `json:"_embedded"`
 }
 
 // NewClient creates a new OpenProject API client.
@@ -346,11 +346,16 @@ func (c *Client) PostComment(wpID int, markdown string) error {
 	return c.Post(path, body, nil)
 }
 
+// editCommentRequest is the body for editing an existing activity. Unlike the
+// create endpoint (which takes a Formattable {format, raw} object), the activity
+// update endpoint PATCH /activities/{id} expects `comment` as a plain string.
+type editCommentRequest struct {
+	Comment string `json:"comment"`
+}
+
 // EditComment updates the text of an existing comment (activity) by its ID.
 func (c *Client) EditComment(activityID int, markdown string) error {
-	body := commentRequest{
-		Comment: &Formattable{Format: "markdown", Raw: markdown},
-	}
+	body := editCommentRequest{Comment: markdown}
 	path := fmt.Sprintf("/activities/%d", activityID)
 	return c.Patch(path, body, nil)
 }
