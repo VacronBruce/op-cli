@@ -41,6 +41,12 @@ type WPLinks struct {
 	Version    Link `json:"version"`
 	Parent     Link `json:"parent"`
 	Responsible Link `json:"responsible"`
+
+	// Multi-value custom fields (epochbase.com instance): component, product,
+	// and label. Each is an array of links; absent/empty fields decode to nil.
+	Component []Link `json:"customField12"`
+	Product   []Link `json:"customField4"`
+	Label     []Link `json:"customField13"`
 }
 
 // Link represents an HAL link.
