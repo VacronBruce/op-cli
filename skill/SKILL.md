@@ -23,6 +23,7 @@ op my                                 # My assigned items
 op my team                            # Team items grouped by person
 op blocked                            # Blocked items in sprint
 op projects                           # List all projects
+op show <id>                          # Work package details + attachments
 ```
 
 ### Create & Update
@@ -30,22 +31,31 @@ op projects                           # List all projects
 op create <type> "<subject>" [flags]  # Create work package
   # Types: task, bug, feature, epic, user-story, milestone
   # Flags:
-  #   --assignee="Name"    --priority=P1
+  #   --assignee="Name"    --priority=P1   (see priority values below)
   #   --epic="NTD+"        --component=android
   #   --product=entd       --tech-area=app
   #   --label=team#appandroid
   #   --points=5           --sprint="Sprint 1"
   #   --description="..."  --attach=screenshot.png
-  #   --start=2026-01-01   --due=2026-01-15
+  #   --parent=81477       --start=2026-01-01   --due=2026-01-15
 
 op update <id> [flags]                # Update work package
   # Flags: --status=in-progress --assignee="Name" --points=5 --done=80
-  #        --sprint="Sprint 1" --component=android --subject="..." --done=80
+  #        --sprint="Sprint 1" --component=android --subject="..."
+  #        --priority=P1 --description="..."
+
+op link <id> --parent=81477           # Set parent work package
+op link <id> --no-parent              # Remove parent link
+op link <id> --relates-to=81483       # Create "relates" relation
+op link <id> --blocks=81485           # Create "blocks" relation
 
 op attach <id> file.png [file2.jpg]   # Upload attachments
 op comment <id>                       # List comments on ticket
 op comment <id> "message"             # Post a comment
 ```
+
+> **Priority values** (use these, NOT the "Low/Normal/High" labels in `--help`):
+> `P0`, `P1`, `P2`, `P3` (standard) and `SEV0`, `SEV1`, `SEV2`, `SEV3` (severity/bugs).
 
 ### Sprint Management
 ```bash
@@ -99,8 +109,11 @@ op check --sprint --component=android # Filter + check
 18. **"update op"** → `op upgrade`
 19. **"show blocked items"** → `op blocked` or `op board --status=blocked`
 20. **"unestimated backlog"** → `op backlog --unestimated`
-21. **"review as PM"** → invoke /ticket-prep skill
-22. **"verify as developer"** → invoke /ticket-verify skill
+21. **"show ticket details"** → `op show <id>`
+22. **"set parent / link tickets"** → `op link <id> --parent=X` (or `--relates-to`, `--blocks`, `--no-parent`)
+23. **"review as PM"** → invoke /ticket-prep skill
+24. **"verify as developer"** → invoke /ticket-verify skill
+25. **"fully review / bot-review a ticket"** → invoke /ticket-review skill (combined PM + Dev, posts one comment)
 
 ## Custom Field Values
 
