@@ -55,8 +55,9 @@ op link <id> --relates-to=81483       # Create "relates" relation
 op link <id> --blocks=81485           # Create "blocks" relation
 
 op attach <id> file.png [file2.jpg]   # Upload attachments
-op comment <id>                       # List comments on ticket
+op comment <id>                       # List comments on ticket (shows comment IDs)
 op comment <id> "message"             # Post a comment
+op comment <id> "message" --edit=<comment-id>  # Edit an existing comment's text
 ```
 
 > **Priority values** (use these, NOT the "Low/Normal/High" labels in `--help`):
@@ -109,6 +110,7 @@ op check --sprint --component=android # Filter + check
 13. **"check sprint quality"** → `op check --sprint`
 14. **"what's the discussion on X?"** → `op comment <id>`
 15. **"leave a comment"** → `op comment <id> "message"`
+15a. **"edit/fix my comment"** → `op comment <id>` to find the comment ID, then `op comment <id> "new text" --edit=<comment-id>`
 16. **"list sprints"** → `op sprint list`
 17. **"what version?"** → `op version`
 18. **"update op"** → `op upgrade`

@@ -27,7 +27,7 @@ func Activities(ac *api.ActivityCollection) {
 		if len(a.CreatedAt) >= 10 {
 			date = a.CreatedAt[:10]
 		}
-		fmt.Printf("  [%s] %s:\n", date, a.Links.User.Title)
+		fmt.Printf("  [%s] %s (#%d):\n", date, a.Links.User.Title, a.ID)
 		fmt.Printf("    %s\n\n", a.Comment.Raw)
 	}
 }

@@ -49,6 +49,7 @@ type APIClient interface {
 	// Activities/comments
 	ListActivities(wpID int) (*ActivityCollection, error)
 	PostComment(wpID int, markdown string) error
+	EditComment(activityID int, markdown string) error
 
 	// Relations
 	CreateRelation(fromID int, relType string, toID int) error
@@ -343,6 +344,15 @@ func (c *Client) PostComment(wpID int, markdown string) error {
 	}
 	path := fmt.Sprintf("/work_packages/%d/activities", wpID)
 	return c.Post(path, body, nil)
+}
+
+// EditComment updates the text of an existing comment (activity) by its ID.
+func (c *Client) EditComment(activityID int, markdown string) error {
+	body := commentRequest{
+		Comment: &Formattable{Format: "markdown", Raw: markdown},
+	}
+	path := fmt.Sprintf("/activities/%d", activityID)
+	return c.Patch(path, body, nil)
 }
 
 func detectContentType(name string) string {

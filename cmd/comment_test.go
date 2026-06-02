@@ -218,6 +218,64 @@ func TestComment_Post_EmptyMessage(t *testing.T) {
 	}
 }
 
+// --- Edit mode tests ---
+
+// runCommentEditWith runs runComment with the --edit flag set to editID.
+func runCommentEditWith(t *testing.T, mock *testutil.MockClient, editID int, args []string) (string, error) {
+	t.Helper()
+	SetClient(mock)
+	c := &cobra.Command{}
+	c.Flags().Int("edit", editID, "")
+	var err error
+	out := captureStdout(func() {
+		err = runComment(c, args)
+	})
+	return out, err
+}
+
+func TestComment_Edit_Success(t *testing.T) {
+	var capturedID int
+	var capturedMsg string
+	mock := &testutil.MockClient{
+		EditCommentFn: func(activityID int, markdown string) error {
+			capturedID = activityID
+			capturedMsg = markdown
+			return nil
+		},
+		PostCommentFn: func(int, string) error {
+			t.Error("PostComment should not be called in edit mode")
+			return nil
+		},
+	}
+
+	out, err := runCommentEditWith(t, mock, 1234, []string{"81321", "  fixed typo  "})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if capturedID != 1234 {
+		t.Errorf("expected activityID=1234, got %d", capturedID)
+	}
+	if capturedMsg != "fixed typo" {
+		t.Errorf("expected trimmed msg 'fixed typo', got %q", capturedMsg)
+	}
+	if !strings.Contains(out, "Comment #1234 updated") {
+		t.Errorf("expected edit confirmation, got: %s", out)
+	}
+}
+
+func TestComment_Edit_RequiresMessage(t *testing.T) {
+	mock := &testutil.MockClient{
+		EditCommentFn: func(int, string) error {
+			t.Error("EditComment should not be called without a message")
+			return nil
+		},
+	}
+	_, err := runCommentEditWith(t, mock, 1234, []string{"81321"})
+	if err == nil || !strings.Contains(err.Error(), "--edit requires the new comment text") {
+		t.Fatalf("expected missing-text error, got: %v", err)
+	}
+}
+
 func TestComment_Post_APIError(t *testing.T) {
 	mock := &testutil.MockClient{
 		PostCommentFn: func(wpID int, markdown string) error {
