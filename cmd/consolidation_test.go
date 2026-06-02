@@ -10,6 +10,32 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func hasFilter(filters []api.Filter, field, operator string, values ...string) bool {
+	for _, f := range filters {
+		spec, ok := f[field]
+		if !ok {
+			continue
+		}
+		if spec.Operator != operator {
+			continue
+		}
+		if len(spec.Values) != len(values) {
+			continue
+		}
+		match := true
+		for i := range values {
+			if spec.Values[i] != values[i] {
+				match = false
+				break
+			}
+		}
+		if match {
+			return true
+		}
+	}
+	return false
+}
+
 // --- backlog --unestimated tests ---
 
 func TestBacklog_Unestimated_FiltersCorrectly(t *testing.T) {
@@ -98,6 +124,133 @@ func TestBacklog_Unestimated_AllEstimated(t *testing.T) {
 
 	if !strings.Contains(out, "All backlog items have estimates!") {
 		t.Errorf("expected all-estimated message, got: %s", out)
+	}
+}
+
+// --- backlog --type tests ---
+
+func TestBacklog_TypeFilter_Lowercase(t *testing.T) {
+	var gotFilters []api.Filter
+	getCalls := 0
+
+	mock := &testutil.MockClient{
+		ProjectValue: "test",
+		GetFn: func(path string, result interface{}) error {
+			if path != "/types" {
+				return fmt.Errorf("unexpected Get path: %s", path)
+			}
+			getCalls++
+			return json.Unmarshal([]byte(`{"_embedded":{"elements":[{"id":7,"name":"Bug","_links":{"self":{"href":"/api/v3/types/7"}}}]}}`), result)
+		},
+		ListWorkPackagesFn: func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+			gotFilters = append([]api.Filter(nil), filters...)
+			return &api.WPCollection{
+				Total: 0,
+				Embedded: struct {
+					Elements []api.WorkPackage `json:"elements"`
+				}{},
+			}, nil
+		},
+	}
+	SetClient(mock)
+
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("unestimated", false, "")
+	cmd.Flags().String("type", "", "")
+	_ = cmd.Flags().Set("type", "bug")
+
+	_ = captureStdout(func() {
+		err := runBacklog(cmd, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if getCalls != 1 {
+		t.Errorf("expected 1 /types fetch, got %d", getCalls)
+	}
+	if !hasFilter(gotFilters, "type", "=", "7") {
+		t.Errorf("expected type filter in filters: %#v", gotFilters)
+	}
+}
+
+func TestBacklog_TypeFilter_Uppercase(t *testing.T) {
+	var gotFilters []api.Filter
+
+	mock := &testutil.MockClient{
+		ProjectValue: "test",
+		GetFn: func(path string, result interface{}) error {
+			if path != "/types" {
+				return fmt.Errorf("unexpected Get path: %s", path)
+			}
+			return json.Unmarshal([]byte(`{"_embedded":{"elements":[{"id":7,"name":"Bug","_links":{"self":{"href":"/api/v3/types/7"}}}]}}`), result)
+		},
+		ListWorkPackagesFn: func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+			gotFilters = append([]api.Filter(nil), filters...)
+			return &api.WPCollection{
+				Total: 0,
+				Embedded: struct {
+					Elements []api.WorkPackage `json:"elements"`
+				}{},
+			}, nil
+		},
+	}
+	SetClient(mock)
+
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("unestimated", false, "")
+	cmd.Flags().String("type", "", "")
+	_ = cmd.Flags().Set("type", "Bug")
+
+	_ = captureStdout(func() {
+		err := runBacklog(cmd, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if !hasFilter(gotFilters, "type", "=", "7") {
+		t.Errorf("expected type filter in filters: %#v", gotFilters)
+	}
+}
+
+func TestBacklog_TypeFilter_Invalid(t *testing.T) {
+	listCalls := 0
+	mock := &testutil.MockClient{
+		ProjectValue: "test",
+		GetFn: func(path string, result interface{}) error {
+			if path != "/types" {
+				return fmt.Errorf("unexpected Get path: %s", path)
+			}
+			return json.Unmarshal([]byte(`{"_embedded":{"elements":[{"id":7,"name":"Bug","_links":{"self":{"href":"/api/v3/types/7"}}},{"id":8,"name":"Task","_links":{"self":{"href":"/api/v3/types/8"}}}]}}`), result)
+		},
+		ListWorkPackagesFn: func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+			listCalls++
+			return &api.WPCollection{}, nil
+		},
+	}
+	SetClient(mock)
+
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("unestimated", false, "")
+	cmd.Flags().String("type", "", "")
+	_ = cmd.Flags().Set("type", "invalid")
+
+	var err error
+	_ = captureStdout(func() {
+		err = runBacklog(cmd, nil)
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), `resolving type: unknown "invalid"`) {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !strings.Contains(err.Error(), "available:") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if listCalls != 0 {
+		t.Errorf("expected ListWorkPackages not to be called, got %d calls", listCalls)
 	}
 }
 
@@ -343,5 +496,165 @@ func TestMyTeamAlias_IsDeprecated(t *testing.T) {
 	}
 	if !strings.Contains(myTeamAliasCmd.Deprecated, "op my team") {
 		t.Errorf("deprecation message should mention 'op my team', got: %s", myTeamAliasCmd.Deprecated)
+	}
+}
+
+// --- my --type tests ---
+
+func TestMy_TypeFilter_Lowercase(t *testing.T) {
+	var gotFilters []api.Filter
+	getCalls := 0
+
+	mock := &testutil.MockClient{
+		ProjectValue: "test",
+		GetMeFn: func() (*api.User, error) {
+			return &api.User{ID: 123, Name: "Me"}, nil
+		},
+		GetFn: func(path string, result interface{}) error {
+			if path != "/types" {
+				return fmt.Errorf("unexpected Get path: %s", path)
+			}
+			getCalls++
+			return json.Unmarshal([]byte(`{"_embedded":{"elements":[{"id":7,"name":"Bug","_links":{"self":{"href":"/api/v3/types/7"}}}]}}`), result)
+		},
+		ListWorkPackagesFn: func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+			gotFilters = append([]api.Filter(nil), filters...)
+			return &api.WPCollection{
+				Total: 0,
+				Embedded: struct {
+					Elements []api.WorkPackage `json:"elements"`
+				}{},
+			}, nil
+		},
+	}
+	SetClient(mock)
+
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("all", false, "")
+	cmd.Flags().String("sprint", "", "")
+	cmd.Flags().Bool("no-sprint", false, "")
+	cmd.Flags().Bool("author", false, "")
+	cmd.Flags().String("since", "", "")
+	cmd.Flags().String("component", "", "")
+	cmd.Flags().String("type", "", "")
+	cmd.Flags().Bool("by-sprint", false, "")
+
+	_ = cmd.Flags().Set("no-sprint", "true")
+	_ = cmd.Flags().Set("type", "bug")
+
+	_ = captureStdout(func() {
+		err := runMy(cmd, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if getCalls != 1 {
+		t.Errorf("expected 1 /types fetch, got %d", getCalls)
+	}
+	if !hasFilter(gotFilters, "type", "=", "7") {
+		t.Errorf("expected type filter in filters: %#v", gotFilters)
+	}
+}
+
+func TestMy_TypeFilter_Uppercase(t *testing.T) {
+	var gotFilters []api.Filter
+
+	mock := &testutil.MockClient{
+		ProjectValue: "test",
+		GetMeFn: func() (*api.User, error) {
+			return &api.User{ID: 123, Name: "Me"}, nil
+		},
+		GetFn: func(path string, result interface{}) error {
+			if path != "/types" {
+				return fmt.Errorf("unexpected Get path: %s", path)
+			}
+			return json.Unmarshal([]byte(`{"_embedded":{"elements":[{"id":7,"name":"Bug","_links":{"self":{"href":"/api/v3/types/7"}}}]}}`), result)
+		},
+		ListWorkPackagesFn: func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+			gotFilters = append([]api.Filter(nil), filters...)
+			return &api.WPCollection{
+				Total: 0,
+				Embedded: struct {
+					Elements []api.WorkPackage `json:"elements"`
+				}{},
+			}, nil
+		},
+	}
+	SetClient(mock)
+
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("all", false, "")
+	cmd.Flags().String("sprint", "", "")
+	cmd.Flags().Bool("no-sprint", false, "")
+	cmd.Flags().Bool("author", false, "")
+	cmd.Flags().String("since", "", "")
+	cmd.Flags().String("component", "", "")
+	cmd.Flags().String("type", "", "")
+	cmd.Flags().Bool("by-sprint", false, "")
+
+	_ = cmd.Flags().Set("no-sprint", "true")
+	_ = cmd.Flags().Set("type", "Bug")
+
+	_ = captureStdout(func() {
+		err := runMy(cmd, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if !hasFilter(gotFilters, "type", "=", "7") {
+		t.Errorf("expected type filter in filters: %#v", gotFilters)
+	}
+}
+
+func TestMy_TypeFilter_Invalid(t *testing.T) {
+	listCalls := 0
+	mock := &testutil.MockClient{
+		ProjectValue: "test",
+		GetMeFn: func() (*api.User, error) {
+			return &api.User{ID: 123, Name: "Me"}, nil
+		},
+		GetFn: func(path string, result interface{}) error {
+			if path != "/types" {
+				return fmt.Errorf("unexpected Get path: %s", path)
+			}
+			return json.Unmarshal([]byte(`{"_embedded":{"elements":[{"id":7,"name":"Bug","_links":{"self":{"href":"/api/v3/types/7"}}},{"id":8,"name":"Task","_links":{"self":{"href":"/api/v3/types/8"}}}]}}`), result)
+		},
+		ListWorkPackagesFn: func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+			listCalls++
+			return &api.WPCollection{}, nil
+		},
+	}
+	SetClient(mock)
+
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("all", false, "")
+	cmd.Flags().String("sprint", "", "")
+	cmd.Flags().Bool("no-sprint", false, "")
+	cmd.Flags().Bool("author", false, "")
+	cmd.Flags().String("since", "", "")
+	cmd.Flags().String("component", "", "")
+	cmd.Flags().String("type", "", "")
+	cmd.Flags().Bool("by-sprint", false, "")
+
+	_ = cmd.Flags().Set("no-sprint", "true")
+	_ = cmd.Flags().Set("type", "invalid")
+
+	var err error
+	_ = captureStdout(func() {
+		err = runMy(cmd, nil)
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), `resolving type: unknown "invalid"`) {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !strings.Contains(err.Error(), "available:") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if listCalls != 0 {
+		t.Errorf("expected ListWorkPackages not to be called, got %d calls", listCalls)
 	}
 }

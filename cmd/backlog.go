@@ -68,6 +68,7 @@ func runBacklog(cmd *cobra.Command, args []string) error {
 			ids = append(ids, strconv.Itoa(t.ID))
 		}
 		filters = append(filters, api.NewFilter("type", "=", ids...))
+
 	}
 
 	result, err := client.ListWorkPackages(project, filters,

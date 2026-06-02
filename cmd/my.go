@@ -64,6 +64,7 @@ func init() {
 	myCmd.Flags().Bool("author", false, "Filter by author (created by me) instead of assignee")
 	myCmd.Flags().String("since", "", "Filter by creation date (e.g. 2w, 30d, 3m)")
 	myCmd.Flags().String("component", "", "Filter by component (android, ios, ott, engineering, analytics)")
+	myCmd.Flags().String("type", "", "Filter by type (bug, task, story, feature, epic, record)")
 	myCmd.Flags().Bool("by-sprint", false, "Group results by sprint")
 	_ = myCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
 	myTeamCmd.Flags().String("sprint", "", "Sprint name (defaults to active sprint)")
