@@ -49,9 +49,13 @@ func CheckAcceptanceCriteria(wp *api.WorkPackage, _ int) Result {
 	return Result{Name: name, Level: Fail, Message: "No acceptance criteria section found"}
 }
 
-// CheckUseCase looks for use case or user story format in the description.
+// CheckUseCase looks for a user story, either in the dedicated User Story
+// custom field (customField36) or as use-case/user-story text in the description.
 func CheckUseCase(wp *api.WorkPackage, _ int) Result {
 	name := "Use case / user story present"
+	if wp.UserStory != nil && strings.TrimSpace(wp.UserStory.Raw) != "" {
+		return Result{Name: name, Level: Pass}
+	}
 	if wp.Description == nil {
 		return Result{Name: name, Level: Fail, Message: "No description to check"}
 	}

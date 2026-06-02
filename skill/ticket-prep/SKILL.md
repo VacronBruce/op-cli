@@ -15,6 +15,7 @@ Self-review ticket #$ARGUMENTS for completeness and clarity before business revi
 
 ## Process
 
+0. If `$ARGUMENTS` is a JIRA ID (e.g. `WP-23`, `BUG-655`) rather than a numeric OpenProject ID, resolve it first with `op search $ARGUMENTS` and use the returned `#<number>` in the steps below.
 1. Run `op show $ARGUMENTS` to fetch full ticket details and attachments
 2. Run `op check $ARGUMENTS` to get the mechanical checklist score
 3. Analyze with PM-focused judgment (see Evaluation Criteria below)

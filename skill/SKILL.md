@@ -24,7 +24,12 @@ op my team                            # Team items grouped by person
 op blocked                            # Blocked items in sprint
 op projects                           # List all projects
 op show <id>                          # Work package details + attachments
+op search <jira-id>                   # Map a JIRA ID (e.g. WP-23) to its OP number
 ```
+
+> `op show` and `op check` read the **User Story** custom field (customField36)
+> when present; `op check` counts a populated User Story field as satisfying the
+> user-story requirement even if the description has no "As a…" text.
 
 ### Create & Update
 ```bash
@@ -110,10 +115,11 @@ op check --sprint --component=android # Filter + check
 19. **"show blocked items"** → `op blocked` or `op board --status=blocked`
 20. **"unestimated backlog"** → `op backlog --unestimated`
 21. **"show ticket details"** → `op show <id>`
-22. **"set parent / link tickets"** → `op link <id> --parent=X` (or `--relates-to`, `--blocks`, `--no-parent`)
-23. **"review as PM"** → invoke /ticket-prep skill
-24. **"verify as developer"** → invoke /ticket-verify skill
-25. **"fully review / bot-review a ticket"** → invoke /ticket-review skill (combined PM + Dev, posts one comment)
+22. **"what's the OP number for WP-23 / look up a JIRA ID"** → `op search <jira-id>` (maps the JIRA ID custom field to the OpenProject work package number)
+23. **"set parent / link tickets"** → `op link <id> --parent=X` (or `--relates-to`, `--blocks`, `--no-parent`)
+24. **"review as PM"** → invoke /ticket-prep skill
+25. **"verify as developer"** → invoke /ticket-verify skill
+26. **"fully review / bot-review a ticket"** → invoke /ticket-review skill (combined PM + Dev, posts one comment)
 
 ## Custom Field Values
 

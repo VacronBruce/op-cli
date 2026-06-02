@@ -62,6 +62,9 @@ func WorkPackageDetail(wp *api.WorkPackage) {
 	if wp.Links.Version.Title != "" {
 		fmt.Printf("  Sprint:     %s\n", wp.Links.Version.Title)
 	}
+	if wp.UserStory != nil && wp.UserStory.Raw != "" {
+		fmt.Printf("  User Story:\n    %s\n", wp.UserStory.Raw)
+	}
 	if wp.Description != nil && wp.Description.Raw != "" {
 		fmt.Printf("  Description:\n    %s\n", wp.Description.Raw)
 	}

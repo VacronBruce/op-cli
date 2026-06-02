@@ -107,6 +107,35 @@ func TestCheckUseCase(t *testing.T) {
 	}
 }
 
+// The User Story custom field (customField36) satisfies the check even when the
+// description has no user-story text, and an empty field falls back to the description.
+func TestCheckUseCaseField(t *testing.T) {
+	tests := []struct {
+		name      string
+		desc      string
+		userStory *api.Formattable
+		level     Level
+	}{
+		{"field set, weak desc", "Fix the login page", &api.Formattable{Raw: "As a visitor, I want X so that Y"}, Pass},
+		{"field set, nil desc", "", &api.Formattable{Raw: "As a visitor, I want X"}, Pass},
+		{"field empty, weak desc", "Fix the login page", &api.Formattable{Raw: "   "}, Fail},
+		{"field whitespace, desc has story", "As a user, I want to log in", &api.Formattable{Raw: ""}, Pass},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wp := makeWP("Story", tt.desc)
+			if tt.desc == "" {
+				wp.Description = nil
+			}
+			wp.UserStory = tt.userStory
+			r := CheckUseCase(wp, 0)
+			if r.Level != tt.level {
+				t.Errorf("got %s, want %s", r.Level, tt.level)
+			}
+		})
+	}
+}
+
 func TestCheckReproductionSteps(t *testing.T) {
 	tests := []struct {
 		name  string

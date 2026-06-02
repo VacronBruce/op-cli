@@ -19,6 +19,7 @@ type WorkPackage struct {
 	CreatedAt      string `json:"createdAt"`
 	UpdatedAt      string `json:"updatedAt"`
 	JiraID         string `json:"customField3,omitempty"`
+	UserStory      *Formattable `json:"customField36,omitempty"`
 	Links          WPLinks `json:"_links"`
 }
 
@@ -127,6 +128,25 @@ func (c *Client) ListWorkPackages(project string, filters []Filter, sortBy strin
 
 	var result WPCollection
 	if err := c.Get(path, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// SearchByJiraID finds work packages whose JIRA ID custom field (customField3)
+// matches the given value. Searches across all projects.
+func (c *Client) SearchByJiraID(jiraID string) (*WPCollection, error) {
+	filters := []Filter{NewFilter("customField3", "~", jiraID)}
+	filterJSON, err := json.Marshal(filters)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling filters: %w", err)
+	}
+	params := url.Values{}
+	params.Set("filters", string(filterJSON))
+	params.Set("pageSize", "20")
+
+	var result WPCollection
+	if err := c.Get("/work_packages?"+params.Encode(), &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
