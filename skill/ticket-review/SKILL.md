@@ -39,6 +39,7 @@ Override via a config file if present at `$OP_REVIEWER_CONFIG` or
    - If none → proceed (first review).
    - If one exists and **no later** comment contains the trigger phrase → STOP; print
      `RESULT id=<id> posted=skipped reason=already-reviewed` and exit (do not post).
+     (See **RESULT line** below for the exact machine-readable format.)
    - If one exists and a **later** comment (from a non-bot author) contains the trigger
      phrase → proceed (re-review requested).
 4. Apply the **/ticket-prep rubric** (completeness, clarity, business justification,
@@ -49,12 +50,37 @@ Override via a config file if present at `$OP_REVIEWER_CONFIG` or
    Dev verdict (READY TO BUILD / BLOCKED / NEEDS CLARIFICATION) with specific questions.
 6. Compose ONE combined comment (see Output Format). The marker line MUST be first.
 7. If `--dry-run`: print the comment and exit. Otherwise `op comment <id> "<comment>"`,
-   then print `RESULT id=<id> posted=yes overall=<gate>`.
+   then print the **RESULT line** (see below).
 
 ## Gate
 
 - **READY** only if PM = READY FOR REVIEW **and** Dev = READY TO BUILD.
 - Otherwise **NEEDS WORK**.
+
+## RESULT line (machine-readable — the op-agent daemon parses this)
+
+Print exactly ONE `RESULT` line as the **last** line of output. It MUST be a single line
+of space-separated `key=value` tokens, and every value MUST be a single token with **no
+spaces** (use the UNDERSCORE forms below, not the pretty spaced verdicts used in the comment
+body). The daemon reports these fields per project to a status webhook.
+
+- Posted a review (new or re-review):
+  ```
+  RESULT id=<id> posted=yes overall=<READY|NEEDS_WORK> pm=<pm> dev=<dev> score=<0-100>
+  ```
+- Skipped (already reviewed, no fresh trigger):
+  ```
+  RESULT id=<id> posted=skipped reason=already-reviewed
+  ```
+
+Token vocabularies (underscore forms; map 1:1 to the spaced verdicts in the comment body):
+
+- `overall` : `READY` | `NEEDS_WORK`
+- `pm`      : `READY_FOR_REVIEW` | `NEEDS_REFINEMENT` | `NEEDS_REWRITE`
+- `dev`     : `READY_TO_BUILD` | `BLOCKED` | `NEEDS_CLARIFICATION`
+- `score`   : integer 0–100 — holistic readiness. Anchors: `READY` ⇒ 85–100;
+  `NEEDS_WORK` with only minor gaps ⇒ 60–84; significant gaps ⇒ 30–59;
+  `NEEDS_REWRITE` or `BLOCKED` ⇒ 0–29.
 
 ## Output Format (the posted comment)
 
