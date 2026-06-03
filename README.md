@@ -90,6 +90,36 @@ A field you don't list keeps its built-in default; listing one overrides its
 field key and/or replaces its options. Look up option hrefs via the OpenProject
 API (e.g. `/api/v3/custom_fields`).
 
+### Ticket templates (optional)
+
+`op create <type>` fills the description from a `templates.<type>` block in
+`~/.oprc` when you don't pass `--description`, so every bug/feature starts with
+the right scaffold. The key is the lowercased type name.
+
+```yaml
+templates:
+  bug: |
+    ## Steps to reproduce
+    1.
+    ## Expected
+
+    ## Actual
+
+    ## Acceptance criteria
+    - [ ]
+  feature: |
+    ## User story
+    As a <role>, I want <capability> so that <benefit>.
+
+    ## Acceptance criteria
+    - [ ]
+  task: |
+    ## Goal
+
+    ## Acceptance criteria
+    - [ ]
+```
+
 Verify:
 
 ```bash
@@ -284,6 +314,25 @@ Checks: completeness, clarity, business justification, acceptance criteria quali
 ```
 
 Checks: implementability, technical gaps, ambiguities, dependencies, risk assessment, and estimation sanity. Detects team context (android/ios/web) for team-specific checks.
+
+**`/standup`** — Lead's daily digest for the current sprint:
+
+```
+/standup
+/standup -p web --sprint "Web_06/01"
+```
+
+Combines sprint progress, blockers, team work by person, and risks into one skimmable briefing.
+
+**`/file-bug`** — Guided bug filing:
+
+```
+/file-bug CC button crashes when publishing on Android
+```
+
+Collects repro/expected/actual/acceptance criteria + the right component/product/label, then runs `op create bug` with a well-formed description.
+
+> `/ticket-review` is also available — combined PM + Dev review that posts one comment on the ticket.
 
 ## Troubleshooting
 
