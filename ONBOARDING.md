@@ -94,7 +94,7 @@ op overview                    # my open work across ALL projects (top 5 × 3)
 op blocked                     # blocked items in the sprint
 op show 12345                  # full ticket details + attachments
 op search WP-23                # map a JIRA id → OpenProject number
-op start 12345                 # branch wp-12345-<slug> + In Progress + assign to you
+op start 12345                 # branch <project>-12345-<slug> + In Progress + assign to you
 op create bug "title" --component=android --product=entd --priority=SEV1
 op update 12345 --status=in-progress --assignee="Bruce Chen"
 op comment 12345 "LGTM"        # post a comment (--edit=<id> to revise)

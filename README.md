@@ -150,7 +150,7 @@ op blocked                         # Blocked items in sprint
 op show 12345                      # View ticket details (includes JIRA ID + User Story)
 op show 12345 --download           # Download attachments
 op search WP-23                    # Map a JIRA ID to its OpenProject number
-op start 12345                     # Start work: branch wp-12345-<slug>, In Progress, assign to you
+op start 12345                     # Start work: branch <project>-12345-<slug>, In Progress, assign to you
 ```
 
 > **No project set?** With neither `-p` nor `OP_PROJECT`, `op my` auto-detects the

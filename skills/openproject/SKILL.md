@@ -50,7 +50,7 @@ Consult these before constructing a command — don't guess flags or values:
 21. **"show ticket details"** → `op show <id>`
 22. **"what's the OP number for WP-23 / look up a JIRA ID"** → `op search <jira-id>` (maps the JIRA ID custom field to the OpenProject work package number)
 23. **"set parent / link tickets"** → `op link <id> --parent=X` (or `--relates-to`, `--blocks`, `--no-parent`)
-23a. **"start work on / start a ticket"** → `op start <id>` (creates branch `wp-<id>-<slug>`, moves it to In Progress, assigns to you; run inside the git repo)
+23a. **"start work on / start a ticket"** → `op start <id>` (creates branch `<project>-<id>-<slug>`, moves it to In Progress, assigns to you; run inside the git repo)
 24. **"review as PM"** → invoke /op:ticket-prep skill
 25. **"verify as developer"** → invoke /op:ticket-verify skill
 26. **"fully review / bot-review a ticket"** → invoke /op:ticket-review skill (combined PM + Dev, posts one comment)
