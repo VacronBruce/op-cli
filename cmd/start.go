@@ -42,16 +42,13 @@ func runStart(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("not a git repository (run op start inside your repo)")
 	}
 
-	project, err := client.RequireProject()
-	if err != nil {
-		return err
-	}
-
+	// A work-package id is global, so op start needs no default project — it
+	// reads the ticket's own project from the fetched record.
 	wp, err := client.GetWorkPackage(id)
 	if err != nil {
 		return fmt.Errorf("fetching work package: %w", err)
 	}
-	fmt.Printf("Starting #%d: %s\n", id, wp.Subject)
+	fmt.Printf("Starting #%d (%s): %s\n", id, wp.Links.Project.Title, wp.Subject)
 
 	// Create + checkout the branch (or switch to it if it already exists).
 	branch := branchName(id, wp.Subject)
@@ -67,8 +64,9 @@ func runStart(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Created and switched to branch %s\n", branch)
 	}
 
-	// Move the ticket to In Progress and assign it to you.
-	resolver := api.NewResolver(client, project)
+	// Move the ticket to In Progress and assign it to you. Status resolution
+	// uses the global /statuses endpoint, so no project context is needed.
+	resolver := api.NewResolver(client, "")
 	req := &api.UpdateWPRequest{Links: make(map[string]api.LinkValue)}
 
 	status, err := resolver.ResolveStatus("in-progress")
