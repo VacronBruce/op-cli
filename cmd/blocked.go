@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/display"
@@ -11,7 +12,7 @@ import (
 var blockedCmd = &cobra.Command{
 	Use:   "blocked",
 	Short: "Show blocked work packages in current sprint",
-	Long: `List work packages that have a "blocked" status or blocker relations.
+	Long: `List open work packages in the current sprint whose status is "Blocked".
 
 Examples:
   op blocked`,
@@ -49,11 +50,10 @@ func runBlocked(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("listing work packages: %w", err)
 	}
 
-	// Filter for blocked items (status contains "block" or has blocker relations)
+	// Filter for items whose status is "Blocked" (case-insensitive).
 	var blocked []api.WorkPackage
 	for _, wp := range result.Embedded.Elements {
-		status := wp.Links.Status.Title
-		if status == "Blocked" || status == "blocked" {
+		if strings.EqualFold(wp.Links.Status.Title, "blocked") {
 			blocked = append(blocked, wp)
 		}
 	}

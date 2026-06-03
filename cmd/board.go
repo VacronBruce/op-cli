@@ -85,11 +85,14 @@ func runBoard(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("listing work packages: %w", err)
 	}
 
-	// Status filter (client-side)
+	// Status filter (client-side). Match on a normalized substring so that
+	// "in-progress", "in progress", and "progress" all match a status titled
+	// "In progress" — an exact match silently returned nothing otherwise.
 	if statusFilter, _ := cmd.Flags().GetString("status"); statusFilter != "" {
+		want := api.NormalizeName(statusFilter)
 		var filtered []api.WorkPackage
 		for _, wp := range result.Embedded.Elements {
-			if strings.EqualFold(wp.Links.Status.Title, statusFilter) {
+			if strings.Contains(api.NormalizeName(wp.Links.Status.Title), want) {
 				filtered = append(filtered, wp)
 			}
 		}

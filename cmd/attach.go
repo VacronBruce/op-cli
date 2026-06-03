@@ -32,14 +32,20 @@ func runAttach(cmd *cobra.Command, args []string) error {
 
 	desc, _ := cmd.Flags().GetString("desc")
 
-	for _, filePath := range args[1:] {
+	files := args[1:]
+	failures := 0
+	for _, filePath := range files {
 		att, err := client.UploadAttachment(id, filePath, desc)
 		if err != nil {
 			fmt.Printf("Error attaching %s: %s\n", filePath, err)
+			failures++
 			continue
 		}
 		fmt.Printf("Attached to #%d: %s (%d bytes)\n", id, att.FileName, att.FileSize)
 	}
 
+	if failures > 0 {
+		return fmt.Errorf("%d of %d file(s) failed to attach", failures, len(files))
+	}
 	return nil
 }

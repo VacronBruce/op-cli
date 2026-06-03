@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/display"
@@ -124,9 +123,9 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	if components, _ := cmd.Flags().GetStringSlice("component"); len(components) > 0 {
 		var links []api.Link
 		for _, c := range components {
-			href, ok := api.ComponentOptions[strings.ToLower(c)]
-			if !ok {
-				return fmt.Errorf("unknown component %q", c)
+			href, err := api.ResolveCustomOption(api.ComponentOptions, c)
+			if err != nil {
+				return fmt.Errorf("resolving component: %w", err)
 			}
 			links = append(links, api.Link{Href: href})
 		}

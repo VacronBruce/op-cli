@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -89,6 +90,62 @@ func TestResolveCustomOption_NotFound(t *testing.T) {
 	}
 }
 
+// OptionID must accept the same unique-prefix abbreviations that
+// ResolveCustomOption does, so a value like "eng" works identically whether the
+// command filters (OptionID) or sets a link (ResolveCustomOption).
+func TestOptionID_UniquePrefix(t *testing.T) {
+	id, err := OptionID(ComponentOptions, "eng")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if id != "45" {
+		t.Errorf("expected engineering id 45, got %s", id)
+	}
+}
+
+// An ambiguous prefix must be rejected deterministically instead of silently
+// picking one option via random map iteration.
+func TestMatchOption_AmbiguousPrefixRejected(t *testing.T) {
+	_, err := ResolveCustomOption(LabelOptions, "team#app")
+	if err == nil {
+		t.Fatal("expected ambiguity error for 'team#app', got nil")
+	}
+	if !strings.Contains(err.Error(), "ambiguous") {
+		t.Errorf("expected 'ambiguous' in error, got: %v", err)
+	}
+	for _, want := range []string{"team#appall", "team#appandroid", "team#appios"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("expected candidate %q listed, got: %v", want, err)
+		}
+	}
+}
+
+// The "available" list in an unknown-value error must be sorted, so the message
+// is stable across runs (map iteration order is otherwise random).
+func TestMatchOption_UnknownListsSortedOptions(t *testing.T) {
+	_, err := OptionID(ComponentOptions, "windows")
+	if err == nil {
+		t.Fatal("expected error for unknown option")
+	}
+	want := "analytics, android, engineering, ios, ott"
+	if !strings.Contains(err.Error(), want) {
+		t.Errorf("expected sorted options %q, got: %v", want, err)
+	}
+}
+
+func TestNormalizeName(t *testing.T) {
+	cases := map[string]string{
+		"in-progress": "in progress",
+		"In_Progress": "in progress",
+		"  Blocked  ": "blocked",
+	}
+	for in, want := range cases {
+		if got := NormalizeName(in); got != want {
+			t.Errorf("NormalizeName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 func TestResolver_Types(t *testing.T) {
 	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(collectionResponse{
@@ -144,6 +201,32 @@ func TestResolver_ResolveType(t *testing.T) {
 	}
 	if r.Href != "/api/v3/types/7" {
 		t.Errorf("expected href /api/v3/types/7, got %s", r.Href)
+	}
+}
+
+// A hyphenated CLI value ("in-progress") must resolve to a space-separated
+// status label ("In progress"); neither exact nor prefix matching handled this.
+func TestResolver_ResolveStatus_Normalized(t *testing.T) {
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(collectionResponse{
+			Embedded: struct {
+				Elements []json.RawMessage `json:"elements"`
+			}{
+				Elements: []json.RawMessage{
+					json.RawMessage(`{"id":3,"name":"In progress","_links":{"self":{"href":"/api/v3/statuses/3"}}}`),
+				},
+			},
+		})
+	})
+	defer ts.Close()
+
+	resolver := NewResolver(c, "proj")
+	r, err := resolver.ResolveStatus("in-progress")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if r.Href != "/api/v3/statuses/3" {
+		t.Errorf("expected href /api/v3/statuses/3, got %s", r.Href)
 	}
 }
 

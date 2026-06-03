@@ -105,10 +105,12 @@ func runSprintAdd(cmd *cobra.Command, args []string) error {
 
 	points, _ := cmd.Flags().GetInt("points")
 
+	failures := 0
 	for _, arg := range args {
 		id, err := strconv.Atoi(arg)
 		if err != nil {
 			fmt.Printf("Skipping invalid ID: %s\n", arg)
+			failures++
 			continue
 		}
 
@@ -124,11 +126,15 @@ func runSprintAdd(cmd *cobra.Command, args []string) error {
 		wp, err := client.UpdateWorkPackage(id, req)
 		if err != nil {
 			fmt.Printf("Error adding #%d: %s\n", id, err)
+			failures++
 			continue
 		}
 		fmt.Printf("Added #%d %q to %s\n", wp.ID, wp.Subject, targetVersion.Name)
 	}
 
+	if failures > 0 {
+		return fmt.Errorf("%d of %d item(s) could not be added", failures, len(args))
+	}
 	return nil
 }
 

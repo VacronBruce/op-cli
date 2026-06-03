@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -201,5 +202,34 @@ func TestEditComment_SendsPlainStringBody(t *testing.T) {
 	}
 	if asString != "updated text" {
 		t.Errorf("expected 'updated text', got %q", asString)
+	}
+}
+
+// When OpenProject reports several field violations, the per-field messages in
+// _embedded.errors must be surfaced — the top-level message alone is generic
+// and tells the user nothing about which fields were wrong.
+func TestAPIError_SurfacesEmbeddedErrors(t *testing.T) {
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(422)
+		w.Write([]byte(`{
+			"_type":"Error",
+			"message":"Multiple field constraints have been violated.",
+			"_embedded":{"errors":[
+				{"_type":"Error","message":"Assignee was invalid."},
+				{"_type":"Error","message":"Story points must be >= 0."}
+			]}
+		}`))
+	})
+	defer ts.Close()
+
+	err := c.Get("/work_packages/1", nil)
+	if err == nil {
+		t.Fatal("expected an error, got nil")
+	}
+	msg := err.Error()
+	for _, want := range []string{"Assignee was invalid.", "Story points must be >= 0.", "(422)"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("expected error to contain %q, got: %s", want, msg)
+		}
 	}
 }

@@ -124,13 +124,18 @@ func runCheckSprint(cmd *cobra.Command, runner *check.Runner, strict, comment bo
 	display.CheckSummary(reports, activeSprint.Name)
 
 	if comment {
+		failures := 0
 		for _, r := range reports {
 			md := display.CheckReportMarkdown(&r)
 			if err := client.PostComment(r.WPID, md); err != nil {
 				fmt.Printf("  Warning: failed to post comment on #%d: %s\n", r.WPID, err)
+				failures++
 				continue
 			}
 			fmt.Printf("  Posted check results on #%d\n", r.WPID)
+		}
+		if failures > 0 {
+			return fmt.Errorf("%d of %d comment(s) failed to post", failures, len(reports))
 		}
 	}
 

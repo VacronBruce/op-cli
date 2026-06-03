@@ -69,10 +69,30 @@ type APIError struct {
 	ErrorID    string `json:"errorIdentifier"`
 	Message    string `json:"message"`
 	StatusCode int    `json:"-"`
+	// Embedded.Errors holds per-field details. When several constraints are
+	// violated, the top-level Message is generic ("Multiple field constraints
+	// have been violated.") and the specifics live here.
+	Embedded struct {
+		Errors []struct {
+			Message string `json:"message"`
+		} `json:"errors"`
+	} `json:"_embedded"`
 }
 
 func (e *APIError) Error() string {
-	return fmt.Sprintf("OpenProject API error (%d): %s", e.StatusCode, e.Message)
+	msg := e.Message
+	if len(e.Embedded.Errors) > 0 {
+		details := make([]string, 0, len(e.Embedded.Errors))
+		for _, sub := range e.Embedded.Errors {
+			if sub.Message != "" && sub.Message != e.Message {
+				details = append(details, sub.Message)
+			}
+		}
+		if len(details) > 0 {
+			msg = fmt.Sprintf("%s (%s)", msg, strings.Join(details, "; "))
+		}
+	}
+	return fmt.Sprintf("OpenProject API error (%d): %s", e.StatusCode, msg)
 }
 
 // Collection represents a paginated API response.

@@ -38,9 +38,9 @@ func init() {
 	createCmd.Flags().String("parent", "", "Parent work package ID")
 	createCmd.Flags().StringP("epic", "e", "", "Epic name (partial match)")
 	createCmd.Flags().StringSlice("component", nil, "Component (android, ios, ott, engineering, analytics)")
-	createCmd.Flags().StringSlice("product", nil, "Product (eet, entd, djy, cntd, others)")
-	createCmd.Flags().String("tech-area", "", "Tech area (web, app, adtech, video, infra, seo)")
-	createCmd.Flags().StringSlice("label", nil, "Label (team#appios, team#appandroid, team#appall, ntd, seo)")
+	createCmd.Flags().StringSlice("product", nil, "Product (eet, entd, djy, cntd, competition, others)")
+	createCmd.Flags().String("tech-area", "", "Tech area (web, app, adtech, video, infra, portal, seo)")
+	createCmd.Flags().StringSlice("label", nil, "Label (team#appios, team#appandroid, team#appall, team#web, ntd, seo, roku)")
 	createCmd.Flags().StringSlice("attach", nil, "File path(s) to attach (images, PDFs, etc.)")
 }
 
@@ -191,17 +191,24 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Created #%d\n", wp.ID)
 	display.WorkPackageDetail(wp)
 
-	// Upload attachments
+	// Upload attachments. The work package already exists at this point, so a
+	// failed upload is reported but the create output above still stands; we
+	// return a non-zero error so callers/scripts can detect the partial failure.
+	attachFailures := 0
 	if attachments, _ := cmd.Flags().GetStringSlice("attach"); len(attachments) > 0 {
 		for _, filePath := range attachments {
 			att, err := client.UploadAttachment(wp.ID, filePath, "")
 			if err != nil {
 				fmt.Printf("  Warning: failed to attach %s: %s\n", filePath, err)
+				attachFailures++
 				continue
 			}
 			fmt.Printf("  Attached: %s (%d bytes)\n", att.FileName, att.FileSize)
 		}
 	}
 
+	if attachFailures > 0 {
+		return fmt.Errorf("#%d created, but %d attachment(s) failed", wp.ID, attachFailures)
+	}
 	return nil
 }

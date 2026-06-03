@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -144,11 +145,28 @@ func (r *Resolver) Users() ([]NamedResource, error) {
 	return r.users, nil
 }
 
+// NormalizeName lowercases a name and treats '-' and '_' as spaces, so that
+// CLI-friendly values like "in-progress" match human labels like "In progress".
+func NormalizeName(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = strings.ReplaceAll(s, "-", " ")
+	s = strings.ReplaceAll(s, "_", " ")
+	return s
+}
+
 // resolve finds a resource by case-insensitive name match.
 func resolve(resources []NamedResource, name string) (NamedResource, error) {
 	lower := strings.ToLower(name)
 	for _, r := range resources {
 		if strings.ToLower(r.Name) == lower {
+			return r, nil
+		}
+	}
+
+	// Normalized match: "in-progress" / "in_progress" → "in progress".
+	norm := NormalizeName(name)
+	for _, r := range resources {
+		if NormalizeName(r.Name) == norm {
 			return r, nil
 		}
 	}
@@ -249,13 +267,13 @@ var (
 
 	// Tech Area (customField6)
 	TechAreaOptions = map[string]string{
-		"web":       "/api/v3/custom_options/255",
-		"adtech":    "/api/v3/custom_options/256",
-		"app":       "/api/v3/custom_options/259",
-		"video":     "/api/v3/custom_options/266",
-		"infra":     "/api/v3/custom_options/268",
-		"portal":    "/api/v3/custom_options/271",
-		"seo":       "/api/v3/custom_options/273",
+		"web":    "/api/v3/custom_options/255",
+		"adtech": "/api/v3/custom_options/256",
+		"app":    "/api/v3/custom_options/259",
+		"video":  "/api/v3/custom_options/266",
+		"infra":  "/api/v3/custom_options/268",
+		"portal": "/api/v3/custom_options/271",
+		"seo":    "/api/v3/custom_options/273",
 	}
 
 	// Labels (customField13)
@@ -270,38 +288,68 @@ var (
 	}
 )
 
-// OptionID extracts the numeric ID from an option href and returns a filter.
-// Returns the option ID string and an error if the name is not found.
-func OptionID(options map[string]string, name string) (string, error) {
-	href, ok := options[strings.ToLower(name)]
-	if !ok {
-		names := make([]string, 0, len(options))
-		for k := range options {
-			names = append(names, k)
-		}
-		return "", fmt.Errorf("unknown value %q, available: %s", name, strings.Join(names, ", "))
+// matchOption resolves name against an option map using an exact match first,
+// then a unique case-insensitive prefix match. It returns the matched key.
+//
+// Matching is deterministic: an ambiguous prefix (e.g. "team#app" matching
+// several labels) is rejected with the candidates listed, rather than silently
+// picking one — map iteration order is random, so a prefix that hit multiple
+// keys previously returned an arbitrary option. Unknown names list every valid
+// option, sorted, so the same input always yields the same message.
+func matchOption(options map[string]string, name string) (string, error) {
+	lower := strings.ToLower(strings.TrimSpace(name))
+	if _, ok := options[lower]; ok {
+		return lower, nil
 	}
+
+	var matches []string
+	for k := range options {
+		if lower != "" && strings.HasPrefix(k, lower) {
+			matches = append(matches, k)
+		}
+	}
+	sort.Strings(matches)
+
+	switch len(matches) {
+	case 1:
+		return matches[0], nil
+	case 0:
+		return "", fmt.Errorf("unknown %q, available: %s", name, sortedKeys(options))
+	default:
+		return "", fmt.Errorf("ambiguous %q, matches: %s", name, strings.Join(matches, ", "))
+	}
+}
+
+// sortedKeys returns the option keys joined and sorted, for stable error text.
+func sortedKeys(options map[string]string) string {
+	keys := make([]string, 0, len(options))
+	for k := range options {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return strings.Join(keys, ", ")
+}
+
+// OptionID resolves a name to the numeric custom-option ID, for use as a filter
+// value (e.g. customField12 = "42").
+func OptionID(options map[string]string, name string) (string, error) {
+	key, err := matchOption(options, name)
+	if err != nil {
+		return "", err
+	}
+	href := options[key]
 	parts := strings.Split(href, "/")
 	return parts[len(parts)-1], nil
 }
 
-// ResolveCustomOption resolves a name to an href from a custom field option map.
+// ResolveCustomOption resolves a name to an href from a custom field option map,
+// for use as a link value when creating or updating a work package.
 func ResolveCustomOption(options map[string]string, name string) (string, error) {
-	lower := strings.ToLower(name)
-	if href, ok := options[lower]; ok {
-		return href, nil
+	key, err := matchOption(options, name)
+	if err != nil {
+		return "", err
 	}
-	// Prefix match
-	for k, href := range options {
-		if strings.HasPrefix(k, lower) {
-			return href, nil
-		}
-	}
-	names := make([]string, 0, len(options))
-	for k := range options {
-		names = append(names, k)
-	}
-	return "", fmt.Errorf("unknown %q, available: %s", name, strings.Join(names, ", "))
+	return options[key], nil
 }
 
 // ResolveEpic finds an epic work package by name in the project.
