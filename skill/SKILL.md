@@ -17,13 +17,18 @@ Translate natural language requests into `op` CLI commands and execute them.
 ### Daily Operations
 ```bash
 op board                              # Sprint board (kanban view)
-op board --status=blocked             # Board filtered by status
-op board --component=android          # Board filtered by component
-op my                                 # My assigned items
+op board --status=blocked             # Board filtered by status (matches "in-progress" → "In progress")
+op board --component=android          # Board filtered by component (also --label=...)
+op board --no-sprint                  # Open items across all sprints, grouped by sprint
+op my                                 # My assigned items (current sprint)
+op my --author --since=2w             # Items I created recently (2w/30d/3m; implies --no-sprint)
+op my --by-sprint                     # Group my items by sprint
+op my --component=android [--all]     # Filter by component (--all includes closed, --no-sprint drops the sprint filter)
 op my team                            # Team items grouped by person
 op blocked                            # Blocked items in sprint
 op projects                           # List all projects
 op show <id>                          # Work package details + attachments
+op show <id> --download [--out=DIR]   # Download attachments (default: current dir)
 op search <jira-id>                   # Map a JIRA ID (e.g. WP-23) to its OP number
 ```
 
@@ -66,7 +71,8 @@ op comment <id> "message" --edit=<comment-id>  # Edit an existing comment's text
 ### Sprint Management
 ```bash
 op sprint list                        # List all sprints (ID, status, dates)
-op sprint add <id> [<id>...]          # Move items to sprint
+op sprint add <id> [<id>...]          # Move items to active sprint
+op sprint add <id> --sprint="Sprint 2" # Move items to a named sprint (e.g. carryover)
 op sprint progress                    # Sprint progress summary (compact)
 op sprint progress -v                 # Full sprint report for stakeholders
 op sprint close                       # Sprint close summary + carryover list
@@ -98,6 +104,7 @@ op check --sprint --component=android # Filter + check
 1. **"create a task/bug"** → `op create task/bug "subject" --flags`
 2. **"show board"** → `op board`
 3. **"what am I working on?"** → `op my`
+3a. **"what did I create / file recently?"** → `op my --author --since=2w`
 4. **"prep for standup"** → Run `op my team` then `op blocked`, summarize
 5. **"sprint progress"** → `op sprint progress`
 6. **"assign X to Y"** → `op update <id> --assignee="Person"`
