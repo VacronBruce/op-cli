@@ -58,6 +58,7 @@ func init() {
 	myCmd.Flags().String("since", "", "Filter by creation date (e.g. 2w, 30d, 3m)")
 	myCmd.Flags().String("component", "", "Filter by component (android, ios, ott, engineering, analytics)")
 	myCmd.Flags().Bool("by-sprint", false, "Group results by sprint")
+	_ = myCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
 	myTeamCmd.Flags().String("sprint", "", "Sprint name (defaults to active sprint)")
 	myTeamAliasCmd.Flags().String("sprint", "", "Sprint name (defaults to active sprint)")
 }
@@ -99,13 +100,13 @@ func runMy(cmd *cobra.Command, args []string) error {
 		filters = append(filters, api.NewFilter("createdAt", "<>d", start, tomorrow))
 	}
 
-	// Component filter (customField12)
+	// Component filter
 	if component, _ := cmd.Flags().GetString("component"); component != "" {
-		optionID, err := api.OptionID(api.ComponentOptions, component)
+		field, value, err := customFieldFilter("component", component)
 		if err != nil {
-			return fmt.Errorf("resolving component: %w", err)
+			return err
 		}
-		filters = append(filters, api.NewFilter("customField12", "=", optionID))
+		filters = append(filters, api.NewFilter(field, "=", value))
 	}
 
 	// Sprint filter

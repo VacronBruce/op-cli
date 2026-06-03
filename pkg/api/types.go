@@ -244,8 +244,9 @@ func (r *Resolver) ResolveUser(name string) (NamedResource, error) {
 	return NamedResource{}, fmt.Errorf("unknown user %q, available: %s", name, strings.Join(names, ", "))
 }
 
-// TODO: make configurable via .oprc custom_fields section.
-// Currently hardcoded for the epochbase.com OpenProject instance.
+// Built-in default custom-field options for the epochbase.com instance. These
+// seed the registry in customfields.go and are overridable via a `custom_fields:`
+// section in ~/.oprc (see LoadCustomFields).
 var (
 	// Components (customField12)
 	ComponentOptions = map[string]string{

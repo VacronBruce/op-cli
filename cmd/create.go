@@ -42,6 +42,11 @@ func init() {
 	createCmd.Flags().String("tech-area", "", "Tech area (web, app, adtech, video, infra, portal, seo)")
 	createCmd.Flags().StringSlice("label", nil, "Label (team#appios, team#appandroid, team#appall, team#web, ntd, seo, roku)")
 	createCmd.Flags().StringSlice("attach", nil, "File path(s) to attach (images, PDFs, etc.)")
+
+	_ = createCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
+	_ = createCmd.RegisterFlagCompletionFunc("product", completeCustomField("product"))
+	_ = createCmd.RegisterFlagCompletionFunc("tech-area", completeCustomField("tech-area"))
+	_ = createCmd.RegisterFlagCompletionFunc("label", completeCustomField("label"))
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
@@ -134,52 +139,39 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		req.SetLink("epic", api.Link{Href: epic.Href})
 	}
 
-	// Optional: components (multi-value, customField12)
+	// Optional: multi-value custom fields (component / product / label). Field
+	// keys and options come from the registry (overridable via ~/.oprc).
 	if components, _ := cmd.Flags().GetStringSlice("component"); len(components) > 0 {
-		var links []api.Link
-		for _, c := range components {
-			href, err := api.ResolveCustomOption(api.ComponentOptions, c)
-			if err != nil {
-				return fmt.Errorf("resolving component: %w", err)
-			}
-			links = append(links, api.Link{Href: href})
-		}
-		req.SetMultiLink("customField12", links)
-	}
-
-	// Optional: product (multi-value, customField4)
-	if products, _ := cmd.Flags().GetStringSlice("product"); len(products) > 0 {
-		var links []api.Link
-		for _, p := range products {
-			href, err := api.ResolveCustomOption(api.ProductOptions, p)
-			if err != nil {
-				return fmt.Errorf("resolving product: %w", err)
-			}
-			links = append(links, api.Link{Href: href})
-		}
-		req.SetMultiLink("customField4", links)
-	}
-
-	// Optional: tech area (multi-value, customField6)
-	if techArea, _ := cmd.Flags().GetString("tech-area"); techArea != "" {
-		href, err := api.ResolveCustomOption(api.TechAreaOptions, techArea)
+		field, links, err := customFieldLinks("component", components)
 		if err != nil {
-			return fmt.Errorf("resolving tech area: %w", err)
+			return err
 		}
-		req.SetMultiLink("customField6", []api.Link{{Href: href}})
+		req.SetMultiLink(field, links)
 	}
 
-	// Optional: labels (multi-value, customField13)
-	if labels, _ := cmd.Flags().GetStringSlice("label"); len(labels) > 0 {
-		var links []api.Link
-		for _, l := range labels {
-			href, err := api.ResolveCustomOption(api.LabelOptions, l)
-			if err != nil {
-				return fmt.Errorf("resolving label: %w", err)
-			}
-			links = append(links, api.Link{Href: href})
+	if products, _ := cmd.Flags().GetStringSlice("product"); len(products) > 0 {
+		field, links, err := customFieldLinks("product", products)
+		if err != nil {
+			return err
 		}
-		req.SetMultiLink("customField13", links)
+		req.SetMultiLink(field, links)
+	}
+
+	// tech-area is single-valued at the flag level but a multi-value field.
+	if techArea, _ := cmd.Flags().GetString("tech-area"); techArea != "" {
+		field, links, err := customFieldLinks("tech-area", []string{techArea})
+		if err != nil {
+			return err
+		}
+		req.SetMultiLink(field, links)
+	}
+
+	if labels, _ := cmd.Flags().GetStringSlice("label"); len(labels) > 0 {
+		field, links, err := customFieldLinks("label", labels)
+		if err != nil {
+			return err
+		}
+		req.SetMultiLink(field, links)
 	}
 
 	// Create

@@ -30,6 +30,9 @@ func init() {
 	boardCmd.Flags().String("component", "", "Filter by component (android, ios, ott, engineering, analytics)")
 	boardCmd.Flags().String("label", "", "Filter by label (team#appios, team#appandroid, etc.)")
 	boardCmd.Flags().String("status", "", "Filter by status (e.g. blocked, in-progress, new)")
+
+	_ = boardCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
+	_ = boardCmd.RegisterFlagCompletionFunc("label", completeCustomField("label"))
 }
 
 func runBoard(cmd *cobra.Command, args []string) error {
@@ -62,22 +65,22 @@ func runBoard(cmd *cobra.Command, args []string) error {
 		filters = append(filters, api.NewFilter("status", "o", ""))
 	}
 
-	// Component filter (customField12)
+	// Component filter
 	if component, _ := cmd.Flags().GetString("component"); component != "" {
-		optionID, err := api.OptionID(api.ComponentOptions, component)
+		field, value, err := customFieldFilter("component", component)
 		if err != nil {
-			return fmt.Errorf("resolving component: %w", err)
+			return err
 		}
-		filters = append(filters, api.NewFilter("customField12", "=", optionID))
+		filters = append(filters, api.NewFilter(field, "=", value))
 	}
 
-	// Label filter (customField13)
+	// Label filter
 	if label, _ := cmd.Flags().GetString("label"); label != "" {
-		optionID, err := api.OptionID(api.LabelOptions, label)
+		field, value, err := customFieldFilter("label", label)
 		if err != nil {
-			return fmt.Errorf("resolving label: %w", err)
+			return err
 		}
-		filters = append(filters, api.NewFilter("customField13", "=", optionID))
+		filters = append(filters, api.NewFilter(field, "=", value))
 	}
 
 	result, err := client.ListWorkPackages(project, filters, "", 200)

@@ -137,6 +137,11 @@ op check --sprint --component=android # Filter + check
 ### Tech Areas: web, app, adtech, video, infra, portal, seo
 ### Labels: team#appios, team#appandroid, team#appall, team#web, ntd, seo, roku
 
+> These are built-in defaults. Both the field key and the options are
+> overridable per instance via a `custom_fields:` section in `~/.oprc` (see
+> README). Values accept unique-prefix abbreviations (e.g. `--component=eng`),
+> and shell completion (`op completion zsh|bash`) suggests them.
+
 ## Global Flags
 - `-p, --project <id>` — Override default project
 - `--sprint <name>` — Override default sprint

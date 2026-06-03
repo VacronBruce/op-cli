@@ -66,6 +66,30 @@ project: app
 sprint: "App_06/02/2026"    # Update this each sprint
 ```
 
+### Custom fields (optional)
+
+The `--component`, `--product`, `--tech-area`, and `--label` flags map to
+instance-specific custom fields. Built-in defaults target this OpenProject
+instance; override them — or add your own — under `custom_fields:` in `~/.oprc`.
+Both the field key and the option set are configurable:
+
+```yaml
+custom_fields:
+  component:                        # one of: component, product, tech-area, label
+    field: customField12            # the OpenProject field key for this instance
+    options:
+      android: /api/v3/custom_options/42
+      ios:     /api/v3/custom_options/43
+  label:
+    field: customField13
+    options:
+      mobile: /api/v3/custom_options/460
+```
+
+A field you don't list keeps its built-in default; listing one overrides its
+field key and/or replaces its options. Look up option hrefs via the OpenProject
+API (e.g. `/api/v3/custom_fields`).
+
 Verify:
 
 ```bash
@@ -161,6 +185,19 @@ op upgrade                         # Upgrade to latest version
 --sprint <name>       Override default sprint
 -h, --help            Help for any command
 ```
+
+### Shell completion
+
+`op` ships completion for all commands, and the enum flags complete their
+values (honoring any `custom_fields:` overrides in `~/.oprc`):
+
+```bash
+source <(op completion zsh)     # add to ~/.zshrc
+source <(op completion bash)    # add to ~/.bashrc
+```
+
+Then `op create --component <TAB>` suggests `android  ios  ott  engineering  analytics`
+(likewise `--product`, `--tech-area`, `--label`).
 
 ### Claude Code (Docker / container mode)
 

@@ -31,6 +31,8 @@ func init() {
 	checkCmd.Flags().Bool("strict", false, "Treat WARN as FAIL")
 	checkCmd.Flags().Bool("comment", false, "Post results as comment on ticket")
 	checkCmd.Flags().String("component", "", "Filter by component (for --sprint)")
+
+	_ = checkCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
 }
 
 func runCheck(cmd *cobra.Command, args []string) error {
@@ -97,11 +99,11 @@ func runCheckSprint(cmd *cobra.Command, runner *check.Runner, strict, comment bo
 
 	// Component filter
 	if component, _ := cmd.Flags().GetString("component"); component != "" {
-		optionID, err := api.OptionID(api.ComponentOptions, component)
+		field, value, err := customFieldFilter("component", component)
 		if err != nil {
-			return fmt.Errorf("resolving component: %w", err)
+			return err
 		}
-		filters = append(filters, api.NewFilter("customField12", "=", optionID))
+		filters = append(filters, api.NewFilter(field, "=", value))
 	}
 
 	result, err := client.ListWorkPackages(project, filters, "", 200)

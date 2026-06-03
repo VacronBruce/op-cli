@@ -33,6 +33,8 @@ func init() {
 	updateCmd.Flags().StringP("description", "d", "", "New description (markdown)")
 	updateCmd.Flags().String("sprint", "", "Move to sprint/version")
 	updateCmd.Flags().StringSlice("component", nil, "Component (android, ios, ott, engineering, analytics)")
+
+	_ = updateCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {
@@ -116,17 +118,13 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		hasChanges = true
 	}
 
-	// Component (customField12, multi-value)
+	// Component (multi-value custom field; key/options from the registry)
 	if components, _ := cmd.Flags().GetStringSlice("component"); len(components) > 0 {
-		var links []api.Link
-		for _, c := range components {
-			href, err := api.ResolveCustomOption(api.ComponentOptions, c)
-			if err != nil {
-				return fmt.Errorf("resolving component: %w", err)
-			}
-			links = append(links, api.Link{Href: href})
+		field, links, err := customFieldLinks("component", components)
+		if err != nil {
+			return err
 		}
-		req.Links["customField12"] = links
+		req.Links[field] = links
 		hasChanges = true
 	}
 

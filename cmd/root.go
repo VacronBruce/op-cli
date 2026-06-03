@@ -78,4 +78,10 @@ func initConfig() {
 		viper.SetConfigFile(oprcPath)
 		_ = viper.MergeInConfig()
 	}
+
+	// Override built-in custom-field definitions from ~/.oprc `custom_fields:`.
+	var cf map[string]api.CustomFieldConfig
+	if err := viper.UnmarshalKey("custom_fields", &cf); err == nil && len(cf) > 0 {
+		api.LoadCustomFields(cf)
+	}
 }
