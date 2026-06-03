@@ -54,6 +54,7 @@ type CreateVersionRequest struct {
 	StartDate   string          `json:"startDate,omitempty"`
 	EndDate     string          `json:"endDate,omitempty"`
 	Status      string          `json:"status,omitempty"`
+	Kind        string          `json:"kind,omitempty"`
 	Links       map[string]Link `json:"_links"`
 }
 
