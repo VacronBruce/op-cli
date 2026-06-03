@@ -55,6 +55,51 @@ func TestFindActiveSprint_NoneOpen(t *testing.T) {
 	}
 }
 
+// With multiple open sprints, the one whose date range contains today wins —
+// a future sprint left open must not shadow the real current sprint.
+func TestSelectActiveSprint_PrefersDateRangeContainingToday(t *testing.T) {
+	versions := []Version{
+		{ID: 1, Name: "Past", Status: "open", StartDate: "2026-05-01", EndDate: "2026-05-14"},
+		{ID: 2, Name: "Current", Status: "open", StartDate: "2026-05-15", EndDate: "2026-05-28"},
+		{ID: 3, Name: "Future", Status: "open", StartDate: "2026-05-29", EndDate: "2026-06-11"},
+	}
+	v := selectActiveSprint(versions, "2026-05-20")
+	if v == nil || v.ID != 2 {
+		t.Fatalf("expected the sprint containing today (ID 2), got %v", v)
+	}
+}
+
+// Inclusive on both ends.
+func TestSelectActiveSprint_BoundaryInclusive(t *testing.T) {
+	versions := []Version{{ID: 7, Name: "S", Status: "open", StartDate: "2026-05-15", EndDate: "2026-05-28"}}
+	for _, today := range []string{"2026-05-15", "2026-05-28"} {
+		if v := selectActiveSprint(versions, today); v == nil || v.ID != 7 {
+			t.Errorf("expected boundary %s to be inside the range", today)
+		}
+	}
+}
+
+// When no open sprint contains today (gap, or missing dates), fall back to the
+// first open one — preserving the original behavior.
+func TestSelectActiveSprint_FallsBackToFirstOpen(t *testing.T) {
+	versions := []Version{
+		{ID: 1, Name: "Closed", Status: "closed", StartDate: "2026-05-01", EndDate: "2026-05-14"},
+		{ID: 2, Name: "First open, no dates", Status: "open"},
+		{ID: 3, Name: "Second open", Status: "open", StartDate: "2026-01-01", EndDate: "2026-01-31"},
+	}
+	v := selectActiveSprint(versions, "2026-05-20")
+	if v == nil || v.ID != 2 {
+		t.Fatalf("expected first open (ID 2) when none contains today, got %v", v)
+	}
+}
+
+func TestSelectActiveSprint_NoneOpen(t *testing.T) {
+	versions := []Version{{ID: 1, Status: "closed"}, {ID: 2, Status: "locked"}}
+	if v := selectActiveSprint(versions, "2026-05-20"); v != nil {
+		t.Errorf("expected nil when no version is open, got %v", v)
+	}
+}
+
 func TestResolveVersion_ByName(t *testing.T) {
 	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(VersionCollection{

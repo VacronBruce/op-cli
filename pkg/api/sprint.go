@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Version represents an OpenProject version (used as sprint in Scrum).
@@ -57,19 +58,42 @@ type CreateVersionRequest struct {
 }
 
 // FindActiveSprint finds the currently active (open) version for a project.
+// When several versions are open, it prefers the one whose date range contains
+// today, so a future sprint that was left open doesn't shadow the real current
+// one. If none contains today (or dates are missing) it falls back to the first
+// open version.
 func (c *Client) FindActiveSprint(project string) (*Version, error) {
 	versions, err := c.ListVersions(project)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, v := range versions.Embedded.Elements {
-		if v.Status == "open" {
-			return &v, nil
+	if v := selectActiveSprint(versions.Embedded.Elements, time.Now().Format("2006-01-02")); v != nil {
+		return v, nil
+	}
+	return nil, fmt.Errorf("no active sprint found in project %q", project)
+}
+
+// selectActiveSprint returns the open version whose [StartDate, EndDate] range
+// contains today (YYYY-MM-DD, inclusive), or the first open version if none
+// does, or nil if no version is open. Date comparison is lexicographic, which
+// is correct for ISO-8601 dates; a version is only considered "current" when
+// both of its dates are set.
+func selectActiveSprint(versions []Version, today string) *Version {
+	var firstOpen *Version
+	for i := range versions {
+		v := &versions[i]
+		if v.Status != "open" {
+			continue
+		}
+		if firstOpen == nil {
+			firstOpen = v
+		}
+		if v.StartDate != "" && v.EndDate != "" && v.StartDate <= today && today <= v.EndDate {
+			return v
 		}
 	}
-
-	return nil, fmt.Errorf("no active sprint found in project %q", project)
+	return firstOpen
 }
 
 // ResolveVersion finds a version by name, or returns the active sprint if name is empty.
