@@ -276,6 +276,25 @@ func TestComment_Edit_RequiresMessage(t *testing.T) {
 	}
 }
 
+func TestComment_Edit_APIError(t *testing.T) {
+	mock := &testutil.MockClient{
+		EditCommentFn: func(activityID int, markdown string) error {
+			return errors.New("forbidden")
+		},
+	}
+
+	_, err := runCommentEditWith(t, mock, 1234, []string{"81321", "revised"})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "editing comment") {
+		t.Errorf("expected error to mention 'editing comment', got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "forbidden") {
+		t.Errorf("expected original error in message, got: %v", err)
+	}
+}
+
 func TestComment_Post_APIError(t *testing.T) {
 	mock := &testutil.MockClient{
 		PostCommentFn: func(wpID int, markdown string) error {

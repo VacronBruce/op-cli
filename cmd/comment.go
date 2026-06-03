@@ -37,7 +37,11 @@ func runComment(cmd *cobra.Command, args []string) error {
 	}
 
 	// Edit mode: op comment <id> "message" --edit=<comment-id>
-	if editID, _ := cmd.Flags().GetInt("edit"); editID > 0 {
+	editID, _ := cmd.Flags().GetInt("edit")
+	if editID < 0 {
+		return fmt.Errorf("--edit value must be a positive comment ID")
+	}
+	if editID > 0 {
 		if len(args) != 2 {
 			return fmt.Errorf("--edit requires the new comment text as an argument")
 		}
