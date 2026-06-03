@@ -26,6 +26,7 @@ type APIClient interface {
 	// Work packages
 	GetWorkPackage(id int) (*WorkPackage, error)
 	ListWorkPackages(project string, filters []Filter, sortBy string, pageSize int) (*WPCollection, error)
+	ListAllWorkPackages(filters []Filter, sortBy string, pageSize int) (*WPCollection, error)
 	SearchByJiraID(jiraID string) (*WPCollection, error)
 	CreateWorkPackage(project string, req *CreateWPRequest) (*WorkPackage, error)
 	UpdateWorkPackage(id int, req *UpdateWPRequest) (*WorkPackage, error)

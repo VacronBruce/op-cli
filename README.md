@@ -104,12 +104,14 @@ op projects
 op board                           # Current sprint board (kanban view)
 op board --status=blocked          # Board filtered by status
 op board --component=android       # Board filtered by component
-op my                              # My assigned items
+op my                              # My assigned items (current project + sprint)
 op my --no-sprint                  # All my items (no sprint filter)
 op my --author --since=2w          # Items I created in last 2 weeks
 op my --component=android          # My Android items only
 op my --by-sprint                  # My items grouped by sprint
 op my team                         # Team items grouped by person
+op overview                        # Cross-project dashboard of my open work
+op overview --projects=8 --sprints=5  # Widen the dashboard
 op blocked                         # Blocked items in sprint
 op show 12345                      # View ticket details (includes JIRA ID + User Story)
 op show 12345 --download           # Download attachments

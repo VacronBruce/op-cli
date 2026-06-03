@@ -133,6 +133,33 @@ func (c *Client) ListWorkPackages(project string, filters []Filter, sortBy strin
 	return &result, nil
 }
 
+// ListAllWorkPackages lists work packages across all projects via the global
+// endpoint (no project scope). Used by the cross-project overview.
+func (c *Client) ListAllWorkPackages(filters []Filter, sortBy string, pageSize int) (*WPCollection, error) {
+	params := url.Values{}
+	if len(filters) > 0 {
+		filterJSON, err := json.Marshal(filters)
+		if err != nil {
+			return nil, fmt.Errorf("marshaling filters: %w", err)
+		}
+		params.Set("filters", string(filterJSON))
+	}
+	if sortBy != "" {
+		params.Set("sortBy", sortBy)
+	}
+	if pageSize > 0 {
+		params.Set("pageSize", fmt.Sprintf("%d", pageSize))
+	} else {
+		params.Set("pageSize", "200")
+	}
+
+	var result WPCollection
+	if err := c.Get("/work_packages?"+params.Encode(), &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 // SearchByJiraID finds work packages whose JIRA ID custom field (customField3)
 // matches the given value. Searches across all projects.
 func (c *Client) SearchByJiraID(jiraID string) (*WPCollection, error) {

@@ -25,6 +25,8 @@ op my --author --since=2w             # Items I created recently (2w/30d/3m; imp
 op my --by-sprint                     # Group my items by sprint
 op my --component=android [--all]     # Filter by component (--all includes closed, --no-sprint drops the sprint filter)
 op my team                            # Team items grouped by person
+op overview                           # Cross-project dashboard: my open work, top projects x sprints
+op overview --projects=8 --sprints=5  # Widen the dashboard (defaults 5 x 3)
 op blocked                            # Blocked items in sprint
 op projects                           # List all projects
 op show <id>                          # Work package details + attachments
@@ -105,6 +107,7 @@ op check --sprint --component=android # Filter + check
 2. **"show board"** → `op board`
 3. **"what am I working on?"** → `op my`
 3a. **"what did I create / file recently?"** → `op my --author --since=2w`
+3b. **"what's on my plate across all projects / everything I own?"** → `op overview` (cross-project dashboard; `--projects`/`--sprints` to resize)
 4. **"prep for standup"** → Run `op my team` then `op blocked`, summarize
 5. **"sprint progress"** → `op sprint progress`
 6. **"assign X to Y"** → `op update <id> --assignee="Person"`

@@ -11,28 +11,29 @@ import (
 type MockClient struct {
 	ProjectValue string
 
-	RequireProjectFn    func() (string, error)
-	GetFn               func(path string, result interface{}) error
-	PostFn              func(path string, body interface{}, result interface{}) error
-	PatchFn             func(path string, body interface{}, result interface{}) error
-	DoRawFn             func(method, href string) (*http.Response, error)
-	GetWorkPackageFn    func(id int) (*api.WorkPackage, error)
-	ListWorkPackagesFn  func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error)
-	SearchByJiraIDFn    func(jiraID string) (*api.WPCollection, error)
-	CreateWorkPackageFn func(project string, req *api.CreateWPRequest) (*api.WorkPackage, error)
-	UpdateWorkPackageFn func(id int, req *api.UpdateWPRequest) (*api.WorkPackage, error)
-	ListVersionsFn      func(project string) (*api.VersionCollection, error)
-	CreateVersionFn     func(req *api.CreateVersionRequest) (*api.Version, error)
-	FindActiveSprintFn  func(project string) (*api.Version, error)
-	ResolveVersionFn    func(project, name string) (*api.Version, error)
-	ListProjectsFn      func() (*api.ProjectCollection, error)
-	GetProjectFn        func(identifier string) (*api.Project, error)
-	GetMeFn             func() (*api.User, error)
-	UploadAttachmentFn  func(wpID int, filePath string, description string) (*api.Attachment, error)
-	ListActivitiesFn    func(wpID int) (*api.ActivityCollection, error)
-	PostCommentFn       func(wpID int, markdown string) error
-	EditCommentFn       func(activityID int, markdown string) error
-	CreateRelationFn    func(fromID int, relType string, toID int) error
+	RequireProjectFn      func() (string, error)
+	GetFn                 func(path string, result interface{}) error
+	PostFn                func(path string, body interface{}, result interface{}) error
+	PatchFn               func(path string, body interface{}, result interface{}) error
+	DoRawFn               func(method, href string) (*http.Response, error)
+	GetWorkPackageFn      func(id int) (*api.WorkPackage, error)
+	ListWorkPackagesFn    func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error)
+	ListAllWorkPackagesFn func(filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error)
+	SearchByJiraIDFn      func(jiraID string) (*api.WPCollection, error)
+	CreateWorkPackageFn   func(project string, req *api.CreateWPRequest) (*api.WorkPackage, error)
+	UpdateWorkPackageFn   func(id int, req *api.UpdateWPRequest) (*api.WorkPackage, error)
+	ListVersionsFn        func(project string) (*api.VersionCollection, error)
+	CreateVersionFn       func(req *api.CreateVersionRequest) (*api.Version, error)
+	FindActiveSprintFn    func(project string) (*api.Version, error)
+	ResolveVersionFn      func(project, name string) (*api.Version, error)
+	ListProjectsFn        func() (*api.ProjectCollection, error)
+	GetProjectFn          func(identifier string) (*api.Project, error)
+	GetMeFn               func() (*api.User, error)
+	UploadAttachmentFn    func(wpID int, filePath string, description string) (*api.Attachment, error)
+	ListActivitiesFn      func(wpID int) (*api.ActivityCollection, error)
+	PostCommentFn         func(wpID int, markdown string) error
+	EditCommentFn         func(activityID int, markdown string) error
+	CreateRelationFn      func(fromID int, relType string, toID int) error
 }
 
 func (m *MockClient) RequireProject() (string, error) {
@@ -83,6 +84,13 @@ func (m *MockClient) GetWorkPackage(id int) (*api.WorkPackage, error) {
 func (m *MockClient) ListWorkPackages(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
 	if m.ListWorkPackagesFn != nil {
 		return m.ListWorkPackagesFn(project, filters, sortBy, pageSize)
+	}
+	return &api.WPCollection{}, nil
+}
+
+func (m *MockClient) ListAllWorkPackages(filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+	if m.ListAllWorkPackagesFn != nil {
+		return m.ListAllWorkPackagesFn(filters, sortBy, pageSize)
 	}
 	return &api.WPCollection{}, nil
 }
