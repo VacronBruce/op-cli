@@ -33,7 +33,10 @@ The script will:
 1. Auto-detect your platform (macOS/Linux, ARM/Intel)
 2. Download the correct binary via glab
 3. Ask for your OpenProject API key
-4. Install Claude Code `/openproject` skill
+4. Install all Claude Code skills (`/openproject`, `/standup`, `/file-bug`, `/ticket-*`)
+
+**Updating:** existing users re-run the same one-liner (refreshes the binary **and**
+all skills), or run `op upgrade` for just the binary.
 
 ### Alternative: Clone + Build (needs Go)
 

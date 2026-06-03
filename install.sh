@@ -172,71 +172,47 @@ EOF
 fi
 echo ""
 
-# Step 3: Claude Code skill (embedded)
-echo "3/3 Claude Code skill"
-SKILL_DIR="$HOME/.claude/skills/openproject"
+# Step 3: Claude Code skills (openproject + ticket-*, standup, file-bug)
+echo "3/3 Claude Code skills"
+SKILLS_ROOT="$HOME/.claude/skills"
 if command -v claude &>/dev/null || [ -d "$HOME/.claude" ]; then
-  mkdir -p "$SKILL_DIR"
-  cat > "${SKILL_DIR}/SKILL.md" <<'SKILL_EOF'
----
-name: openproject
-description: Manage OpenProject work packages, sprints, and backlogs via the `op` CLI
-user_invocable: true
----
+  GOT_SKILLS=""
 
-# OpenProject CLI Skill
+  if [ -d "skill" ] && [ -f "skill/SKILL.md" ]; then
+    # Clone mode: install straight from the repo's skill/ directory.
+    mkdir -p "${SKILLS_ROOT}/openproject"
+    cp skill/SKILL.md "${SKILLS_ROOT}/openproject/SKILL.md"
+    for d in skill/*/; do
+      [ -f "${d}SKILL.md" ] || continue
+      name=$(basename "$d")
+      mkdir -p "${SKILLS_ROOT}/${name}"
+      cp "${d}SKILL.md" "${SKILLS_ROOT}/${name}/SKILL.md"
+    done
+    GOT_SKILLS=true
+  else
+    # Download mode: fetch the skills bundle (glab, then token).
+    SKILLS_TGZ="/tmp/op-skills.tar.gz"
+    rm -f "$SKILLS_TGZ"
+    if command -v glab &>/dev/null; then
+      GITLAB_HOST=gitlab-tw.ddns.net glab release download \
+        --repo gmedtn/op-cli --include-external \
+        --asset-name="op-skills.tar.gz" -D /tmp 2>/dev/null
+    fi
+    if [ ! -f "$SKILLS_TGZ" ] && [ -n "$GITLAB_TOKEN" ]; then
+      curl -fsSL -o "$SKILLS_TGZ" -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "${PKG_URL}/op-skills.tar.gz" 2>/dev/null
+    fi
+    if [ -f "$SKILLS_TGZ" ]; then
+      mkdir -p "$SKILLS_ROOT"
+      tar -xzf "$SKILLS_TGZ" -C "$SKILLS_ROOT" && GOT_SKILLS=true
+    fi
+  fi
 
-Translate natural language requests into `op` CLI commands and execute them.
-
-## Command Reference
-
-```bash
-op board                    # Sprint board
-op my                       # My items
-op my-team                  # Team items by person
-op blocked                  # Blocked items
-op show <id>                # Ticket details
-op show <id> --download     # Download attachments
-op projects                 # List projects
-
-op create <type> "subject"  # Create (task/bug/feature/story)
-  --assignee="Name" --priority=P1 --epic="NTD+"
-  --component=android --product=entd --tech-area=app
-  --label=team#appandroid --attach=file.png
-op update <id> --status=in-progress --assignee="Name"
-op assign <id> "Name"
-op attach <id> file.png
-
-op sprint list                  # List all sprints
-op sprint plan/add/progress/close
-op backlog / op backlog groom
-op report
-op check <id>                   # Ticket readiness check
-op comment <id>                 # List comments
-op comment <id> "msg"           # Post comment
-op version                      # Show version
-op upgrade                      # Self-update
-```
-
-## How to Handle Requests
-
-1. "create a bug" → `op create bug "subject" --flags`
-2. "show board" → `op board`
-3. "what am I working on?" → `op my`
-4. "prep standup" → `op my-team` + `op blocked`
-5. "assign X to Y" → `op assign <id> "Name"`
-6. "attach screenshot" → save image, `op attach <id> /path`
-7. "show ticket" → `op show <id> --download --out=/tmp`, read images
-8. "list sprints" → `op sprint list`
-9. "update op" → `op upgrade`
-
-## Custom Fields
-Components: android, ios, ott, engineering, analytics
-Products: eet, entd, djy, cntd, others, competition
-Tech Areas: web, app, adtech, video, infra, portal, seo
-Labels: team#appios, team#appandroid, team#appall, team#web, ntd, seo, roku
-SKILL_EOF
-  echo "    Installed /openproject skill to ${SKILL_DIR}"
+  if [ -n "$GOT_SKILLS" ]; then
+    echo "    Installed skills to ${SKILLS_ROOT}/ (openproject, ticket-prep/verify/review, standup, file-bug)"
+  else
+    echo "    Could not install the skills bundle; skipping."
+    echo "    To add them later: clone the repo and copy skill/* into ${SKILLS_ROOT}/."
+  fi
 else
   echo "    Claude Code not detected, skipping."
 fi

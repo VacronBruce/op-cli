@@ -24,7 +24,8 @@ mkdir -p /tmp/op-cli && cd /tmp/op-cli && \
 ```
 
 The script detects your platform, installs the `op` binary, asks for your API key,
-and installs the `/openproject` Claude skill.
+and installs **all** the Claude skills (`/openproject`, `/standup`, `/file-bug`,
+`/ticket-*`).
 
 ---
 
@@ -52,17 +53,17 @@ op projects        # should list projects you can see
 
 ---
 
-## 3. Install the workflow skills (optional but recommended)
+## 3. Updating later
 
-`install.sh` ships `/openproject`. To get the review + workflow skills too, clone
-the repo and copy them in:
+The installer already set up all the skills in step 1. To update:
 
 ```bash
-git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git
-cd op-cli && git checkout develop
-cp -r skill/ticket-prep skill/ticket-verify skill/ticket-review \
-      skill/standup skill/file-bug ~/.claude/skills/
+op upgrade        # just the binary, to the latest release
+# or re-run the install one-liner from step 1 — refreshes the binary AND all skills
 ```
+
+(Manual fallback if you cloned the repo: `cp skill/SKILL.md ~/.claude/skills/openproject/SKILL.md`
+and `cp -r skill/*/ ~/.claude/skills/`.)
 
 ---
 
