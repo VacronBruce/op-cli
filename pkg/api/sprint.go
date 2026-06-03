@@ -48,11 +48,11 @@ func (c *Client) CreateVersion(req *CreateVersionRequest) (*Version, error) {
 
 // CreateVersionRequest is the request body for creating a version.
 type CreateVersionRequest struct {
-	Name        string `json:"name"`
-	Description *Formattable `json:"description,omitempty"`
-	StartDate   string `json:"startDate,omitempty"`
-	EndDate     string `json:"endDate,omitempty"`
-	Status      string `json:"status,omitempty"`
+	Name        string          `json:"name"`
+	Description *Formattable    `json:"description,omitempty"`
+	StartDate   string          `json:"startDate,omitempty"`
+	EndDate     string          `json:"endDate,omitempty"`
+	Status      string          `json:"status,omitempty"`
 	Links       map[string]Link `json:"_links"`
 }
 

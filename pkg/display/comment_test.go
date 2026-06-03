@@ -99,7 +99,7 @@ func TestActivities_MixedCommentAndNonComment(t *testing.T) {
 	// activities with a non-empty raw comment should appear.
 	ac := &api.ActivityCollection{}
 	ac.Embedded.Elements = []api.Activity{
-		{ID: 1, Comment: nil},                                            // journal entry
+		{ID: 1, Comment: nil}, // journal entry
 		makeActivity(2, "Real comment", "2024-07-01T10:00:00Z", "Dave"), // only this counts
 		{ID: 3, Comment: &api.Formattable{Format: "markdown", Raw: ""}}, // empty raw
 	}

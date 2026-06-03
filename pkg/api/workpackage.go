@@ -8,19 +8,19 @@ import (
 
 // WorkPackage represents an OpenProject work package.
 type WorkPackage struct {
-	ID             int    `json:"id"`
-	LockVersion    int    `json:"lockVersion"`
-	Subject        string `json:"subject"`
+	ID             int          `json:"id"`
+	LockVersion    int          `json:"lockVersion"`
+	Subject        string       `json:"subject"`
 	Description    *Formattable `json:"description,omitempty"`
-	StoryPoints    *int   `json:"storyPoints,omitempty"`
-	PercentageDone int    `json:"percentageDone"`
-	StartDate      string `json:"startDate,omitempty"`
-	DueDate        string `json:"dueDate,omitempty"`
-	CreatedAt      string `json:"createdAt"`
-	UpdatedAt      string `json:"updatedAt"`
-	JiraID         string `json:"customField3,omitempty"`
+	StoryPoints    *int         `json:"storyPoints,omitempty"`
+	PercentageDone int          `json:"percentageDone"`
+	StartDate      string       `json:"startDate,omitempty"`
+	DueDate        string       `json:"dueDate,omitempty"`
+	CreatedAt      string       `json:"createdAt"`
+	UpdatedAt      string       `json:"updatedAt"`
+	JiraID         string       `json:"customField3,omitempty"`
 	UserStory      *Formattable `json:"customField36,omitempty"`
-	Links          WPLinks `json:"_links"`
+	Links          WPLinks      `json:"_links"`
 }
 
 // Formattable represents a formattable text field.
@@ -32,15 +32,15 @@ type Formattable struct {
 
 // WPLinks contains the linked resources of a work package.
 type WPLinks struct {
-	Self       Link `json:"self"`
-	Type       Link `json:"type"`
-	Status     Link `json:"status"`
-	Priority   Link `json:"priority"`
-	Author     Link `json:"author"`
-	Assignee   Link `json:"assignee"`
-	Project    Link `json:"project"`
-	Version    Link `json:"version"`
-	Parent     Link `json:"parent"`
+	Self        Link `json:"self"`
+	Type        Link `json:"type"`
+	Status      Link `json:"status"`
+	Priority    Link `json:"priority"`
+	Author      Link `json:"author"`
+	Assignee    Link `json:"assignee"`
+	Project     Link `json:"project"`
+	Version     Link `json:"version"`
+	Parent      Link `json:"parent"`
 	Responsible Link `json:"responsible"`
 
 	// Multi-value custom fields (epochbase.com instance): component, product,
@@ -58,8 +58,8 @@ type Link struct {
 
 // WPCollection is the response from listing work packages.
 type WPCollection struct {
-	Total    int           `json:"total"`
-	Count    int           `json:"count"`
+	Total    int `json:"total"`
+	Count    int `json:"count"`
 	Embedded struct {
 		Elements []WorkPackage `json:"elements"`
 	} `json:"_embedded"`
@@ -71,12 +71,12 @@ type LinkValue interface{}
 
 // CreateWPRequest is the request body for creating a work package.
 type CreateWPRequest struct {
-	Subject     string                `json:"subject"`
-	Description *Formattable          `json:"description,omitempty"`
-	StoryPoints *int                  `json:"storyPoints,omitempty"`
-	StartDate   string                `json:"startDate,omitempty"`
-	DueDate     string                `json:"dueDate,omitempty"`
-	Links       map[string]LinkValue  `json:"_links"`
+	Subject     string               `json:"subject"`
+	Description *Formattable         `json:"description,omitempty"`
+	StoryPoints *int                 `json:"storyPoints,omitempty"`
+	StartDate   string               `json:"startDate,omitempty"`
+	DueDate     string               `json:"dueDate,omitempty"`
+	Links       map[string]LinkValue `json:"_links"`
 }
 
 // SetLink sets a single-value link field.
@@ -92,10 +92,10 @@ func (r *CreateWPRequest) SetMultiLink(field string, links []Link) {
 // UpdateWPRequest is the request body for updating a work package.
 type UpdateWPRequest struct {
 	LockVersion    int                  `json:"lockVersion"`
-	Subject        string              `json:"subject,omitempty"`
-	Description    *Formattable        `json:"description,omitempty"`
-	StoryPoints    *int                `json:"storyPoints,omitempty"`
-	PercentageDone *int                `json:"percentageDone,omitempty"`
+	Subject        string               `json:"subject,omitempty"`
+	Description    *Formattable         `json:"description,omitempty"`
+	StoryPoints    *int                 `json:"storyPoints,omitempty"`
+	PercentageDone *int                 `json:"percentageDone,omitempty"`
 	Links          map[string]LinkValue `json:"_links,omitempty"`
 }
 
