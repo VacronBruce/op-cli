@@ -13,6 +13,12 @@ var releaseCmd = &cobra.Command{
 	Short: "Release management commands",
 }
 
+var releaseListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all releases for the project",
+	RunE:  runReleaseList,
+}
+
 var releaseCreateCmd = &cobra.Command{
 	Use:   "create <name>",
 	Short: "Create a new release version for the project",
@@ -28,11 +34,42 @@ Examples:
 
 func init() {
 	rootCmd.AddCommand(releaseCmd)
+	releaseCmd.AddCommand(releaseListCmd)
 	releaseCmd.AddCommand(releaseCreateCmd)
 
 	releaseCreateCmd.Flags().String("status", "open", "Release status: open, locked, or closed")
 	releaseCreateCmd.Flags().String("start", "", "Start date (YYYY-MM-DD)")
 	releaseCreateCmd.Flags().String("end", "", "End date (YYYY-MM-DD)")
+}
+
+func runReleaseList(cmd *cobra.Command, args []string) error {
+	project, err := client.RequireProject()
+	if err != nil {
+		return err
+	}
+
+	versions, err := client.ListVersions(project)
+	if err != nil {
+		return fmt.Errorf("listing releases: %w", err)
+	}
+
+	fmt.Printf("%-6s  %-8s  %-12s  %-12s  %s\n", "ID", "STATUS", "START", "END", "NAME")
+	fmt.Printf("%-6s  %-8s  %-12s  %-12s  %s\n", "--", "------", "-----", "---", "----")
+	for _, v := range versions.Embedded.Elements {
+		if v.Kind != "release" {
+			continue
+		}
+		start := v.StartDate
+		if start == "" {
+			start = "-"
+		}
+		end := v.EndDate
+		if end == "" {
+			end = "-"
+		}
+		fmt.Printf("%-6d  %-8s  %-12s  %-12s  %s\n", v.ID, v.Status, start, end, v.Name)
+	}
+	return nil
 }
 
 func runReleaseCreate(cmd *cobra.Command, args []string) error {
