@@ -148,6 +148,15 @@ op comment 12345 "LGTM"           # Post a comment
 op comment 12345 "fixed typo" --edit=6789  # Edit comment #6789
 ```
 
+### Links & relations
+
+```bash
+op link 81482 --parent=81477       # Set parent work package
+op link 81482 --no-parent          # Remove parent link
+op link 81482 --relates-to=81483   # Create a "relates" relation
+op link 81482 --blocks=81485       # Create a "blocks" relation
+```
+
 ### Sprint management
 
 ```bash
