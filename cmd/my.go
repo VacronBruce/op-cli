@@ -16,6 +16,10 @@ var myCmd = &cobra.Command{
 	Short: "Show my assigned work packages",
 	Long: `List work packages assigned to you, or created by you with --author.
 
+With no project set (no -p flag and no OP_PROJECT), op my auto-detects the
+project + sprint where most of your recent open work lives, and points you at
+'op overview' for the cross-project view.
+
 Examples:
   op my                              (current sprint)
   op my --sprint="App_05/19/2026"    (specific sprint)
@@ -66,7 +70,9 @@ func init() {
 func runMy(cmd *cobra.Command, args []string) error {
 	project, err := client.RequireProject()
 	if err != nil {
-		return err
+		// No project set (no -p flag, no OP_PROJECT): instead of erroring,
+		// infer the project+sprint where most of my open work lives.
+		return runMyAutoDetect(cmd)
 	}
 
 	me, err := client.GetMe()

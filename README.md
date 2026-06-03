@@ -118,6 +118,10 @@ op show 12345 --download           # Download attachments
 op search WP-23                    # Map a JIRA ID to its OpenProject number
 ```
 
+> **No project set?** With neither `-p` nor `OP_PROJECT`, `op my` auto-detects the
+> project + sprint where most of your recent open work lives and shows it, then
+> points you at `op overview` (everything) or `op my -p <id> --sprint "<name>"`.
+
 ### Create & update
 
 ```bash

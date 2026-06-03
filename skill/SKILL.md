@@ -20,7 +20,7 @@ op board                              # Sprint board (kanban view)
 op board --status=blocked             # Board filtered by status (matches "in-progress" → "In progress")
 op board --component=android          # Board filtered by component (also --label=...)
 op board --no-sprint                  # Open items across all sprints, grouped by sprint
-op my                                 # My assigned items (current sprint)
+op my                                 # My assigned items (current project+sprint; see note on no project)
 op my --author --since=2w             # Items I created recently (2w/30d/3m; implies --no-sprint)
 op my --by-sprint                     # Group my items by sprint
 op my --component=android [--all]     # Filter by component (--all includes closed, --no-sprint drops the sprint filter)
@@ -33,6 +33,11 @@ op show <id>                          # Work package details + attachments
 op show <id> --download [--out=DIR]   # Download attachments (default: current dir)
 op search <jira-id>                   # Map a JIRA ID (e.g. WP-23) to its OP number
 ```
+
+> **No project set?** With neither `-p` nor `OP_PROJECT`, `op my` auto-detects
+> the project + sprint holding most of your recent open work, shows it, and
+> suggests `op overview` (all projects) or `op my -p <id> --sprint "<name>"`
+> to broaden/pin. Set `project:` in `~/.oprc` to fix a default.
 
 > `op show` and `op check` read the **User Story** custom field (customField36)
 > when present; `op check` counts a populated User Story field as satisfying the
