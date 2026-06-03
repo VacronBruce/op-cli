@@ -21,6 +21,8 @@ op projects                           # List all projects
 op show <id>                          # Work package details + attachments
 op show <id> --download [--out=DIR]   # Download attachments (default: current dir)
 op search <jira-id>                   # Map a JIRA ID (e.g. WP-23) to its OP number
+op start <id>                         # Start work: create/checkout branch wp-<id>-<slug>,
+                                      #   move ticket to In Progress, assign it to you (run in a git repo)
 ```
 
 > **No project set?** With neither `-p` nor `OP_PROJECT`, `op my` auto-detects
