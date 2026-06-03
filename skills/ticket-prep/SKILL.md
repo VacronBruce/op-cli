@@ -103,6 +103,6 @@ For UI changes:
 
 ## What This Skill Does NOT Do
 
-- Does NOT evaluate technical feasibility (that's /ticket-verify)
+- Does NOT evaluate technical feasibility (that's /op:ticket-verify)
 - Does NOT check implementation details depth (developer concern)
 - Does NOT estimate story points or complexity

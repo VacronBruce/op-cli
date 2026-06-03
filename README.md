@@ -33,10 +33,11 @@ The script will:
 1. Auto-detect your platform (macOS/Linux, ARM/Intel)
 2. Download the correct binary via glab
 3. Ask for your OpenProject API key
-4. Install all Claude Code skills (`/openproject`, `/standup`, `/file-bug`, `/ticket-*`)
+4. Install the `op` Claude Code plugin (`/op:openproject`, `/op:standup`, `/op:file-bug`, `/op:ticket-*`)
 
 **Updating:** existing users re-run the same one-liner (refreshes the binary **and**
-all skills), or run `op upgrade` for just the binary.
+the plugin), or run `op upgrade` for just the binary. Already on the plugin?
+`claude plugin update op` pulls the latest skills.
 
 ### Alternative: Clone + Build (needs Go)
 
@@ -249,24 +250,26 @@ Then `op create --component <TAB>` suggests `android  ios  ott  engineering  ana
 
 ### Claude Code (Docker / container mode)
 
-When Claude Code runs inside a container, it cannot execute `op` directly and does not
-have access to host-side `~/.claude/skills/`. Two things are needed: installing the skill
-into the container, and bridging `op` commands back to the host.
+When Claude Code runs inside a container, it cannot execute `op` directly and the host's
+`op` plugin isn't visible. Two things are needed: installing the skill into the container
+as a loose skill, and bridging `op` commands back to the host.
 
 #### 1. Install the skill into the container
 
 The container's `~/.claude/` directory is mounted from the **project root**'s `.claude/`
-folder. Copy the skill there so the containerized Claude Code can see it:
+folder. Copy the skill there (from a clone of this repo) so the containerized Claude Code
+can see it:
 
 ```bash
-# From the project root (run on host, one-time setup)
+# From the project root (run on host, one-time setup); adjust the path to your op-cli clone
 mkdir -p .claude/skills/openproject
-cp ~/.claude/skills/openproject/SKILL.md .claude/skills/openproject/SKILL.md
+cp /path/to/op-cli/skills/openproject/SKILL.md .claude/skills/openproject/SKILL.md
 ```
 
 > **Tip:** `.claude/` in the project root is already gitignored. If it isn't, add it.
 
-After this, `/openproject` will be available inside the container.
+After this, `/openproject` will be available inside the container (loose skill — no `op:`
+prefix, since the plugin isn't installed in the container).
 
 #### 2. Start the host bridge
 
@@ -288,54 +291,68 @@ binary, and writes the result to `.op-bridge/result.txt`.
 
 ### Claude Code skills
 
-Three slash commands are available in Claude Code for natural language access:
-
-**`/openproject`** — Translates natural language into `op` commands:
-
-```
-/openproject create a SEV1 bug "Crash on save" for NTD+, assign to Bruce, android component
-/openproject show the sprint board filtered by blocked status
-/openproject what's blocked in the current sprint?
-/openproject show my team's work for this sprint
-/openproject generate the sprint report
-/openproject add tickets 101 102 103 to current sprint
-/openproject what's in the backlog that needs estimation?
-```
-
-**`/ticket-prep`** — PM self-review for ticket quality before business review:
+The skills ship as the **`op` plugin** — namespaced under an `op:` prefix
+(`/op:openproject`, `/op:standup`, …) so they never collide with other skills.
+`install.sh` registers the marketplace and installs the plugin for you; to do it
+by hand:
 
 ```
-/ticket-prep 12345
+# This GitLab runs SSH on port 2424 — add to ~/.ssh/config:
+#   Host gitlab-tw.ddns.net
+#       Port 2424
+
+/plugin marketplace add git@gitlab-tw.ddns.net:gmedtn/op-cli.git
+/plugin install op@op
+```
+
+Slash commands available in Claude Code for natural language access:
+
+**`/op:openproject`** — Translates natural language into `op` commands:
+
+```
+/op:openproject create a SEV1 bug "Crash on save" for NTD+, assign to Bruce, android component
+/op:openproject show the sprint board filtered by blocked status
+/op:openproject what's blocked in the current sprint?
+/op:openproject show my team's work for this sprint
+/op:openproject generate the sprint report
+/op:openproject add tickets 101 102 103 to current sprint
+/op:openproject what's in the backlog that needs estimation?
+```
+
+**`/op:ticket-prep`** — PM self-review for ticket quality before business review:
+
+```
+/op:ticket-prep 12345
 ```
 
 Checks: completeness, clarity, business justification, acceptance criteria quality, visual assets, and scope definition. Outputs a structured review with rewrite suggestions.
 
-**`/ticket-verify`** — Developer readiness check before starting implementation:
+**`/op:ticket-verify`** — Developer readiness check before starting implementation:
 
 ```
-/ticket-verify 12345
+/op:ticket-verify 12345
 ```
 
 Checks: implementability, technical gaps, ambiguities, dependencies, risk assessment, and estimation sanity. Detects team context (android/ios/web) for team-specific checks.
 
-**`/standup`** — Lead's daily digest for the current sprint:
+**`/op:standup`** — Lead's daily digest for the current sprint:
 
 ```
-/standup
-/standup -p web --sprint "Web_06/01"
+/op:standup
+/op:standup -p web --sprint "Web_06/01"
 ```
 
 Combines sprint progress, blockers, team work by person, and risks into one skimmable briefing.
 
-**`/file-bug`** — Guided bug filing:
+**`/op:file-bug`** — Guided bug filing:
 
 ```
-/file-bug CC button crashes when publishing on Android
+/op:file-bug CC button crashes when publishing on Android
 ```
 
 Collects repro/expected/actual/acceptance criteria + the right component/product/label, then runs `op create bug` with a well-formed description.
 
-> `/ticket-review` is also available — combined PM + Dev review that posts one comment on the ticket.
+> `/op:ticket-review` is also available — combined PM + Dev review that posts one comment on the ticket.
 
 ## Troubleshooting
 

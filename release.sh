@@ -25,23 +25,10 @@ GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/op-darwin-amd64 .
 GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/op-linux-amd64 .
 echo "    Done."
 
-# Bundle all Claude Code skills (openproject from skill/SKILL.md + each skill/*/SKILL.md)
-# into op-skills.tar.gz, laid out so it extracts to ~/.claude/skills/<name>/SKILL.md.
-echo "    Bundling skills..."
-rm -rf dist/skills && mkdir -p dist/skills/openproject
-cp skill/SKILL.md dist/skills/openproject/SKILL.md
-for d in skill/*/; do
-  [ -f "${d}SKILL.md" ] || continue
-  name=$(basename "$d")
-  mkdir -p "dist/skills/${name}"
-  cp "${d}SKILL.md" "dist/skills/${name}/SKILL.md"
-done
-tar -czf dist/op-skills.tar.gz -C dist/skills .
-echo "    Bundled skills: $(cd dist/skills && ls -d */ | tr -d / | tr '\n' ' ')"
-
-# Step 2: Update version in install.sh
-echo "2/4 Updating install.sh version..."
+# Step 2: Update version in install.sh + the plugin manifest
+echo "2/4 Updating versions..."
 sed -i '' "s/^VERSION=.*/VERSION=\"${VERSION#v}\"/" install.sh
+sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION#v}\"/" .claude-plugin/plugin.json
 echo "    Done."
 
 # Step 3: Commit + tag + push
@@ -54,7 +41,7 @@ git push origin develop --tags
 # Step 4: Upload to package registry (both versioned + latest)
 echo "4/4 Uploading to package registry..."
 for path in "${VERSION#v}" "latest"; do
-  for file in dist/op-darwin-arm64 dist/op-darwin-amd64 dist/op-linux-amd64 dist/op-skills.tar.gz install.sh; do
+  for file in dist/op-darwin-arm64 dist/op-darwin-amd64 dist/op-linux-amd64 install.sh; do
     name=$(basename $file)
     curl -s --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
       --upload-file "$file" \
@@ -91,8 +78,6 @@ curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type
   -d "{\"name\":\"op-darwin-amd64\",\"url\":\"${PKG}/op-darwin-amd64\",\"link_type\":\"package\"}" "$BASE_API" > /dev/null
 curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type: application/json" \
   -d "{\"name\":\"op-linux-amd64\",\"url\":\"${PKG}/op-linux-amd64\",\"link_type\":\"package\"}" "$BASE_API" > /dev/null
-curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type: application/json" \
-  -d "{\"name\":\"op-skills.tar.gz\",\"url\":\"${PKG}/op-skills.tar.gz\",\"link_type\":\"other\"}" "$BASE_API" > /dev/null
 curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type: application/json" \
   -d "{\"name\":\"install.sh\",\"url\":\"${PKG}/install.sh\",\"link_type\":\"other\"}" "$BASE_API" > /dev/null
 

@@ -15,7 +15,7 @@ brew install glab          # macOS/Linux  (or: sudo apt install glab)
 GITLAB_HOST=gitlab-tw.ddns.net glab auth login
 ```
 
-**Install op-cli + the `/openproject` skill:**
+**Install op-cli + the `op` Claude Code plugin:**
 
 ```bash
 mkdir -p /tmp/op-cli && cd /tmp/op-cli && \
@@ -24,8 +24,8 @@ mkdir -p /tmp/op-cli && cd /tmp/op-cli && \
 ```
 
 The script detects your platform, installs the `op` binary, asks for your API key,
-and installs **all** the Claude skills (`/openproject`, `/standup`, `/file-bug`,
-`/ticket-*`).
+and installs the **`op` plugin** — all skills under the `op:` prefix
+(`/op:openproject`, `/op:standup`, `/op:file-bug`, `/op:ticket-*`).
 
 ---
 
@@ -55,15 +55,16 @@ op projects        # should list projects you can see
 
 ## 3. Updating later
 
-The installer already set up all the skills in step 1. To update:
+The installer already set up the plugin in step 1. To update:
 
 ```bash
-op upgrade        # just the binary, to the latest release
-# or re-run the install one-liner from step 1 — refreshes the binary AND all skills
+op upgrade               # just the binary, to the latest release
+claude plugin update op  # just the skills, to the latest plugin version
+# or re-run the install one-liner from step 1 — refreshes the binary AND the plugin
 ```
 
-(Manual fallback if you cloned the repo: `cp skill/SKILL.md ~/.claude/skills/openproject/SKILL.md`
-and `cp -r skill/*/ ~/.claude/skills/`.)
+(Manual fallback if you cloned the repo:
+`claude plugin marketplace add .` then `claude plugin install op@op`.)
 
 ---
 
@@ -73,14 +74,14 @@ You rarely need raw commands — invoke a skill or just describe what you want.
 
 | You want… | Say in Claude |
 |---|---|
-| Map NL → `op` command | `/openproject add 101 102 to the current sprint` |
+| Map NL → `op` command | `/op:openproject add 101 102 to the current sprint` |
 | What's on my plate | "what am I working on?" → `op my` (auto-detects project/sprint if none set) |
 | Cross-project view | `op overview` |
-| Standup briefing | `/standup` |
-| File a bug, guided | `/file-bug CC button crashes on publish (Android)` |
-| PM ticket self-review | `/ticket-prep 12345` |
-| Dev readiness check | `/ticket-verify 12345` |
-| Full bot review (posts a comment) | `/ticket-review 12345` |
+| Standup briefing | `/op:standup` |
+| File a bug, guided | `/op:file-bug CC button crashes on publish (Android)` |
+| PM ticket self-review | `/op:ticket-prep 12345` |
+| Dev readiness check | `/op:ticket-verify 12345` |
+| Full bot review (posts a comment) | `/op:ticket-review 12345` |
 
 ---
 

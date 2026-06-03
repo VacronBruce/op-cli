@@ -172,49 +172,37 @@ EOF
 fi
 echo ""
 
-# Step 3: Claude Code skills (openproject + ticket-*, standup, file-bug)
-echo "3/3 Claude Code skills"
-SKILLS_ROOT="$HOME/.claude/skills"
-if command -v claude &>/dev/null || [ -d "$HOME/.claude" ]; then
-  GOT_SKILLS=""
-
-  if [ -d "skill" ] && [ -f "skill/SKILL.md" ]; then
-    # Clone mode: install straight from the repo's skill/ directory.
-    mkdir -p "${SKILLS_ROOT}/openproject"
-    cp skill/SKILL.md "${SKILLS_ROOT}/openproject/SKILL.md"
-    for d in skill/*/; do
-      [ -f "${d}SKILL.md" ] || continue
-      name=$(basename "$d")
-      mkdir -p "${SKILLS_ROOT}/${name}"
-      cp "${d}SKILL.md" "${SKILLS_ROOT}/${name}/SKILL.md"
-    done
-    GOT_SKILLS=true
+# Step 3: Claude Code plugin (OpenProject skills under the op: prefix)
+echo "3/3 Claude Code plugin (op:)"
+if command -v claude &>/dev/null; then
+  # Marketplace source: the local repo dir in clone mode, the git URL otherwise.
+  if [ -d ".claude-plugin" ] && [ -f ".claude-plugin/marketplace.json" ]; then
+    MP_SRC="$(pwd)"
   else
-    # Download mode: fetch the skills bundle (glab, then token).
-    SKILLS_TGZ="/tmp/op-skills.tar.gz"
-    rm -f "$SKILLS_TGZ"
-    if command -v glab &>/dev/null; then
-      GITLAB_HOST=gitlab-tw.ddns.net glab release download \
-        --repo gmedtn/op-cli --include-external \
-        --asset-name="op-skills.tar.gz" -D /tmp 2>/dev/null
-    fi
-    if [ ! -f "$SKILLS_TGZ" ] && [ -n "$GITLAB_TOKEN" ]; then
-      curl -fsSL -o "$SKILLS_TGZ" -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "${PKG_URL}/op-skills.tar.gz" 2>/dev/null
-    fi
-    if [ -f "$SKILLS_TGZ" ]; then
-      mkdir -p "$SKILLS_ROOT"
-      tar -xzf "$SKILLS_TGZ" -C "$SKILLS_ROOT" && GOT_SKILLS=true
-    fi
+    MP_SRC="git@gitlab-tw.ddns.net:gmedtn/op-cli.git"
   fi
 
-  if [ -n "$GOT_SKILLS" ]; then
-    echo "    Installed skills to ${SKILLS_ROOT}/ (openproject, ticket-prep/verify/review, standup, file-bug)"
+  # Register the marketplace (or refresh it if already present), then install.
+  if claude plugin marketplace add "$MP_SRC" 2>/dev/null \
+     || claude plugin marketplace update op 2>/dev/null; then
+    if claude plugin install op@op --scope user 2>/dev/null; then
+      # Migrate: drop any old loose skill copies so they don't shadow the plugin.
+      SKILLS_ROOT="$HOME/.claude/skills"
+      for s in openproject op-bridge ticket-prep ticket-verify ticket-review standup file-bug; do
+        [ -d "${SKILLS_ROOT}/${s}" ] && rm -rf "${SKILLS_ROOT}/${s}"
+      done
+      echo "    Installed the op plugin — use /op:openproject, /op:standup, /op:file-bug, /op:ticket-* ..."
+      echo "    (Removed any old loose copies under ${SKILLS_ROOT}/ to avoid duplicates.)"
+    else
+      echo "    Marketplace added but plugin install failed. Run: claude plugin install op@op"
+    fi
   else
-    echo "    Could not install the skills bundle; skipping."
-    echo "    To add them later: clone the repo and copy skill/* into ${SKILLS_ROOT}/."
+    echo "    Could not add the op marketplace. Add it manually:"
+    echo "      claude plugin marketplace add ${MP_SRC}"
+    echo "      claude plugin install op@op"
   fi
 else
-  echo "    Claude Code not detected, skipping."
+  echo "    Claude Code (claude CLI) not detected, skipping."
 fi
 
 echo ""

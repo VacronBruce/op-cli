@@ -140,11 +140,11 @@ Detect team from the ticket's component or label fields. If no team context is d
 
 ## Key Principle
 
-**Generate questions, not rewrites.** Unlike /ticket-prep (which helps PMs improve content), this skill identifies what a developer needs to know before they can start. The output is a list of specific questions to send back to the PM.
+**Generate questions, not rewrites.** Unlike /op:ticket-prep (which helps PMs improve content), this skill identifies what a developer needs to know before they can start. The output is a list of specific questions to send back to the PM.
 
 ## What This Skill Does NOT Do
 
-- Does NOT rewrite ticket descriptions (that's /ticket-prep)
+- Does NOT rewrite ticket descriptions (that's /op:ticket-prep)
 - Does NOT evaluate business justification
 - Does NOT judge writing clarity or formatting
 - Does NOT make implementation decisions (that's the developer's job)

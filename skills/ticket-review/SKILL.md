@@ -11,7 +11,7 @@ allowed-tools: Bash(op *), Read, Write
 
 Produce ONE combined review of ticket #$ARGUMENTS and post it as a comment, idempotently.
 This is the engine the **op-agent** reviewer daemon dispatches per ticket; it is also
-runnable by hand. It reuses the rubrics of `/ticket-prep` (PM quality) and `/ticket-verify`
+runnable by hand. It reuses the rubrics of `/op:ticket-prep` (PM quality) and `/op:ticket-verify`
 (developer readiness) in a single pass and posts one combined comment.
 
 ## Modes (parse from $ARGUMENTS)
@@ -42,10 +42,10 @@ Override via a config file if present at `$OP_REVIEWER_CONFIG` or
      (See **RESULT line** below for the exact machine-readable format.)
    - If one exists and a **later** comment (from a non-bot author) contains the trigger
      phrase → proceed (re-review requested).
-4. Apply the **/ticket-prep rubric** (completeness, clarity, business justification,
+4. Apply the **/op:ticket-prep rubric** (completeness, clarity, business justification,
    acceptance-criteria quality, visual assets, scope) → PM verdict
    (READY FOR REVIEW / NEEDS REFINEMENT / NEEDS REWRITE) with concrete rewrite suggestions.
-5. Apply the **/ticket-verify rubric** (implementability, technical gaps, ambiguities,
+5. Apply the **/op:ticket-verify rubric** (implementability, technical gaps, ambiguities,
    dependencies, risk, estimation; plus team-specific checks by component/label) →
    Dev verdict (READY TO BUILD / BLOCKED / NEEDS CLARIFICATION) with specific questions.
 6. Compose ONE combined comment (see Output Format). The marker line MUST be first.
@@ -143,4 +143,4 @@ ambiguous prefix mapping), **fail loud** — print the problem and stop rather t
 
 - Does NOT change ticket status, fields, or assignees — it only comments.
 - Does NOT discover tickets or run the poll loop (that is the op-agent daemon / `poll.sh`).
-- Does NOT replace `/ticket-prep` or `/ticket-verify` for deep, interactive single-lens review.
+- Does NOT replace `/op:ticket-prep` or `/op:ticket-verify` for deep, interactive single-lens review.

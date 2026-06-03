@@ -1,0 +1,14 @@
+{
+  "name": "op",
+  "description": "OpenProject CLI skills for Claude Code — work packages, sprints, standups, and ticket reviews via the op CLI",
+  "owner": {
+    "name": "op-cli"
+  },
+  "plugins": [
+    {
+      "name": "op",
+      "source": "./",
+      "description": "OpenProject CLI skills — manage work packages, sprints, standups, and ticket reviews via the op CLI"
+    }
+  ]
+}
