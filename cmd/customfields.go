@@ -5,6 +5,7 @@ import (
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // customFieldLinks resolves option names for a logical custom field into links,
@@ -49,5 +50,26 @@ func completeCustomField(fieldName string) func(*cobra.Command, []string, string
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
 		return cf.OptionNames(), cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
+func completeRelease() func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		project := viper.GetString("project")
+		if project == "" {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		c := api.NewClient(viper.GetString("url"), viper.GetString("api_key"), project)
+		versions, err := c.ListVersions(project)
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		var names []string
+		for _, v := range versions.Embedded.Elements {
+			if v.Kind == "release" {
+				names = append(names, v.Name)
+			}
+		}
+		return names, cobra.ShellCompDirectiveNoFileComp
 	}
 }

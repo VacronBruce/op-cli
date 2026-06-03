@@ -26,6 +26,7 @@ type MockClient struct {
 	CreateVersionFn       func(req *api.CreateVersionRequest) (*api.Version, error)
 	FindActiveSprintFn    func(project string) (*api.Version, error)
 	ResolveVersionFn      func(project, name string) (*api.Version, error)
+	ResolveReleaseFn      func(project, name string) (*api.Version, error)
 	ListProjectsFn        func() (*api.ProjectCollection, error)
 	GetProjectFn          func(identifier string) (*api.Project, error)
 	GetMeFn               func() (*api.User, error)
@@ -142,6 +143,13 @@ func (m *MockClient) ResolveVersion(project, name string) (*api.Version, error) 
 		return m.ResolveVersionFn(project, name)
 	}
 	return nil, fmt.Errorf("ResolveVersion not mocked")
+}
+
+func (m *MockClient) ResolveRelease(project, name string) (*api.Version, error) {
+	if m.ResolveReleaseFn != nil {
+		return m.ResolveReleaseFn(project, name)
+	}
+	return nil, fmt.Errorf("ResolveRelease not mocked")
 }
 
 func (m *MockClient) ListProjects() (*api.ProjectCollection, error) {

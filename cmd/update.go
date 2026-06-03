@@ -36,6 +36,7 @@ func init() {
 	updateCmd.Flags().StringSlice("component", nil, "Component (android, ios, ott, engineering, analytics)")
 
 	_ = updateCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
+	_ = updateCmd.RegisterFlagCompletionFunc("release", completeRelease())
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {
@@ -121,9 +122,9 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 	// Release (customField50 — version link scoped to kind=release)
 	if releaseName, _ := cmd.Flags().GetString("release"); releaseName != "" {
-		version, err := client.ResolveVersion(project, releaseName)
+		version, err := client.ResolveRelease(project, releaseName)
 		if err != nil {
-			return fmt.Errorf("resolving release: %w", err)
+			return err
 		}
 		req.Links["customField50"] = api.Link{Href: version.Links.Self.Href}
 		hasChanges = true

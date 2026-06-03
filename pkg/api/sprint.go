@@ -15,6 +15,7 @@ type Version struct {
 	StartDate   string       `json:"startDate,omitempty"`
 	EndDate     string       `json:"endDate,omitempty"`
 	Status      string       `json:"status"`
+	Kind        string       `json:"kind,omitempty"`
 	Links       struct {
 		Self            Link `json:"self"`
 		DefiningProject Link `json:"definingProject"`
@@ -131,6 +132,46 @@ func (c *Client) ResolveVersion(project, name string) (*Version, error) {
 		}
 	}
 	return nil, fmt.Errorf("sprint %q not found", name)
+}
+
+// ResolveRelease finds a release (kind=release) by name or numeric ID.
+// On failure it lists available release names to help the caller correct the input.
+func (c *Client) ResolveRelease(project, name string) (*Version, error) {
+	versions, err := c.ListVersions(project)
+	if err != nil {
+		return nil, fmt.Errorf("listing releases: %w", err)
+	}
+
+	var releases []Version
+	for _, v := range versions.Embedded.Elements {
+		if v.Kind == "release" {
+			releases = append(releases, v)
+		}
+	}
+
+	for i := range releases {
+		if releases[i].Name == name {
+			return &releases[i], nil
+		}
+	}
+	for i := range releases {
+		if strings.EqualFold(releases[i].Name, name) {
+			return &releases[i], nil
+		}
+	}
+	if id, err := strconv.Atoi(name); err == nil {
+		for i := range releases {
+			if releases[i].ID == id {
+				return &releases[i], nil
+			}
+		}
+	}
+
+	names := make([]string, len(releases))
+	for i, r := range releases {
+		names[i] = r.Name
+	}
+	return nil, fmt.Errorf("release %q not found; available: %s", name, strings.Join(names, ", "))
 }
 
 // VersionFilter creates a version filter for work package queries.
