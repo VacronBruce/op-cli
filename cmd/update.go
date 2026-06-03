@@ -108,9 +108,6 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 	// Sprint
 	if sprintName, _ := cmd.Flags().GetString("sprint"); sprintName != "" {
-		if project == "" {
-			return fmt.Errorf("no project specified: use -p flag or set OP_PROJECT")
-		}
 		version, err := client.ResolveVersion(project, sprintName)
 		if err != nil {
 			return fmt.Errorf("resolving sprint: %w", err)

@@ -230,6 +230,32 @@ func TestResolver_ResolveStatus_Normalized(t *testing.T) {
 	}
 }
 
+// A hyphenated *prefix* ("in-prog") must also reach "In progress": the prefix
+// tier is normalized too, not just the exact tiers.
+func TestResolver_ResolveStatus_NormalizedPrefix(t *testing.T) {
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(collectionResponse{
+			Embedded: struct {
+				Elements []json.RawMessage `json:"elements"`
+			}{
+				Elements: []json.RawMessage{
+					json.RawMessage(`{"id":3,"name":"In progress","_links":{"self":{"href":"/api/v3/statuses/3"}}}`),
+				},
+			},
+		})
+	})
+	defer ts.Close()
+
+	resolver := NewResolver(c, "proj")
+	r, err := resolver.ResolveStatus("in-prog")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if r.Href != "/api/v3/statuses/3" {
+		t.Errorf("expected href /api/v3/statuses/3, got %s", r.Href)
+	}
+}
+
 func TestResolver_ResolveUser(t *testing.T) {
 	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(collectionResponse{

@@ -171,9 +171,10 @@ func resolve(resources []NamedResource, name string) (NamedResource, error) {
 		}
 	}
 
-	// Try prefix match
+	// Try prefix match, also normalized, so a hyphenated abbreviation like
+	// "in-prog" prefixes "In progress" (consistent with the exact tiers above).
 	for _, r := range resources {
-		if strings.HasPrefix(strings.ToLower(r.Name), lower) {
+		if strings.HasPrefix(NormalizeName(r.Name), norm) {
 			return r, nil
 		}
 	}
