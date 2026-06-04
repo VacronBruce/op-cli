@@ -18,8 +18,8 @@ op overview                           # Cross-project dashboard: my open work, t
 op overview --projects=8 --sprints=5  # Widen the dashboard (defaults 5 x 3)
 op blocked                            # Blocked items in sprint
 op projects                           # List all projects
-op show <id>                          # Work package details + attachments
-op show <id> --download [--out=DIR]   # Download attachments (default: current dir)
+op show <id>                          # Work package details + attachments + inline comment images
+op show <id> --download [--out=DIR]   # Download attachments AND inline comment images (default: current dir)
 op search <jira-id>                   # Map a JIRA ID (e.g. WP-23) to its OP number
 op start <id>                         # Start work: create/checkout branch <project>-<id>-<slug>,
                                       #   move ticket to In Progress, assign it to you (run in a git repo)
@@ -33,6 +33,14 @@ op start <id>                         # Start work: create/checkout branch <proj
 > `op show` and `op check` read the **User Story** custom field (customField36)
 > when present; `op check` counts a populated User Story field as satisfying the
 > user-story requirement even if the description has no "As a…" text.
+
+> **Inline comment images:** screenshots pasted into comments are stored in
+> `Activity::Comment` containers, so they do NOT appear in the work package's
+> `/attachments` list. `op comment` renders them as `[image #ID: filename]`
+> markers (instead of raw `<img>` HTML), `op show` lists them under "Inline
+> images in comments" and includes them in `--download` (named `<id>-<filename>`),
+> and `op check` counts them toward the "Has attachments" rule so a bug/feature
+> whose only screenshots live in a comment is not flagged as having none.
 
 ## Create & Update
 ```bash
@@ -58,7 +66,7 @@ op link <id> --relates-to=81483       # Create "relates" relation
 op link <id> --blocks=81485           # Create "blocks" relation
 
 op attach <id> file.png [file2.jpg]   # Upload attachments
-op comment <id>                       # List comments on ticket (shows comment IDs)
+op comment <id>                       # List comments (shows comment IDs; inline images as [image #ID: file])
 op comment <id> "message"             # Post a comment
 op comment <id> "message" --edit=<comment-id>  # Edit an existing comment's text
 ```

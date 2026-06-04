@@ -147,8 +147,8 @@ op my team                         # Team items grouped by person
 op overview                        # Cross-project dashboard of my open work
 op overview --projects=8 --sprints=5  # Widen the dashboard
 op blocked                         # Blocked items in sprint
-op show 12345                      # View ticket details (includes JIRA ID + User Story)
-op show 12345 --download           # Download attachments
+op show 12345                      # View ticket details (includes JIRA ID + User Story + inline comment images)
+op show 12345 --download           # Download attachments and inline comment images
 op search WP-23                    # Map a JIRA ID to its OpenProject number
 op start 12345                     # Start work: branch <project>-12345-<slug>, In Progress, assign to you
 ```
@@ -178,7 +178,7 @@ Priority values: `P0`, `P1`, `P2`, `P3` (tasks/stories) | `SEV0`, `SEV1`, `SEV2`
 ### Comments
 
 ```bash
-op comment 12345                   # List all comments (shows comment IDs)
+op comment 12345                   # List all comments (shows comment IDs; inline images as [image #ID: file])
 op comment 12345 "LGTM"           # Post a comment
 op comment 12345 "fixed typo" --edit=6789  # Edit comment #6789
 ```

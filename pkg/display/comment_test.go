@@ -26,7 +26,7 @@ func TestActivities_EmptyCollection(t *testing.T) {
 	ac := &api.ActivityCollection{}
 
 	out := captureOutput(func() {
-		Activities(ac)
+		Activities(ac, nil)
 	})
 
 	if !strings.Contains(out, "No comments.") {
@@ -43,7 +43,7 @@ func TestActivities_AllActivitiesLackComment(t *testing.T) {
 	}
 
 	out := captureOutput(func() {
-		Activities(ac)
+		Activities(ac, nil)
 	})
 
 	if !strings.Contains(out, "No comments.") {
@@ -58,7 +58,7 @@ func TestActivities_SingleComment(t *testing.T) {
 	}
 
 	out := captureOutput(func() {
-		Activities(ac)
+		Activities(ac, nil)
 	})
 
 	if !strings.Contains(out, "Comments (1):") {
@@ -81,7 +81,7 @@ func TestActivities_MultipleComments(t *testing.T) {
 	}
 
 	out := captureOutput(func() {
-		Activities(ac)
+		Activities(ac, nil)
 	})
 
 	if !strings.Contains(out, "Comments (3):") {
@@ -105,7 +105,7 @@ func TestActivities_MixedCommentAndNonComment(t *testing.T) {
 	}
 
 	out := captureOutput(func() {
-		Activities(ac)
+		Activities(ac, nil)
 	})
 
 	if !strings.Contains(out, "Comments (1):") {
@@ -125,7 +125,7 @@ func TestActivities_DateFormattingFullTimestamp(t *testing.T) {
 	}
 
 	out := captureOutput(func() {
-		Activities(ac)
+		Activities(ac, nil)
 	})
 
 	if !strings.Contains(out, "2024-12-25") {
@@ -145,7 +145,7 @@ func TestActivities_DateFormattingShortTimestamp(t *testing.T) {
 	}
 
 	out := captureOutput(func() {
-		Activities(ac)
+		Activities(ac, nil)
 	})
 
 	// The comment still renders; the date bracket is just empty.
@@ -162,7 +162,7 @@ func TestActivities_DateFormattingEmpty(t *testing.T) {
 	}
 
 	out := captureOutput(func() {
-		Activities(ac)
+		Activities(ac, nil)
 	})
 
 	if !strings.Contains(out, "No date comment") {
@@ -202,7 +202,7 @@ func TestActivities_HeaderCount(t *testing.T) {
 			ac.Embedded.Elements = tt.elements
 
 			out := captureOutput(func() {
-				Activities(ac)
+				Activities(ac, nil)
 			})
 
 			wantHeader := fmt.Sprintf("Comments (%d):", tt.wantN)
@@ -210,5 +210,30 @@ func TestActivities_HeaderCount(t *testing.T) {
 				t.Errorf("expected %q in output, got: %s", wantHeader, out)
 			}
 		})
+	}
+}
+
+func TestActivities_RendersInlineImages(t *testing.T) {
+	ac := &api.ActivityCollection{}
+	ac.Embedded.Elements = []api.Activity{
+		makeActivity(1,
+			`tap Manage <img class="op-uc-image op-uc-image_inline" src="/api/v3/attachments/43221/content">`+
+				` then this <img src="/api/v3/attachments/43222/content">`,
+			"2026-06-02T00:00:00Z", "Bruce"),
+	}
+	names := map[int]string{43221: "manage.png"}
+
+	out := captureOutput(func() {
+		Activities(ac, names)
+	})
+
+	if strings.Contains(out, "<img") {
+		t.Errorf("raw <img> tag leaked into output: %s", out)
+	}
+	if !strings.Contains(out, "[image #43221: manage.png]") {
+		t.Errorf("expected named image marker, got: %s", out)
+	}
+	if !strings.Contains(out, "[image #43222]") {
+		t.Errorf("expected unnamed image marker for unknown id, got: %s", out)
 	}
 }

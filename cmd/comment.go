@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/display"
 	"github.com/spf13/cobra"
 )
@@ -75,6 +76,7 @@ func runComment(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("listing activities: %w", err)
 	}
 
-	display.Activities(activities)
+	names := inlineAttachmentNames(fetchInlineAttachments(api.CommentInlineAttachmentIDs(activities)))
+	display.Activities(activities, names)
 	return nil
 }

@@ -29,6 +29,15 @@ func (r *Runner) Run(id int) (*Report, error) {
 		att.Total = 0
 	}
 
+	// Screenshots are often pasted inline into comments. Those live in
+	// Activity::Comment containers, so they are absent from the /attachments
+	// endpoint above; count them too so a ticket whose only evidence is in a
+	// comment is not falsely flagged as having no attachments.
+	attachmentCount := att.Total
+	if ac, err := r.Client.ListActivities(id); err == nil {
+		attachmentCount += len(api.CommentInlineAttachmentIDs(ac))
+	}
+
 	typeName := wp.Links.Type.Title
 	checks := RulesForType(typeName)
 
@@ -39,7 +48,7 @@ func (r *Runner) Run(id int) (*Report, error) {
 	}
 
 	for _, check := range checks {
-		report.Results = append(report.Results, check(wp, att.Total))
+		report.Results = append(report.Results, check(wp, attachmentCount))
 	}
 
 	return report, nil

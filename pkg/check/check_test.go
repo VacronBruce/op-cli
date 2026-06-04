@@ -364,6 +364,55 @@ func TestRunner(t *testing.T) {
 	}
 }
 
+// TestRunner_CountsInlineCommentImages verifies the attachments check passes when
+// the only screenshots live inline in a comment (Activity::Comment container),
+// which the work package /attachments endpoint reports as zero.
+func TestRunner_CountsInlineCommentImages(t *testing.T) {
+	mock := &testutil.MockClient{
+		GetWorkPackageFn: func(id int) (*api.WorkPackage, error) {
+			return &api.WorkPackage{
+				ID:      id,
+				Subject: "Bug with screenshot in a comment",
+				Links:   api.WPLinks{Type: api.Link{Title: "Bug"}},
+			}, nil
+		},
+		GetFn: func(path string, result interface{}) error {
+			if att, ok := result.(*attachmentCollection); ok {
+				att.Total = 0 // no work-package-level attachments
+			}
+			return nil
+		},
+		ListActivitiesFn: func(wpID int) (*api.ActivityCollection, error) {
+			ac := &api.ActivityCollection{}
+			ac.Embedded.Elements = []api.Activity{
+				{ID: 1, Comment: &api.Formattable{
+					Raw: `repro <img src="/api/v3/attachments/43221/content">`,
+				}},
+			}
+			return ac, nil
+		},
+	}
+
+	runner := &Runner{Client: mock}
+	report, err := runner.Run(123)
+	if err != nil {
+		t.Fatalf("Run() error: %v", err)
+	}
+
+	var found bool
+	for _, r := range report.Results {
+		if r.Name == "Has attachments" {
+			found = true
+			if r.Level != Pass {
+				t.Errorf("attachments check = %v (%s), want Pass — inline comment image should count", r.Level, r.Message)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("attachments check not present in bug report")
+	}
+}
+
 func TestRunnerError(t *testing.T) {
 	mock := &testutil.MockClient{
 		GetWorkPackageFn: func(id int) (*api.WorkPackage, error) {

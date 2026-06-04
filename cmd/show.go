@@ -81,6 +81,44 @@ func runShow(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Inline images embedded in comments live in Activity::Comment containers, so
+	// they are absent from the work package attachments endpoint above. Surface
+	// them separately so they are visible and downloadable.
+	if activities, err := client.ListActivities(id); err == nil {
+		inlineIDs := api.CommentInlineAttachmentIDs(activities)
+		if len(inlineIDs) > 0 {
+			inline := fetchInlineAttachments(inlineIDs)
+			fmt.Printf("\n  Inline images in comments (%d):\n", len(inlineIDs))
+			for _, iid := range inlineIDs {
+				att := inline[iid]
+				if att == nil {
+					fmt.Printf("    - #%d (unavailable)\n", iid)
+					continue
+				}
+				fmt.Printf("    - #%d %s (%s, %d bytes)\n", iid, att.FileName, att.ContentType, att.FileSize)
+			}
+
+			if download {
+				outDir, _ := cmd.Flags().GetString("out")
+				fmt.Println()
+				for _, iid := range inlineIDs {
+					att := inline[iid]
+					if att == nil {
+						continue
+					}
+					// Prefix with the attachment ID: inline screenshots are often all
+					// named "image.png" and would otherwise overwrite each other.
+					outPath := filepath.Join(outDir, fmt.Sprintf("%d-%s", iid, att.FileName))
+					if err := downloadAttachment(att.Links.DownloadLocation.Href, outPath); err != nil {
+						fmt.Printf("  Error downloading #%d: %s\n", iid, err)
+						continue
+					}
+					fmt.Printf("  Downloaded: %s\n", outPath)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
