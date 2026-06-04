@@ -16,17 +16,19 @@ var myCmd = &cobra.Command{
 	Short: "Show my assigned work packages",
 	Long: `List work packages assigned to you, or created by you with --author.
 
+By default op my shows all your open work across every sprint. Pass --sprint
+to scope to one sprint.
+
 With no project set (no -p flag and no OP_PROJECT), op my auto-detects the
 project + sprint where most of your recent open work lives, and points you at
 'op overview' for the cross-project view.
 
 Examples:
-  op my                              (current sprint)
-  op my --sprint="App_05/19/2026"    (specific sprint)
+  op my                              (all my open work, any sprint)
+  op my --sprint="App_05/19/2026"    (scope to one sprint)
+  op my --by-sprint                  (all my open work, grouped by sprint)
   op my --all                        (include closed items)
-  op my --no-sprint                  (all items, no sprint filter)
-  op my --author                     (created by me, current sprint)
-  op my --author --no-sprint         (all items I created)
+  op my --author                     (created by me)
   op my --author --since=2w          (created by me in last 2 weeks)
   op my --author --since=30d         (created by me in last 30 days)`,
 	RunE: runMy,
@@ -57,7 +59,8 @@ func init() {
 	rootCmd.AddCommand(myTeamAliasCmd)
 	myCmd.Flags().Bool("all", false, "Include closed items")
 	myCmd.Flags().String("sprint", "", "Sprint name (defaults to active sprint)")
-	myCmd.Flags().Bool("no-sprint", false, "Show all items without sprint filter")
+	myCmd.Flags().Bool("no-sprint", false, "Deprecated: no-sprint is now the default; this flag is a no-op")
+	_ = myCmd.Flags().MarkHidden("no-sprint")
 	myCmd.Flags().Bool("author", false, "Filter by author (created by me) instead of assignee")
 	myCmd.Flags().String("since", "", "Filter by creation date (e.g. 2w, 30d, 3m)")
 	myCmd.Flags().String("component", "", "Filter by component (android, ios, ott, engineering, analytics)")
@@ -115,14 +118,9 @@ func runMy(cmd *cobra.Command, args []string) error {
 		filters = append(filters, api.NewFilter(field, "=", value))
 	}
 
-	// Sprint filter
-	noSprint, _ := cmd.Flags().GetBool("no-sprint")
-	if since != "" && !cmd.Flags().Changed("no-sprint") {
-		// --since implies no sprint filter unless user explicitly sets a sprint
-		noSprint = true
-	}
-	if !noSprint {
-		sprintName, _ := cmd.Flags().GetString("sprint")
+	// Sprint filter is opt-in. By default `op my` shows all your open work
+	// across every sprint; pass --sprint to scope to one.
+	if sprintName, _ := cmd.Flags().GetString("sprint"); sprintName != "" {
 		version, err := client.ResolveVersion(project, sprintName)
 		if err != nil {
 			return err

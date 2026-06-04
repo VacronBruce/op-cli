@@ -138,8 +138,8 @@ op projects
 op board                           # Current sprint board (kanban view)
 op board --status=blocked          # Board filtered by status
 op board --component=android       # Board filtered by component
-op my                              # My assigned items (current project + sprint)
-op my --no-sprint                  # All my items (no sprint filter)
+op my                              # All my open items (any sprint, current project)
+op my --sprint="App_05/19/2026"    # Scope to one sprint
 op my --author --since=2w          # Items I created in last 2 weeks
 op my --component=android          # My Android items only
 op my --by-sprint                  # My items grouped by sprint

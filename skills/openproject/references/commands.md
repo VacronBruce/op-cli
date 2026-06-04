@@ -9,10 +9,11 @@ op board                              # Sprint board (kanban view)
 op board --status=blocked             # Board filtered by status (matches "in-progress" → "In progress")
 op board --component=android          # Board filtered by component (also --label=...)
 op board --no-sprint                  # Open items across all sprints, grouped by sprint
-op my                                 # My assigned items (current project+sprint; see note on no project)
-op my --author --since=2w             # Items I created recently (2w/30d/3m; implies --no-sprint)
+op my                                 # All my open items, any sprint (current project; see note on no project)
+op my --sprint="App_05/19/2026"       # Scope to one sprint
+op my --author --since=2w             # Items I created recently (2w/30d/3m)
 op my --by-sprint                     # Group my items by sprint
-op my --component=android [--all]     # Filter by component (--all includes closed, --no-sprint drops the sprint filter)
+op my --component=android [--all]     # Filter by component (--all includes closed)
 op my team                            # Team items grouped by person
 op overview                           # Cross-project dashboard: my open work, top projects x sprints
 op overview --projects=8 --sprints=5  # Widen the dashboard (defaults 5 x 3)

@@ -71,10 +71,10 @@ func runMyAutoDetect(cmd *cobra.Command) error {
 	fmt.Println("\nSee more:")
 	fmt.Println("  op overview                          all your open work across projects")
 	if top.ProjectID != "" {
+		fmt.Printf("  op my -p %s                          all your open work in this project\n", top.ProjectID)
 		if top.HasSprint {
 			fmt.Printf("  op my -p %s --sprint %q   just this sprint\n", top.ProjectID, top.SprintTitle)
 		}
-		fmt.Printf("  op my -p %s --no-sprint              everything in this project\n", top.ProjectID)
 	}
 	fmt.Println("Tip: set `project:` in ~/.oprc to make a default project stick.")
 	return nil
