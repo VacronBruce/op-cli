@@ -49,7 +49,7 @@ op create <type> "<subject>" [flags]  # Create work package
   # Flags:
   #   --assignee="Name"    --priority=P1   (see custom-fields.md for priority values)
   #   --epic="NTD+"        --component=android
-  #   --product=entd       --tech-area=app
+  #   --product=entd       --tech-area=app   (--product repeatable: --product=eet --product=entd)
   #   --label=team#appandroid
   #   --points=5           --sprint="Sprint 1"
   #   --description="..."  --attach=screenshot.png
@@ -58,7 +58,7 @@ op create <type> "<subject>" [flags]  # Create work package
 op update <id> [flags]                # Update work package
   # Flags: --status=in-progress --assignee="Name" --points=5 --done=80
   #        --sprint="Sprint 1" --component=android --subject="..."
-  #        --priority=P1 --description="..."
+  #        --priority=P1 --description="..." --release="[iOS][ETV] 1.0.9"
 
 op link <id> --parent=81477           # Set parent work package
 op link <id> --no-parent              # Remove parent link
@@ -80,6 +80,19 @@ op sprint progress                    # Sprint progress summary (compact)
 op sprint progress -v                 # Full sprint report for stakeholders
 op sprint close                       # Sprint close summary + carryover list
 ```
+
+## Releases / Versions
+```bash
+op release list                       # List all releases (versions) for the project
+op release create "<name>"            # Create a release, e.g. "[iOS][ETV] 1.0.9" (status open)
+op release create "<name>" --status=locked      # open (default) | locked | closed
+op release create "<name>" --start=2026-06-10 --end=2026-06-30  # optional date range
+op update <id> --release="<name>"     # Assign a work package to a release (resolved by name)
+```
+
+> `--release` resolves the name against the project's existing releases (kind
+> `release`); an unknown name fails with the list of available releases, and the
+> flag tab-completes. `op release create` makes a *new* release.
 
 ## Backlog
 ```bash

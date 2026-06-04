@@ -170,8 +170,11 @@ op update 12345 --assignee="Bruce Chen" --points=3
 op update 12345 --description="Updated description here"
 op update 12345 --subject="New title" --done=50
 op update 12345 --assignee="Ken Peng"
+op update 12345 --release="[iOS][ETV] 1.0.9"   # assign to a release (see Releases below)
 op attach 12345 screenshot.png
 ```
+
+`--product` is repeatable to tag multiple products: `--product=eet --product=entd`.
 
 Priority values: `P0`, `P1`, `P2`, `P3` (tasks/stories) | `SEV0`, `SEV1`, `SEV2`, `SEV3` (bugs)
 
@@ -202,6 +205,19 @@ op sprint progress                 # Sprint progress summary (compact)
 op sprint progress -v              # Full sprint report for stakeholders
 op sprint close                    # Sprint close summary
 ```
+
+### Releases
+
+```bash
+op release list                    # List all releases (versions) for the project
+op release create "[iOS][ETV] 1.0.9"             # Create a release (status open)
+op release create "[iOS][EET] 3.2.0" --status=locked   # open (default) | locked | closed
+op release create "v2.0" --start=2026-06-10 --end=2026-06-30  # optional date range
+op update 12345 --release="[iOS][ETV] 1.0.9"     # Assign a ticket to a release
+```
+
+`--release` resolves the name against existing releases (and tab-completes); an
+unknown name fails with the list of available releases.
 
 ### Backlog
 

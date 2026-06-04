@@ -17,8 +17,8 @@ Translate natural language requests into `op` CLI commands and execute them.
 Consult these before constructing a command — don't guess flags or values:
 
 - **`references/commands.md`** — full command + flag reference (board, my, create,
-  update, link, comment, sprint, backlog, check, version) plus global flags and
-  the no-project / user-story notes.
+  update, link, comment, sprint, release, backlog, check, version) plus global flags
+  and the no-project / user-story notes.
 - **`references/custom-fields.md`** — valid values for `--component`, `--product`,
   `--tech-area`, `--label`, and `--priority`.
 
@@ -43,6 +43,9 @@ Consult these before constructing a command — don't guess flags or values:
 15. **"leave a comment"** → `op comment <id> "message"`
 15a. **"edit/fix my comment"** → `op comment <id>` to find the comment ID, then `op comment <id> "new text" --edit=<comment-id>`
 16. **"list sprints"** → `op sprint list`
+16a. **"list releases / versions"** → `op release list`
+16b. **"create a release / version"** → `op release create "<name>"` (`--status=open|locked|closed`, `--start`, `--end`)
+16c. **"set a ticket's release / assign to a version"** → `op update <id> --release="<name>"`
 17. **"what version?"** → `op version`
 18. **"update op"** → `op upgrade`
 19. **"show blocked items"** → `op blocked` or `op board --status=blocked`
