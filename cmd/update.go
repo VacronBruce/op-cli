@@ -17,7 +17,8 @@ var updateCmd = &cobra.Command{
 Examples:
   op update 123 --status=in-progress
   op update 123 --assignee=@david --points=5
-  op update 123 --done=80`,
+  op update 123 --done=80
+  op update 123 --to-project=wp        Move to another project`,
 	Args: cobra.ExactArgs(1),
 	RunE: runUpdate,
 }
@@ -32,6 +33,7 @@ func init() {
 	updateCmd.Flags().String("subject", "", "New subject/title")
 	updateCmd.Flags().StringP("description", "d", "", "New description (markdown)")
 	updateCmd.Flags().String("sprint", "", "Move to sprint/version")
+	updateCmd.Flags().String("to-project", "", "Move work package to another project (identifier)")
 	updateCmd.Flags().String("release", "", "Set release (e.g. \"[iOS][ETV] 1.0.9\")")
 	updateCmd.Flags().StringSlice("component", nil, "Component (android, ios, ott, engineering, analytics)")
 
@@ -107,6 +109,16 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	// Description
 	if desc, _ := cmd.Flags().GetString("description"); desc != "" {
 		req.Description = &api.Formattable{Format: "markdown", Raw: desc}
+		hasChanges = true
+	}
+
+	// Move to another project
+	if toProject, _ := cmd.Flags().GetString("to-project"); toProject != "" {
+		target, err := client.GetProject(toProject)
+		if err != nil {
+			return fmt.Errorf("resolving target project %q: %w", toProject, err)
+		}
+		req.Links["project"] = api.Link{Href: target.Links.Self.Href}
 		hasChanges = true
 	}
 

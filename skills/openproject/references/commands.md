@@ -60,6 +60,7 @@ op update <id> [flags]                # Update work package
   # Flags: --status=in-progress --assignee="Name" --points=5 --done=80
   #        --sprint="Sprint 1" --component=android --subject="..."
   #        --priority=P1 --description="..." --release="[iOS][ETV] 1.0.9"
+  #        --to-project=wp   # move to another project (then assign a sprint)
 
 op link <id> --parent=81477           # Set parent work package
 op link <id> --no-parent              # Remove parent link

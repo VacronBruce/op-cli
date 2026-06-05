@@ -171,6 +171,7 @@ op update 12345 --description="Updated description here"
 op update 12345 --subject="New title" --done=50
 op update 12345 --assignee="Ken Peng"
 op update 12345 --release="[iOS][ETV] 1.0.9"   # assign to a release (see Releases below)
+op update 12345 --to-project=wp                # move to another project (then assign a sprint)
 op attach 12345 screenshot.png
 ```
 
