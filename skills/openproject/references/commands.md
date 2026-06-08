@@ -76,6 +76,8 @@ op comment <id> "message" --edit=<comment-id>  # Edit an existing comment's text
 ## Sprint Management
 ```bash
 op sprint list                        # List all sprints (ID, status, dates)
+op sprint create "<name>" --start=YYYY-MM-DD  # Create a sprint; --end defaults to start+13d
+op sprint create "<name>" --start=2026-07-07 --end=2026-07-20  # explicit end date
 op sprint add <id> [<id>...]          # Move items to active sprint
 op sprint add <id> --sprint="Sprint 2" # Move items to a named sprint (e.g. carryover)
 op sprint progress                    # Sprint progress summary (compact)
@@ -100,6 +102,9 @@ op update <id> --release="<name>"     # Assign a work package to a release (reso
 ```bash
 op backlog                            # All items not in a sprint
 op backlog --unestimated              # Unestimated items needing grooming
+op backlog --priority p0,p1           # Filter by priority (accepts P0–P3 and SEV0–SEV3)
+op backlog --type bug                 # Filter by work package type (e.g. bug, task)
+op backlog --type bug --priority sev1,sev2  # Combine filters
 ```
 
 ## Version & Upgrade

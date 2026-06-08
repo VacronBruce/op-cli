@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/display"
@@ -54,6 +55,18 @@ var sprintListCmd = &cobra.Command{
 	RunE:  runSprintList,
 }
 
+var sprintCreateCmd = &cobra.Command{
+	Use:   "create <name>",
+	Short: "Create a new sprint for the project",
+	Long: `Create a new sprint (version) in OpenProject.
+
+Examples:
+  op sprint create "Sprint 2026-07-07" --start=2026-07-07
+  op sprint create "Sprint 2026-07-07" --start=2026-07-07 --end=2026-07-20`,
+	Args: cobra.ExactArgs(1),
+	RunE: runSprintCreate,
+}
+
 func init() {
 	rootCmd.AddCommand(sprintCmd)
 	sprintCmd.AddCommand(sprintPlanCmd)
@@ -61,10 +74,13 @@ func init() {
 	sprintCmd.AddCommand(sprintProgressCmd)
 	sprintCmd.AddCommand(sprintCloseCmd)
 	sprintCmd.AddCommand(sprintListCmd)
+	sprintCmd.AddCommand(sprintCreateCmd)
 
 	sprintAddCmd.Flags().Int("points", 0, "Set story points when adding")
 	sprintAddCmd.Flags().String("sprint", "", "Target sprint name (defaults to active)")
 	sprintProgressCmd.Flags().BoolP("verbose", "v", false, "Show full report with item details")
+	sprintCreateCmd.Flags().String("start", "", "Start date (YYYY-MM-DD, required)")
+	sprintCreateCmd.Flags().String("end", "", "End date (YYYY-MM-DD, defaults to start + 13 days)")
 }
 
 func runSprintPlan(cmd *cobra.Command, args []string) error {
@@ -235,6 +251,47 @@ func runSprintList(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Printf("%-6d  %-8s  %-12s  %-12s  %s\n", v.ID, v.Status, start, end, v.Name)
 	}
+	return nil
+}
+
+func runSprintCreate(cmd *cobra.Command, args []string) error {
+	project, err := client.RequireProject()
+	if err != nil {
+		return err
+	}
+
+	start, _ := cmd.Flags().GetString("start")
+	if start == "" {
+		return fmt.Errorf("--start is required (YYYY-MM-DD)")
+	}
+	startTime, err := time.Parse("2006-01-02", start)
+	if err != nil {
+		return fmt.Errorf("invalid start date %q: use YYYY-MM-DD", start)
+	}
+
+	end, _ := cmd.Flags().GetString("end")
+	if end == "" {
+		end = startTime.AddDate(0, 0, 13).Format("2006-01-02")
+	} else if _, err := time.Parse("2006-01-02", end); err != nil {
+		return fmt.Errorf("invalid end date %q: use YYYY-MM-DD", end)
+	}
+
+	req := &api.CreateVersionRequest{
+		Name:      args[0],
+		Status:    "open",
+		StartDate: start,
+		EndDate:   end,
+		Links: map[string]api.Link{
+			"definingProject": {Href: fmt.Sprintf("/api/v3/projects/%s", project)},
+		},
+	}
+
+	v, err := client.CreateVersion(req)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Created sprint #%d %q (%s to %s)\n", v.ID, v.Name, v.StartDate, v.EndDate)
 	return nil
 }
 

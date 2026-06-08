@@ -35,6 +35,10 @@ Consult these before constructing a command — don't guess flags or values:
 7. **"move to in progress"** → `op update <id> --status=in-progress`
 8. **"attach this screenshot"** → Save image to file, then `op attach <id> /path/to/file` (see Attaching Images below)
 9. **"plan next sprint"** → `op backlog` then `op sprint add`
+9a. **"prepare / set up next sprint"** → invoke /op:sprint-prepare skill (`--project`, `--tickets`, `--figma`, `--prd`, `--auto`)
+9b. **"create a sprint"** → `op sprint create "<name>" --start=YYYY-MM-DD` (`--end` defaults to start+13 days)
+9c. **"show high-priority backlog"** → `op backlog --priority p0,p1` (accepts P0–P3 and SEV0–SEV3 values)
+9d. **"show backlog bugs"** → `op backlog --type bug` (combine with `--priority` to filter further)
 10. **"close sprint"** → `op sprint close`
 11. **"generate report"** → `op sprint progress -v`
 12. **"is this ticket ready?"** → `op check <id>`

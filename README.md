@@ -200,6 +200,8 @@ op link 81482 --blocks=81485       # Create a "blocks" relation
 
 ```bash
 op sprint list                     # List all sprints in the project
+op sprint create "Sprint 2026-07-07" --start=2026-07-07  # Create sprint (--end defaults to start+13d)
+op sprint create "Sprint 2026-07-07" --start=2026-07-07 --end=2026-07-20  # explicit end
 op sprint add 101 102 103          # Move items to current sprint
 op sprint add 101 --sprint="App_06/02/2026"  # Move to specific sprint
 op sprint progress                 # Sprint progress summary (compact)
@@ -225,6 +227,9 @@ unknown name fails with the list of available releases.
 ```bash
 op backlog                         # Items not in any sprint
 op backlog --unestimated           # Unestimated items needing grooming
+op backlog --priority p0,p1        # Filter by priority (accepts P0–P3 and SEV0–SEV3)
+op backlog --type bug              # Filter by type (e.g. bug, task, feature)
+op backlog --type bug --priority sev1,sev2  # Combine filters
 ```
 
 ### Quality checks
@@ -369,6 +374,15 @@ Combines sprint progress, blockers, team work by person, and risks into one skim
 ```
 
 Collects repro/expected/actual/acceptance criteria + the right component/product/label, then runs `op create bug` with a well-formed description.
+
+**`/op:sprint-prepare`** — Full next-sprint preparation for dev leads:
+
+```
+/op:sprint-prepare --project app --tickets 123,456 --prd ./prd.md
+/op:sprint-prepare --project app --figma https://figma.com/... --auto
+```
+
+Creates the next sprint, intakes tickets from provided IDs / PRD / Figma, auto-moves P0/P1 and Sev1/Sev2 backlog items, and produces a full summary report. Pauses between phases for confirmation (use `--auto` to skip prompts).
 
 > `/op:ticket-review` is also available — combined PM + Dev review that posts one comment on the ticket.
 
