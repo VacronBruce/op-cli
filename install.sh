@@ -12,7 +12,7 @@
 VERSION="0.12.0"
 GITLAB_URL="https://gitlab-tw.ddns.net"
 PKG_URL="${GITLAB_URL}/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="${INSTALL_DIR:-}"  # override via env var; auto-detected below
 OP_URL="https://openpr.epochbase.com"
 
 echo "================================"
@@ -123,17 +123,31 @@ fi
 
 chmod +x /tmp/op-install
 
+# Auto-detect install dir: env override → ~/.local/bin (if in PATH) → /usr/local/bin
+if [ -z "$INSTALL_DIR" ]; then
+  LOCAL_BIN="$HOME/.local/bin"
+  case ":$PATH:" in
+    *":${LOCAL_BIN}:"*) INSTALL_DIR="$LOCAL_BIN" ;;
+    *)                  INSTALL_DIR="/usr/local/bin" ;;
+  esac
+fi
+mkdir -p "$INSTALL_DIR"
+
 echo "    Installing to ${INSTALL_DIR}/op..."
 if [ -w "$INSTALL_DIR" ]; then
   mv /tmp/op-install "${INSTALL_DIR}/op"
 else
   sudo mv /tmp/op-install "${INSTALL_DIR}/op"
 fi
-if ! command -v op &>/dev/null; then
-  echo "    Warning: op not found in PATH. You may need to add ${INSTALL_DIR} to your PATH."
-else
-  echo "    Done: $(which op)"
-fi
+case ":$PATH:" in
+  *":${INSTALL_DIR}:"*)
+    echo "    Done: $(which op)" ;;
+  *)
+    echo "    Installed to ${INSTALL_DIR}/op"
+    echo "    Warning: ${INSTALL_DIR} is not in PATH. Add this to your shell profile:"
+    echo "      export PATH=\"${INSTALL_DIR}:\$PATH\""
+    ;;
+esac
 echo ""
 
 # Step 2: Config
