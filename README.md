@@ -150,6 +150,8 @@ op blocked                         # Blocked items in sprint
 op show 12345                      # View ticket details (includes JIRA ID + User Story + inline comment images)
 op show 12345 --download           # Download attachments and inline comment images
 op search WP-23                    # Map a JIRA ID to its OpenProject number
+op search AR-178 --field key       # Search a different custom field (substring match)
+op search AR-178 --scan --project app  # Scan activity journals when a key only exists in history
 op start 12345                     # Start work: branch <project>-12345-<slug>, In Progress, assign to you
 ```
 
