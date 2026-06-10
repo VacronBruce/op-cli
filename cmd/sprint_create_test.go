@@ -25,7 +25,7 @@ func runSprintCreateWith(t *testing.T, mock *testutil.MockClient, flagMap map[st
 	}
 
 	var err error
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		err = runSprintCreate(c, args)
 	})
 	return out, err

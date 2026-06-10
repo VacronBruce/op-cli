@@ -39,7 +39,7 @@ func runLinkWith(t *testing.T, mock *testutil.MockClient, args []string) (string
 	}
 
 	var err error
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		err = runLink(cmd, positional)
 	})
 	return out, err

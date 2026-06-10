@@ -53,7 +53,7 @@ func TestMy_DefaultShowsAllSprints(t *testing.T) {
 	}
 	SetClient(mock)
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		if err := runMy(newMyCmd(), nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -95,7 +95,7 @@ func TestMy_SprintFlagScopesToSprint(t *testing.T) {
 	cmd := newMyCmd()
 	_ = cmd.Flags().Set("sprint", "App_05/19/2026")
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		if err := runMy(cmd, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -124,7 +124,7 @@ func TestMy_ByAuthor(t *testing.T) {
 	cmd := newMyCmd()
 	_ = cmd.Flags().Set("author", "true")
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		if err := runMy(cmd, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -160,7 +160,7 @@ func TestMy_ComponentFilter(t *testing.T) {
 	cmd := newMyCmd()
 	_ = cmd.Flags().Set("component", "android")
 
-	captureStdout(func() {
+	testutil.CaptureStdout(func() {
 		if err := runMy(cmd, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -187,7 +187,7 @@ func TestMy_EmptyResult(t *testing.T) {
 	}
 	SetClient(mock)
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		if err := runMy(newMyCmd(), nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -208,7 +208,7 @@ func TestMy_APIError(t *testing.T) {
 	}
 	SetClient(mock)
 
-	captureStdout(func() {
+	testutil.CaptureStdout(func() {
 		err := runMy(newMyCmd(), nil)
 		if err == nil {
 			t.Fatal("expected error, got nil")
@@ -234,7 +234,7 @@ func TestMy_AllFlag(t *testing.T) {
 	cmd := newMyCmd()
 	_ = cmd.Flags().Set("all", "true")
 
-	captureStdout(func() {
+	testutil.CaptureStdout(func() {
 		if err := runMy(cmd, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -265,7 +265,7 @@ func TestMy_BySprintFlag(t *testing.T) {
 	cmd := newMyCmd()
 	_ = cmd.Flags().Set("by-sprint", "true")
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		if err := runMy(cmd, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -291,7 +291,7 @@ func TestMy_SinceFlag(t *testing.T) {
 	cmd := newMyCmd()
 	_ = cmd.Flags().Set("since", "2d")
 
-	captureStdout(func() {
+	testutil.CaptureStdout(func() {
 		if err := runMy(cmd, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -360,7 +360,7 @@ func TestMyTeam_Success(t *testing.T) {
 	cmd := newMyTeamCmd()
 	_ = cmd.Flags().Set("sprint", "Sprint 24")
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		if err := runMyTeam(cmd, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -392,7 +392,7 @@ func TestMyTeam_APIError(t *testing.T) {
 	cmd := newMyTeamCmd()
 	_ = cmd.Flags().Set("sprint", "Sprint 24")
 
-	captureStdout(func() {
+	testutil.CaptureStdout(func() {
 		err := runMyTeam(cmd, nil)
 		if err == nil {
 			t.Fatal("expected error, got nil")

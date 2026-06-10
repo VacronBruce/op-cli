@@ -96,7 +96,7 @@ func runBacklogWith(t *testing.T, mock *testutil.MockClient, flagMap map[string]
 		return &api.WPCollection{}, nil
 	}
 
-	captureStdout(func() {
+	testutil.CaptureStdout(func() {
 		_ = runBacklog(c, nil)
 	})
 	return capturedFilters, nil

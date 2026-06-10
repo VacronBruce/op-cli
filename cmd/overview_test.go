@@ -37,7 +37,7 @@ func TestOverview_RendersCrossProject(t *testing.T) {
 	c.Flags().Int("projects", 5, "")
 	c.Flags().Int("sprints", 3, "")
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		if err := runOverview(c, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

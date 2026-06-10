@@ -21,7 +21,7 @@ func runSearchWith(t *testing.T, mock *testutil.MockClient, args []string) (stri
 	t.Helper()
 	SetClient(mock)
 	var err error
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		err = runSearch(&cobra.Command{}, args)
 	})
 	return out, err

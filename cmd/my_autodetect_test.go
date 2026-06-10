@@ -93,7 +93,7 @@ func TestMy_NoProject_AutoDetects(t *testing.T) {
 	c := &cobra.Command{}
 	c.Flags().Bool("author", false, "")
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		if err := runMy(c, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -122,7 +122,7 @@ func TestMy_NoProject_NoItems(t *testing.T) {
 	c := &cobra.Command{}
 	c.Flags().Bool("author", false, "")
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		if err := runMy(c, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

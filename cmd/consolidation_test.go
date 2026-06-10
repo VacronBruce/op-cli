@@ -74,7 +74,7 @@ func TestBacklog_Unestimated_FiltersCorrectly(t *testing.T) {
 	cmd.Flags().Bool("unestimated", false, "")
 	cmd.Flags().Set("unestimated", "true")
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		err := runBacklog(cmd, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -117,7 +117,7 @@ func TestBacklog_Unestimated_AllEstimated(t *testing.T) {
 	cmd.Flags().Bool("unestimated", false, "")
 	cmd.Flags().Set("unestimated", "true")
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		err := runBacklog(cmd, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -161,7 +161,7 @@ func TestBacklog_TypeFilter_Lowercase(t *testing.T) {
 	cmd.Flags().StringSlice("type", nil, "")
 	_ = cmd.Flags().Set("type", "bug")
 
-	_ = captureStdout(func() {
+	_ = testutil.CaptureStdout(func() {
 		err := runBacklog(cmd, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -204,7 +204,7 @@ func TestBacklog_TypeFilter_Uppercase(t *testing.T) {
 	cmd.Flags().StringSlice("type", nil, "")
 	_ = cmd.Flags().Set("type", "Bug")
 
-	_ = captureStdout(func() {
+	_ = testutil.CaptureStdout(func() {
 		err := runBacklog(cmd, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -239,7 +239,7 @@ func TestBacklog_TypeFilter_Invalid(t *testing.T) {
 	_ = cmd.Flags().Set("type", "invalid")
 
 	var err error
-	_ = captureStdout(func() {
+	_ = testutil.CaptureStdout(func() {
 		err = runBacklog(cmd, nil)
 	})
 	if err == nil {
@@ -284,7 +284,7 @@ func TestBacklog_TypeFilter_MultipleTypes(t *testing.T) {
 	cmd.Flags().StringSlice("type", nil, "")
 	_ = cmd.Flags().Set("type", "bug,task")
 
-	_ = captureStdout(func() {
+	_ = testutil.CaptureStdout(func() {
 		err := runBacklog(cmd, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -348,7 +348,7 @@ func TestBoard_StatusFilter(t *testing.T) {
 	cmd.Flags().String("status", "", "")
 	cmd.Flags().Set("status", "blocked")
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		err := runBoard(cmd, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -399,7 +399,7 @@ func TestBoard_StatusFilter_NormalizesSeparators(t *testing.T) {
 	cmd.Flags().String("status", "", "")
 	cmd.Flags().Set("status", "in-progress")
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		if err := runBoard(cmd, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -437,7 +437,7 @@ func TestSprintAdd_PartialFailure_ReturnsError(t *testing.T) {
 	cmd.Flags().String("sprint", "", "")
 
 	var err error
-	_ = captureStdout(func() { err = runSprintAdd(cmd, []string{"101", "999"}) })
+	_ = testutil.CaptureStdout(func() { err = runSprintAdd(cmd, []string{"101", "999"}) })
 	if err == nil {
 		t.Fatal("expected an error when an item fails, got nil")
 	}
@@ -462,7 +462,7 @@ func TestAttach_PartialFailure_ReturnsError(t *testing.T) {
 	cmd.Flags().String("desc", "", "")
 
 	var err error
-	_ = captureStdout(func() { err = runAttach(cmd, []string{"123", "good.png", "bad.png"}) })
+	_ = testutil.CaptureStdout(func() { err = runAttach(cmd, []string{"123", "good.png", "bad.png"}) })
 	if err == nil {
 		t.Fatal("expected an error when an attachment fails, got nil")
 	}
@@ -584,7 +584,7 @@ func TestMy_TypeFilter_Lowercase(t *testing.T) {
 	_ = cmd.Flags().Set("no-sprint", "true")
 	_ = cmd.Flags().Set("type", "bug")
 
-	_ = captureStdout(func() {
+	_ = testutil.CaptureStdout(func() {
 		err := runMy(cmd, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -638,7 +638,7 @@ func TestMy_TypeFilter_Uppercase(t *testing.T) {
 	_ = cmd.Flags().Set("no-sprint", "true")
 	_ = cmd.Flags().Set("type", "Bug")
 
-	_ = captureStdout(func() {
+	_ = testutil.CaptureStdout(func() {
 		err := runMy(cmd, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -684,7 +684,7 @@ func TestMy_TypeFilter_Invalid(t *testing.T) {
 	_ = cmd.Flags().Set("type", "invalid")
 
 	var err error
-	_ = captureStdout(func() {
+	_ = testutil.CaptureStdout(func() {
 		err = runMy(cmd, nil)
 	})
 	if err == nil {
@@ -740,7 +740,7 @@ func TestMy_TypeFilter_MultipleTypes(t *testing.T) {
 	_ = cmd.Flags().Set("no-sprint", "true")
 	_ = cmd.Flags().Set("type", "bug,task")
 
-	_ = captureStdout(func() {
+	_ = testutil.CaptureStdout(func() {
 		err := runMy(cmd, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)

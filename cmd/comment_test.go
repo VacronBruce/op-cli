@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	"bytes"
 	"errors"
-	"io"
-	"os"
 	"strings"
 	"testing"
 
@@ -13,25 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// captureStdout captures everything written to os.Stdout by fn.
-func captureStdout(fn func()) string {
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-	fn()
-	w.Close()
-	os.Stdout = old
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	return buf.String()
-}
-
 // runCommentWith injects mock, runs runComment, and returns stdout + error.
 func runCommentWith(t *testing.T, mock *testutil.MockClient, args []string) (string, error) {
 	t.Helper()
 	SetClient(mock)
 	var err error
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		err = runComment(&cobra.Command{}, args)
 	})
 	return out, err
@@ -227,7 +211,7 @@ func runCommentEditWith(t *testing.T, mock *testutil.MockClient, editID int, arg
 	c := &cobra.Command{}
 	c.Flags().Int("edit", editID, "")
 	var err error
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		err = runComment(c, args)
 	})
 	return out, err

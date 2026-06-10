@@ -52,7 +52,7 @@ func TestShow_ValidID(t *testing.T) {
 	}
 	SetClient(mock)
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		if err := runShow(newShowCmd(), []string{"81321"}); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -73,7 +73,7 @@ func TestShow_InvalidID(t *testing.T) {
 	mock := &testutil.MockClient{}
 	SetClient(mock)
 
-	captureStdout(func() {
+	testutil.CaptureStdout(func() {
 		err := runShow(newShowCmd(), []string{"abc"})
 		if err == nil {
 			t.Fatal("expected error for invalid ID, got nil")
@@ -92,7 +92,7 @@ func TestShow_APIError(t *testing.T) {
 	}
 	SetClient(mock)
 
-	captureStdout(func() {
+	testutil.CaptureStdout(func() {
 		err := runShow(newShowCmd(), []string{"81321"})
 		if err == nil {
 			t.Fatal("expected error, got nil")
@@ -158,7 +158,7 @@ func TestShow_DownloadAttachments(t *testing.T) {
 	_ = cmd.Flags().Set("download", "true")
 	_ = cmd.Flags().Set("out", tempDir)
 
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		if err := runShow(cmd, []string{"81321"}); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

@@ -26,7 +26,7 @@ func runReleaseCreateWith(t *testing.T, mock *testutil.MockClient, flagMap map[s
 	}
 
 	var err error
-	out := captureStdout(func() {
+	out := testutil.CaptureStdout(func() {
 		err = runReleaseCreate(c, args)
 	})
 	return out, err
