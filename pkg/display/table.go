@@ -136,11 +136,12 @@ func GroupBySprint(wps []api.WorkPackage) {
 		fmt.Printf("\n%s (%d items)\n", sprint, len(items))
 		fmt.Println(strings.Repeat("-", len(sprint)+15))
 		for _, wp := range items {
-			fmt.Printf("  #%-6d %-12s %-10s %-14s %s\n",
+			fmt.Printf("  #%-6d %-12s %-10s %-14s %-16s %s\n",
 				wp.ID,
 				wp.Links.Status.Title,
 				wp.Links.Priority.Title,
 				assigneeName(wp),
+				truncate(wp.Links.Project.Title, 16),
 				truncate(wp.Subject, 45),
 			)
 		}
