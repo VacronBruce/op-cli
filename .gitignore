@@ -21,3 +21,5 @@ dist/
 .op-bridge/request.txt
 .op-bridge/result.txt
 .op-bridge/status.txt
+/.agents
+/.codegraph
