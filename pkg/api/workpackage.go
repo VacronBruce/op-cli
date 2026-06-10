@@ -18,9 +18,72 @@ type WorkPackage struct {
 	DueDate        string       `json:"dueDate,omitempty"`
 	CreatedAt      string       `json:"createdAt"`
 	UpdatedAt      string       `json:"updatedAt"`
+	JiraID         string       // populated by UnmarshalJSON from configured jira-id field
+	UserStory      *Formattable `json:"customField36,omitempty"`
+	Links          WPLinks      `json:"_links"`
+}
+
+// wpWire is used internally for JSON decoding with the default customField3 tag.
+type wpWire struct {
+	ID             int          `json:"id"`
+	LockVersion    int          `json:"lockVersion"`
+	Subject        string       `json:"subject"`
+	Description    *Formattable `json:"description,omitempty"`
+	StoryPoints    *int         `json:"storyPoints,omitempty"`
+	PercentageDone int          `json:"percentageDone"`
+	StartDate      string       `json:"startDate,omitempty"`
+	DueDate        string       `json:"dueDate,omitempty"`
+	CreatedAt      string       `json:"createdAt"`
+	UpdatedAt      string       `json:"updatedAt"`
 	JiraID         string       `json:"customField3,omitempty"`
 	UserStory      *Formattable `json:"customField36,omitempty"`
 	Links          WPLinks      `json:"_links"`
+}
+
+// UnmarshalJSON populates JiraID from whichever custom field is configured for
+// "jira-id" (default: customField3). If the instance uses a different field
+// number, set it in ~/.oprc under custom_fields.jira-id.field.
+func (wp *WorkPackage) UnmarshalJSON(data []byte) error {
+	var w wpWire
+	if err := json.Unmarshal(data, &w); err != nil {
+		return err
+	}
+	*wp = WorkPackage{
+		ID:             w.ID,
+		LockVersion:    w.LockVersion,
+		Subject:        w.Subject,
+		Description:    w.Description,
+		StoryPoints:    w.StoryPoints,
+		PercentageDone: w.PercentageDone,
+		StartDate:      w.StartDate,
+		DueDate:        w.DueDate,
+		CreatedAt:      w.CreatedAt,
+		UpdatedAt:      w.UpdatedAt,
+		JiraID:         w.JiraID,
+		UserStory:      w.UserStory,
+		Links:          w.Links,
+	}
+	// If the configured field differs from the default, read from the actual field.
+	if fieldKey := jiraIDFieldKey(); fieldKey != "customField3" {
+		var raw map[string]json.RawMessage
+		if err := json.Unmarshal(data, &raw); err == nil {
+			if v, ok := raw[fieldKey]; ok {
+				var s string
+				if err := json.Unmarshal(v, &s); err == nil {
+					wp.JiraID = s
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// jiraIDFieldKey returns the custom field key for JIRA ID from config, defaulting to customField3.
+func jiraIDFieldKey() string {
+	if cf, ok := customFields["jira-id"]; ok && cf.Field != "" {
+		return cf.Field
+	}
+	return "customField3"
 }
 
 // Formattable represents a formattable text field.
@@ -160,10 +223,11 @@ func (c *Client) ListAllWorkPackages(filters []Filter, sortBy string, pageSize i
 	return &result, nil
 }
 
-// SearchByJiraID finds work packages whose JIRA ID custom field (customField3)
-// matches the given value. Searches across all projects.
+// SearchByJiraID finds work packages whose JIRA ID custom field matches the
+// given value. The field used is configured via jira-id in ~/.oprc
+// (default: customField3). Searches across all projects.
 func (c *Client) SearchByJiraID(jiraID string) (*WPCollection, error) {
-	filters := []Filter{NewFilter("customField3", "~", jiraID)}
+	filters := []Filter{NewFilter(jiraIDFieldKey(), "~", jiraID)}
 	filterJSON, err := json.Marshal(filters)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling filters: %w", err)

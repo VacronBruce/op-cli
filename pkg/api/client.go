@@ -325,12 +325,22 @@ func (c *Client) UploadAttachment(wpID int, filePath string, description string)
 	return &att, nil
 }
 
+// JournalDetail is one field-change entry within an Activity (e.g. the
+// "Key: BR-136 -> AR-178" line rendered by the OP UI when a work package
+// moves between projects).
+type JournalDetail struct {
+	Name        string `json:"name"`
+	RawOldValue string `json:"rawOldValue"`
+	RawNewValue string `json:"rawNewValue"`
+}
+
 // Activity represents a single activity (comment or change) on a work package.
 type Activity struct {
 	ID        int          `json:"id"`
 	Comment   *Formattable `json:"comment"`
 	CreatedAt string       `json:"createdAt"`
 	UpdatedAt string       `json:"updatedAt"`
+	Details   []JournalDetail `json:"details,omitempty"`
 	Links     struct {
 		User Link `json:"user"`
 	} `json:"_links"`

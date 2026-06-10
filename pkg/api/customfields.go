@@ -26,6 +26,9 @@ var customFields = map[string]*CustomField{
 	"product":   {Field: "customField4", Options: maps.Clone(ProductOptions)},
 	"tech-area": {Field: "customField6", Options: maps.Clone(TechAreaOptions)},
 	"label":     {Field: "customField13", Options: maps.Clone(LabelOptions)},
+	// jira-id is a free-text field; configure field: in ~/.oprc if your instance
+	// uses a different custom field number.
+	"jira-id": {Field: "customField3", Options: map[string]string{}},
 }
 
 // CustomFieldByName returns the registered custom field for a logical name
