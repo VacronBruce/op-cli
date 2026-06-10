@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -301,5 +302,91 @@ func TestUpdate_ProductAndLabelMultiLinks(t *testing.T) {
 	label, ok := got.Links["customField13"].([]api.Link)
 	if !ok || len(label) != 1 {
 		t.Fatalf("expected one label link on customField13, got %+v", got.Links)
+	}
+}
+
+// --- bulk update (#81744) ---
+
+func TestUpdate_MultiID_AppliesSameChangeToAll(t *testing.T) {
+	// Bulk update exists so sprint moves/status sweeps don't need shell loops:
+	// every listed ID gets the same change. Each PATCH must arrive with
+	// LockVersion reset to 0 — reusing ticket A's lockVersion on ticket B
+	// would 409 (or worse, silently overwrite a newer revision).
+	var ids []int
+	mock := updateMock(nil)
+	mock.UpdateWorkPackageFn = func(id int, req *api.UpdateWPRequest) (*api.WorkPackage, error) {
+		if req.LockVersion != 0 {
+			t.Errorf("PATCH for #%d carried stale LockVersion %d", id, req.LockVersion)
+		}
+		req.LockVersion = 7 // simulate the client filling it in per call
+		ids = append(ids, id)
+		return &api.WorkPackage{ID: id, Subject: "x"}, nil
+	}
+	SetClient(mock)
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("status", "in-progress")
+	out := testutil.CaptureStdout(func() {
+		if err := runUpdate(cmd, []string{"101", "102", "103"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if len(ids) != 3 || ids[0] != 101 || ids[2] != 103 {
+		t.Errorf("expected updates for 101,102,103, got %v", ids)
+	}
+	if !strings.Contains(out, "Updated 3 work package(s)") {
+		t.Errorf("expected bulk summary, got: %s", out)
+	}
+}
+
+func TestUpdate_MultiID_ContinuesPastFailures(t *testing.T) {
+	// One bad ticket (locked, missing, garbage id) must not strand the rest:
+	// the loop continues, the summary names the count, and the exit is non-zero.
+	var ids []int
+	mock := updateMock(nil)
+	mock.UpdateWorkPackageFn = func(id int, req *api.UpdateWPRequest) (*api.WorkPackage, error) {
+		if id == 102 {
+			return nil, errors.New("locked")
+		}
+		ids = append(ids, id)
+		return &api.WorkPackage{ID: id, Subject: "x"}, nil
+	}
+	SetClient(mock)
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("points", "3")
+	var err error
+	testutil.CaptureStdout(func() {
+		err = runUpdate(cmd, []string{"101", "102", "abc", "103"})
+	})
+
+	if err == nil || !strings.Contains(err.Error(), "2 of 4") {
+		t.Fatalf("expected '2 of 4' aggregate error, got: %v", err)
+	}
+	if len(ids) != 2 || ids[0] != 101 || ids[1] != 103 {
+		t.Errorf("expected 101 and 103 updated despite failures, got %v", ids)
+	}
+}
+
+func TestUpdate_SingleID_KeepsDetailOutput(t *testing.T) {
+	// The single-ID path is unchanged: full detail rendering, not the bulk
+	// summary — existing muscle memory and scripts depend on it.
+	var got *api.UpdateWPRequest
+	SetClient(updateMock(&got))
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("points", "3")
+	out := testutil.CaptureStdout(func() {
+		if err := runUpdate(cmd, []string{"123"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if !strings.Contains(out, "Updated #123") {
+		t.Errorf("expected single-ID detail output, got: %s", out)
+	}
+	if strings.Contains(out, "work package(s)") {
+		t.Errorf("single ID must not print the bulk summary, got: %s", out)
 	}
 }

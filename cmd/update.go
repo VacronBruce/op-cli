@@ -10,16 +10,18 @@ import (
 )
 
 var updateCmd = &cobra.Command{
-	Use:   "update <id>",
-	Short: "Update a work package",
-	Long: `Update an existing work package.
+	Use:   "update <id> [<id>...]",
+	Short: "Update one or more work packages",
+	Long: `Update existing work packages. With several IDs the same change is
+applied to each; failures are reported per ID and the command continues.
 
 Examples:
   op update 123 --status=in-progress
   op update 123 --assignee=@david --points=5
   op update 123 --done=80
-  op update 123 --to-project=wp        Move to another project`,
-	Args: cobra.ExactArgs(1),
+  op update 123 --to-project=wp        Move to another project
+  op update 101 102 103 --status=done  Bulk status sweep`,
+	Args: cobra.MinimumNArgs(1),
 	RunE: runUpdate,
 }
 
@@ -50,9 +52,12 @@ func init() {
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {
-	id, err := parseWorkPackageID(args[0])
-	if err != nil {
-		return err
+	// Single-ID keeps its original contract: garbage fails fast with the
+	// shared invalid-ID error before anything else.
+	if len(args) == 1 {
+		if _, err := parseWorkPackageID(args[0]); err != nil {
+			return err
+		}
 	}
 
 	project, err := client.RequireProject()
@@ -211,12 +216,42 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		req.Links = nil
 	}
 
-	wp, err := client.UpdateWorkPackage(id, req)
-	if err != nil {
-		return fmt.Errorf("updating work package: %w", err)
+	failures := 0
+	for _, arg := range args {
+		wpID, err := parseWorkPackageID(arg)
+		if err != nil {
+			fmt.Printf("Skipping invalid ID: %s\n", arg)
+			failures++
+			continue
+		}
+
+		// Each ticket has its own lockVersion; carrying the previous one over
+		// would conflict (or silently clobber a newer revision).
+		req.LockVersion = 0
+
+		wp, err := client.UpdateWorkPackage(wpID, req)
+		if err != nil {
+			if len(args) == 1 {
+				return fmt.Errorf("updating work package: %w", err)
+			}
+			fmt.Printf("Error updating #%d: %s\n", wpID, err)
+			failures++
+			continue
+		}
+
+		if len(args) == 1 {
+			fmt.Printf("Updated #%d\n", wp.ID)
+			display.WorkPackageDetail(wp)
+		} else {
+			fmt.Printf("Updated #%d %s\n", wp.ID, wp.Subject)
+		}
 	}
 
-	fmt.Printf("Updated #%d\n", wp.ID)
-	display.WorkPackageDetail(wp)
+	if len(args) > 1 {
+		fmt.Printf("Updated %d work package(s)\n", len(args)-failures)
+	}
+	if failures > 0 {
+		return fmt.Errorf("%d of %d update(s) failed", failures, len(args))
+	}
 	return nil
 }

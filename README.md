@@ -177,6 +177,7 @@ op update 12345 --to-project=wp                # move to another project (then a
 op update 12345 --epic="NTD+" --parent=12000   # re-parent / link to an epic after creation
 op update 12345 --start=2026-07-01 --due=2026-07-15
 op update 12345 --product=entd --label=team#appandroid
+op update 101 102 103 --status=done            # bulk: same change applied to every ID
 op attach 12345 screenshot.png
 ```
 

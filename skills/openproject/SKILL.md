@@ -52,6 +52,7 @@ Consult these before constructing a command — don't guess flags or values:
 16b. **"create a release / version"** → `op release create "<name>"` (`--status=open|locked|closed`, `--start`, `--end`)
 16c. **"set a ticket's release / assign to a version"** → `op update <id> --release="<name>"`
 16d. **"change epic/parent/dates/product/label after creation"** → `op update <id> --epic="<name>"`, `--parent=<id>`, `--start`/`--due` (YYYY-MM-DD), `--product=<p>`, `--label=<l>` (same values as create)
+16e. **"bulk update / move several tickets at once"** → `op update <id> <id> <id> --<flag>=...` (same change per ID; continues past failures and summarizes)
 17. **"what version?"** → `op version`
 18. **"update op"** → `op upgrade`
 19. **"show blocked items"** → `op blocked` or `op board --status=blocked`
