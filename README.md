@@ -263,6 +263,9 @@ op upgrade                         # Upgrade to latest version
 `op` ships completion for all commands, and the enum flags complete their
 values (honoring any `custom_fields:` overrides in `~/.oprc`):
 
+`install.sh` enables this automatically for your shell (zsh/bash). To set it up
+manually, or for other shells:
+
 ```bash
 source <(op completion zsh)     # add to ~/.zshrc
 source <(op completion bash)    # add to ~/.bashrc

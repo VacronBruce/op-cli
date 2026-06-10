@@ -41,7 +41,7 @@ echo "Platform: ${OS}/${ARCH}"
 echo ""
 
 # Step 1: Get the binary
-echo "1/3 Installing op binary..."
+echo "1/4 Installing op binary..."
 
 if [ -f "go.mod" ] && [ -f "main.go" ]; then
   # Mode: clone — build from source
@@ -151,7 +151,7 @@ esac
 echo ""
 
 # Step 2: Config
-echo "2/3 Config setup"
+echo "2/4 Config setup"
 if [ -f "$HOME/.oprc" ]; then
   echo "    Already exists at ~/.oprc, skipping."
 else
@@ -186,8 +186,34 @@ EOF
 fi
 echo ""
 
-# Step 3: Claude Code plugin (OpenProject skills under the op: prefix)
-echo "3/3 Claude Code plugin (op:)"
+# Step 3: Shell completion — add a source line to the user's shell rc (idempotent)
+echo "3/4 Shell completion"
+SHELL_NAME=$(basename "${SHELL:-}")
+case "$SHELL_NAME" in
+  zsh)  COMPLETION_RC="$HOME/.zshrc" ;;
+  bash) COMPLETION_RC="$HOME/.bashrc" ;;
+  *)    COMPLETION_RC="" ;;
+esac
+
+if [ -n "$COMPLETION_RC" ]; then
+  if [ -f "$COMPLETION_RC" ] && grep -qF "op completion $SHELL_NAME" "$COMPLETION_RC"; then
+    echo "    Already enabled in ${COMPLETION_RC}, skipping."
+  else
+    {
+      echo ""
+      echo "# op-cli shell completion"
+      echo "command -v op &>/dev/null && source <(op completion $SHELL_NAME)"
+    } >> "$COMPLETION_RC"
+    echo "    Enabled in ${COMPLETION_RC} — restart your shell or run: source ${COMPLETION_RC}"
+  fi
+else
+  echo "    Shell '${SHELL_NAME}' not auto-configured. Enable it manually, e.g.:"
+  echo "      op completion --help"
+fi
+echo ""
+
+# Step 4: Claude Code plugin (OpenProject skills under the op: prefix)
+echo "4/4 Claude Code plugin (op:)"
 if command -v claude &>/dev/null; then
   # Marketplace source: the local repo dir in clone mode, the git URL otherwise.
   if [ -d ".claude-plugin" ] && [ -f ".claude-plugin/marketplace.json" ]; then
