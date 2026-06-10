@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -156,7 +158,7 @@ func TestBacklog_TypeFilter_Lowercase(t *testing.T) {
 
 	cmd := &cobra.Command{}
 	cmd.Flags().Bool("unestimated", false, "")
-	cmd.Flags().String("type", "", "")
+	cmd.Flags().StringSlice("type", nil, "")
 	_ = cmd.Flags().Set("type", "bug")
 
 	_ = captureStdout(func() {
@@ -199,7 +201,7 @@ func TestBacklog_TypeFilter_Uppercase(t *testing.T) {
 
 	cmd := &cobra.Command{}
 	cmd.Flags().Bool("unestimated", false, "")
-	cmd.Flags().String("type", "", "")
+	cmd.Flags().StringSlice("type", nil, "")
 	_ = cmd.Flags().Set("type", "Bug")
 
 	_ = captureStdout(func() {
@@ -233,7 +235,7 @@ func TestBacklog_TypeFilter_Invalid(t *testing.T) {
 
 	cmd := &cobra.Command{}
 	cmd.Flags().Bool("unestimated", false, "")
-	cmd.Flags().String("type", "", "")
+	cmd.Flags().StringSlice("type", nil, "")
 	_ = cmd.Flags().Set("type", "invalid")
 
 	var err error
@@ -243,7 +245,7 @@ func TestBacklog_TypeFilter_Invalid(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), `resolving type: unknown "invalid"`) {
+	if !strings.Contains(err.Error(), `resolving type "invalid": unknown "invalid"`) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if !strings.Contains(err.Error(), "available:") {
