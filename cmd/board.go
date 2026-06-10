@@ -48,11 +48,7 @@ func runBoard(cmd *cobra.Command, args []string) error {
 	// Sprint filter
 	if !noSprint {
 		sprintName, _ := cmd.Flags().GetString("sprint")
-		version, err := client.ResolveVersion(project, sprintName)
-		if err != nil {
-			return err
-		}
-		vf, err := api.VersionFilter(version, project)
+		version, vf, err := namedSprintFilter(project, sprintName)
 		if err != nil {
 			return err
 		}

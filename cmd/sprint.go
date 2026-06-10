@@ -160,12 +160,7 @@ func runSprintProgress(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	sprint, err := client.FindActiveSprint(project)
-	if err != nil {
-		return err
-	}
-
-	vf, err := api.VersionFilter(sprint, project)
+	sprint, vf, err := activeSprintFilter(project)
 	if err != nil {
 		return err
 	}
@@ -301,12 +296,7 @@ func runSprintClose(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	sprint, err := client.FindActiveSprint(project)
-	if err != nil {
-		return err
-	}
-
-	vf, err := api.VersionFilter(sprint, project)
+	sprint, vf, err := activeSprintFilter(project)
 	if err != nil {
 		return err
 	}

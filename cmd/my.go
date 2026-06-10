@@ -135,11 +135,7 @@ func runMy(cmd *cobra.Command, args []string) error {
 	// Sprint filter is opt-in. By default `op my` shows all your open work
 	// across every sprint; pass --sprint to scope to one.
 	if sprintName, _ := cmd.Flags().GetString("sprint"); sprintName != "" {
-		version, err := client.ResolveVersion(project, sprintName)
-		if err != nil {
-			return err
-		}
-		vf, err := api.VersionFilter(version, project)
+		version, vf, err := namedSprintFilter(project, sprintName)
 		if err != nil {
 			return err
 		}
@@ -198,11 +194,7 @@ func runMyTeam(cmd *cobra.Command, args []string) error {
 	}
 
 	sprintName, _ := cmd.Flags().GetString("sprint")
-	version, err := client.ResolveVersion(project, sprintName)
-	if err != nil {
-		return err
-	}
-	vf, err := api.VersionFilter(version, project)
+	version, vf, err := namedSprintFilter(project, sprintName)
 	if err != nil {
 		return err
 	}
