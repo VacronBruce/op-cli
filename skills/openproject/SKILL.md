@@ -39,7 +39,8 @@ Consult these before constructing a command — don't guess flags or values:
 9b. **"create a sprint"** → `op sprint create "<name>" --start=YYYY-MM-DD` (`--end` defaults to start+13 days)
 9c. **"show high-priority backlog"** → `op backlog --priority p0,p1` (accepts P0–P3 and SEV0–SEV3 values)
 9d. **"show backlog bugs"** → `op backlog --type bug` (combine with `--priority` to filter further)
-10. **"close sprint"** → `op sprint close`
+10. **"close sprint / end of sprint"** → `op sprint close` for carryover report; for closing ready tickets → invoke /op:sprint-close skill (`-p`, `--sprint`, `--release`, `--status`, `--auto`)
+10a. **"check/assign missing components"** → invoke /op:assign-components skill (`-p`, `--sprint`, `--dry-run`, `--auto`)
 11. **"generate report"** → `op sprint progress -v`
 12. **"is this ticket ready?"** → `op check <id>`
 13. **"check sprint quality"** → `op check --sprint`
@@ -55,7 +56,7 @@ Consult these before constructing a command — don't guess flags or values:
 19. **"show blocked items"** → `op blocked` or `op board --status=blocked`
 20. **"unestimated backlog"** → `op backlog --unestimated`
 21. **"show ticket details"** → `op show <id>`
-22. **"what's the OP number for WP-23 / look up a JIRA ID"** → `op search <jira-id>` (maps the JIRA ID custom field to the OpenProject work package number)
+22. **"what's the OP number for WP-23 / look up a JIRA ID"** → `op search <jira-id>` (maps the JIRA ID custom field to the OpenProject work package number); use `--field <name>` to search a different custom field (e.g. `op search AR-178 --field key` when tickets were renamed and the key is in a separate field)
 23. **"set parent / link tickets"** → `op link <id> --parent=X` (or `--relates-to`, `--blocks`, `--no-parent`)
 23a. **"start work on / start a ticket"** → `op start <id>` (creates branch `<project>-<id>-<slug>`, moves it to In Progress, assigns to you; run inside the git repo)
 24. **"review as PM"** → invoke /op:ticket-prep skill
