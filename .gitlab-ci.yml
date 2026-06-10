@@ -4,14 +4,21 @@ stages:
 
 test:
   stage: test
-  image: golang:1.24-alpine
+  # debian-based image: -race needs cgo and a C toolchain (alpine + CGO_ENABLED=0 cannot run it)
+  image: golang:1.24
   tags:
     - golang
   variables:
-    CGO_ENABLED: "0"
+    CGO_ENABLED: "1"
+    # Coverage ratchet: bumped to (new total - 0.5) in every MR that adds tests.
+    COVERAGE_FLOOR: "50.8"
   script:
-    - go test -coverprofile=coverage.out ./...
+    - go test -race -coverprofile=coverage.out ./...
     - go tool cover -func=coverage.out
+    - |
+      total=$(go tool cover -func=coverage.out | awk '/^total:/ {sub("%","",$3); print $3}')
+      echo "total coverage: ${total}% (floor: ${COVERAGE_FLOOR}%)"
+      awk -v t="$total" -v f="$COVERAGE_FLOOR" 'BEGIN { if (t+0 < f+0) { print "FAIL: coverage " t "% is below floor " f "%"; exit 1 } }'
   coverage: '/total:\s+\(statements\)\s+(\d+\.\d+)%/'
   artifacts:
     paths:
