@@ -109,7 +109,7 @@ func levelIcon(l check.Level) string {
 	case check.Warn:
 		return "warn"
 	case check.Fail:
-		return "FAIL"
+		return "fail"
 	default:
 		return "?"
 	}

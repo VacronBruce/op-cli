@@ -12,7 +12,10 @@ import (
 )
 
 // priorityCollection returns a mock /priorities API response with the given names+IDs.
-func priorityCollection(items []struct{ id int; name string }) interface{} {
+func priorityCollection(items []struct {
+	id   int
+	name string
+}) interface{} {
 	type elem struct {
 		ID    int    `json:"id"`
 		Name  string `json:"name"`
@@ -41,7 +44,10 @@ func priorityCollection(items []struct{ id int; name string }) interface{} {
 }
 
 // typeCollection returns a mock /types API response with the given names+IDs.
-func typeCollection(items []struct{ id int; name string }) interface{} {
+func typeCollection(items []struct {
+	id   int
+	name string
+}) interface{} {
 	type elem struct {
 		ID    int    `json:"id"`
 		Name  string `json:"name"`
@@ -115,7 +121,10 @@ func TestBacklog_PriorityFlag_AddsFilterWithResolvedID(t *testing.T) {
 		ProjectValue: "app",
 		GetFn: func(path string, result interface{}) error {
 			if strings.Contains(path, "/priorities") {
-				data, _ := json.Marshal(priorityCollection([]struct{ id int; name string }{
+				data, _ := json.Marshal(priorityCollection([]struct {
+					id   int
+					name string
+				}{
 					{7, "P0"}, {8, "P1"}, {9, "P2"},
 				}))
 				return json.Unmarshal(data, result)
@@ -157,7 +166,10 @@ func TestBacklog_TypeFlag_AddsFilterWithResolvedID(t *testing.T) {
 		ProjectValue: "app",
 		GetFn: func(path string, result interface{}) error {
 			if strings.Contains(path, "/types") {
-				data, _ := json.Marshal(typeCollection([]struct{ id int; name string }{
+				data, _ := json.Marshal(typeCollection([]struct {
+					id   int
+					name string
+				}{
 					{1, "Task"}, {3, "Bug"}, {5, "Epic"},
 				}))
 				return json.Unmarshal(data, result)
@@ -191,12 +203,18 @@ func TestBacklog_PriorityAndType_BothFiltersPresent(t *testing.T) {
 		GetFn: func(path string, result interface{}) error {
 			switch {
 			case strings.Contains(path, "/priorities"):
-				data, _ := json.Marshal(priorityCollection([]struct{ id int; name string }{
+				data, _ := json.Marshal(priorityCollection([]struct {
+					id   int
+					name string
+				}{
 					{7, "P0"}, {10, "Sev1"},
 				}))
 				return json.Unmarshal(data, result)
 			case strings.Contains(path, "/types"):
-				data, _ := json.Marshal(typeCollection([]struct{ id int; name string }{
+				data, _ := json.Marshal(typeCollection([]struct {
+					id   int
+					name string
+				}{
 					{3, "Bug"},
 				}))
 				return json.Unmarshal(data, result)
@@ -224,7 +242,10 @@ func TestBacklog_UnknownPriority_ReturnsError(t *testing.T) {
 		ProjectValue: "app",
 		GetFn: func(path string, result interface{}) error {
 			if strings.Contains(path, "/priorities") {
-				data, _ := json.Marshal(priorityCollection([]struct{ id int; name string }{
+				data, _ := json.Marshal(priorityCollection([]struct {
+					id   int
+					name string
+				}{
 					{7, "P0"},
 				}))
 				return json.Unmarshal(data, result)

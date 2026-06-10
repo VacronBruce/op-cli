@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
@@ -121,11 +122,17 @@ func runCheckSprint(cmd *cobra.Command, runner *check.Runner, strict, comment bo
 	}
 
 	wps := result.Embedded.Elements
+	if result.Total > len(wps) {
+		fmt.Fprintf(os.Stderr, "warning: sprint has %d items; only the first %d were checked\n", result.Total, len(wps))
+	}
 	reports, err := runner.RunBatch(wps)
 	if err != nil {
 		return err
 	}
 
+	// promoteWarnings must run before CheckSummary: the summary's
+	// "fully passed" count only looks at failures, so strict mode has to
+	// promote warnings first for the count to reflect strictness.
 	if strict {
 		for i := range reports {
 			promoteWarnings(&reports[i])

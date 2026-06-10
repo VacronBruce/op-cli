@@ -206,15 +206,18 @@ func TestCheckAssignee(t *testing.T) {
 
 func TestCheckPriority(t *testing.T) {
 	tests := []struct {
-		name  string
-		title string
-		level Level
+		name    string
+		title   string
+		level   Level
+		message string
 	}{
-		{"default Normal", "Normal", Warn},
-		{"empty", "", Warn},
-		{"High", "High", Pass},
-		{"Immediate", "Immediate", Pass},
-		{"normal lowercase", "normal", Warn},
+		{"default Normal", "Normal", Warn, "Priority is default (Normal)"},
+		// An unset priority must not be reported as "default (Normal)" —
+		// the user needs to know the field is missing, not defaulted.
+		{"empty", "", Warn, "Priority not set"},
+		{"High", "High", Pass, ""},
+		{"Immediate", "Immediate", Pass, ""},
+		{"normal lowercase", "normal", Warn, "Priority is default (Normal)"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -223,6 +226,9 @@ func TestCheckPriority(t *testing.T) {
 			r := CheckPriority(wp, 0)
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s", r.Level, tt.level)
+			}
+			if r.Message != tt.message {
+				t.Errorf("got message %q, want %q", r.Message, tt.message)
 			}
 		})
 	}

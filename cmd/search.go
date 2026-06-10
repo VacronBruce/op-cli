@@ -16,9 +16,9 @@ import (
 var opKeyRe = regexp.MustCompile(`^[A-Z]+-\d+$`)
 
 var (
-	searchField    string
-	searchScan     bool
-	searchProject  string
+	searchField     string
+	searchScan      bool
+	searchProject   string
 	searchScanLimit int
 )
 
@@ -44,7 +44,7 @@ Examples:
 
 func init() {
 	rootCmd.AddCommand(searchCmd)
-	searchCmd.Flags().StringVarP(&searchField, "field", "f", "jira-id", "custom field to search (configured in ~/.oprc)")
+	searchCmd.Flags().StringVarP(&searchField, "field", "f", "jira-id", "custom field to search; jira-id prefers exact matches, other fields substring-match (configured in ~/.oprc)")
 	searchCmd.Flags().BoolVar(&searchScan, "scan", false, "scan work package activity journals for the value")
 	searchCmd.Flags().StringVar(&searchProject, "project", "", "project identifier to scan (required with --scan)")
 	searchCmd.Flags().IntVar(&searchScanLimit, "limit", 200, "max work packages to scan (with --scan)")

@@ -107,10 +107,13 @@ func CheckAssignee(wp *api.WorkPackage, _ int) Result {
 func CheckPriority(wp *api.WorkPackage, _ int) Result {
 	name := "Priority explicitly set"
 	title := wp.Links.Priority.Title
-	if title != "" && !strings.EqualFold(title, "Normal") {
-		return Result{Name: name, Level: Pass}
+	if title == "" {
+		return Result{Name: name, Level: Warn, Message: "Priority not set"}
 	}
-	return Result{Name: name, Level: Warn, Message: "Priority is default (Normal)"}
+	if strings.EqualFold(title, "Normal") {
+		return Result{Name: name, Level: Warn, Message: "Priority is default (Normal)"}
+	}
+	return Result{Name: name, Level: Pass}
 }
 
 // CheckAttachments verifies attachments are present.

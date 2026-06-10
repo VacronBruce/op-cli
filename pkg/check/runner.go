@@ -47,8 +47,8 @@ func (r *Runner) Run(id int) (*Report, error) {
 		Type:    typeName,
 	}
 
-	for _, check := range checks {
-		report.Results = append(report.Results, check(wp, attachmentCount))
+	for _, rule := range checks {
+		report.Results = append(report.Results, rule(wp, attachmentCount))
 	}
 
 	return report, nil
