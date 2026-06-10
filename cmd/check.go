@@ -28,6 +28,7 @@ Examples:
 func init() {
 	rootCmd.AddCommand(checkCmd)
 	checkCmd.Flags().Bool("sprint", false, "Check all tickets in current sprint")
+	checkCmd.Flags().String("sprint-name", "", "Check a specific sprint by name instead of the active one (for --sprint)")
 	checkCmd.Flags().Bool("strict", false, "Treat WARN as FAIL")
 	checkCmd.Flags().Bool("comment", false, "Post results as comment on ticket")
 	checkCmd.Flags().String("component", "", "Filter by component (for --sprint)")
@@ -83,12 +84,20 @@ func runCheckSprint(cmd *cobra.Command, runner *check.Runner, strict, comment bo
 		return err
 	}
 
-	activeSprint, err := client.FindActiveSprint(project)
-	if err != nil {
-		return fmt.Errorf("finding active sprint: %w", err)
+	var targetSprint *api.Version
+	if sprintName, _ := cmd.Flags().GetString("sprint-name"); sprintName != "" {
+		targetSprint, err = client.ResolveVersion(project, sprintName)
+		if err != nil {
+			return fmt.Errorf("finding sprint %q: %w", sprintName, err)
+		}
+	} else {
+		targetSprint, err = client.FindActiveSprint(project)
+		if err != nil {
+			return fmt.Errorf("finding active sprint: %w", err)
+		}
 	}
 
-	vf, err := api.VersionFilter(activeSprint, project)
+	vf, err := api.VersionFilter(targetSprint, project)
 	if err != nil {
 		return err
 	}
@@ -123,7 +132,7 @@ func runCheckSprint(cmd *cobra.Command, runner *check.Runner, strict, comment bo
 		}
 	}
 
-	display.CheckSummary(reports, activeSprint.Name)
+	display.CheckSummary(reports, targetSprint.Name)
 
 	if comment {
 		failures := 0

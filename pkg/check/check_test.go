@@ -274,13 +274,13 @@ func TestRulesForType(t *testing.T) {
 		typeName string
 		count    int
 	}{
-		{"Bug", 7},
-		{"Feature", 8},
-		{"User Story", 8},
-		{"Story", 8},
-		{"Task", 6},
-		{"Epic", 2},
-		{"Unknown", 4},
+		{"Bug", 8},
+		{"Feature", 9},
+		{"User Story", 9},
+		{"Story", 9},
+		{"Task", 7},
+		{"Epic", 3},
+		{"Unknown", 5},
 	}
 	for _, tt := range tests {
 		t.Run(tt.typeName, func(t *testing.T) {

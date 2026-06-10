@@ -131,6 +131,15 @@ func CheckParentEpic(wp *api.WorkPackage, _ int) Result {
 	return Result{Name: name, Level: Warn, Message: "No parent epic linked"}
 }
 
+// CheckComponent verifies at least one component is assigned.
+func CheckComponent(wp *api.WorkPackage, _ int) Result {
+	name := "Component assigned"
+	if len(wp.Links.Component) > 0 {
+		return Result{Name: name, Level: Pass}
+	}
+	return Result{Name: name, Level: Warn, Message: "No component assigned (android/ios/ott/engineering/analytics)"}
+}
+
 // RulesForType returns the appropriate check functions for a work package type.
 func RulesForType(typeName string) []CheckFunc {
 	t := strings.ToLower(typeName)
@@ -144,6 +153,7 @@ func RulesForType(typeName string) []CheckFunc {
 			CheckPriority,
 			CheckAttachments,
 			CheckParentEpic,
+			CheckComponent,
 		}
 	case t == "feature" || t == "user story" || t == "story":
 		return []CheckFunc{
@@ -155,6 +165,7 @@ func RulesForType(typeName string) []CheckFunc {
 			CheckPriority,
 			CheckAttachments,
 			CheckParentEpic,
+			CheckComponent,
 		}
 	case t == "task":
 		return []CheckFunc{
@@ -164,11 +175,13 @@ func RulesForType(typeName string) []CheckFunc {
 			CheckAssignee,
 			CheckPriority,
 			CheckParentEpic,
+			CheckComponent,
 		}
 	case t == "epic":
 		return []CheckFunc{
 			CheckDescription,
 			CheckAcceptanceCriteria,
+			CheckComponent,
 		}
 	default:
 		// Fallback: basic checks for unknown types
@@ -177,6 +190,7 @@ func RulesForType(typeName string) []CheckFunc {
 			CheckStoryPoints,
 			CheckAssignee,
 			CheckPriority,
+			CheckComponent,
 		}
 	}
 }
