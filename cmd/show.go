@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/display"
@@ -39,9 +38,9 @@ type attachmentCollection struct {
 }
 
 func runShow(cmd *cobra.Command, args []string) error {
-	id, err := strconv.Atoi(args[0])
+	id, err := parseWorkPackageID(args[0])
 	if err != nil {
-		return fmt.Errorf("invalid work package ID: %s", args[0])
+		return err
 	}
 
 	wp, err := client.GetWorkPackage(id)

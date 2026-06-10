@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/check"
@@ -52,9 +51,9 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("provide a work package ID or use --sprint")
 	}
 
-	id, err := strconv.Atoi(args[0])
+	id, err := parseWorkPackageID(args[0])
 	if err != nil {
-		return fmt.Errorf("invalid work package ID: %s", args[0])
+		return err
 	}
 
 	report, err := runner.Run(id)

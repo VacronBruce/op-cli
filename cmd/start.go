@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
@@ -31,9 +30,9 @@ func init() {
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
-	id, err := strconv.Atoi(args[0])
+	id, err := parseWorkPackageID(args[0])
 	if err != nil {
-		return fmt.Errorf("invalid work package ID: %s", args[0])
+		return err
 	}
 
 	// The command's purpose is to branch, so require a git repo up front —

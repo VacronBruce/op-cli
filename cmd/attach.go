@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/spf13/cobra"
 )
@@ -25,9 +24,9 @@ func init() {
 }
 
 func runAttach(cmd *cobra.Command, args []string) error {
-	id, err := strconv.Atoi(args[0])
+	id, err := parseWorkPackageID(args[0])
 	if err != nil {
-		return fmt.Errorf("invalid work package ID: %s", args[0])
+		return err
 	}
 
 	desc, _ := cmd.Flags().GetString("desc")
