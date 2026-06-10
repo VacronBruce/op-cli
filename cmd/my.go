@@ -119,6 +119,19 @@ func runMy(cmd *cobra.Command, args []string) error {
 		filters = append(filters, api.NewFilter(field, "=", value))
 	}
 
+	if types, _ := cmd.Flags().GetStringSlice("type"); len(types) > 0 {
+		resolver := api.NewResolver(client, project)
+		ids := make([]string, 0, len(types))
+		for _, name := range types {
+			t, err := resolver.ResolveType(name)
+			if err != nil {
+				return fmt.Errorf("resolving type %q: %w", name, err)
+			}
+			ids = append(ids, strconv.Itoa(t.ID))
+		}
+		filters = append(filters, api.NewFilter("type", "=", ids...))
+	}
+
 	// Sprint filter is opt-in. By default `op my` shows all your open work
 	// across every sprint; pass --sprint to scope to one.
 	if sprintName, _ := cmd.Flags().GetString("sprint"); sprintName != "" {
