@@ -254,6 +254,46 @@ func TestBacklog_TypeFilter_Invalid(t *testing.T) {
 	}
 }
 
+func TestBacklog_TypeFilter_MultipleTypes(t *testing.T) {
+	var gotFilters []api.Filter
+
+	mock := &testutil.MockClient{
+		ProjectValue: "test",
+		GetFn: func(path string, result interface{}) error {
+			if path != "/types" {
+				return fmt.Errorf("unexpected Get path: %s", path)
+			}
+			return json.Unmarshal([]byte(`{"_embedded":{"elements":[{"id":7,"name":"Bug","_links":{"self":{"href":"/api/v3/types/7"}}},{"id":8,"name":"Task","_links":{"self":{"href":"/api/v3/types/8"}}}]}}`), result)
+		},
+		ListWorkPackagesFn: func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+			gotFilters = append([]api.Filter(nil), filters...)
+			return &api.WPCollection{
+				Total: 0,
+				Embedded: struct {
+					Elements []api.WorkPackage `json:"elements"`
+				}{},
+			}, nil
+		},
+	}
+	SetClient(mock)
+
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("unestimated", false, "")
+	cmd.Flags().StringSlice("type", nil, "")
+	_ = cmd.Flags().Set("type", "bug,task")
+
+	_ = captureStdout(func() {
+		err := runBacklog(cmd, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if !hasFilter(gotFilters, "type", "=", "7", "8") {
+		t.Errorf("expected multi-type filter in filters: %#v", gotFilters)
+	}
+}
+
 // --- board --status tests ---
 
 func TestBoard_StatusFilter(t *testing.T) {
@@ -536,7 +576,7 @@ func TestMy_TypeFilter_Lowercase(t *testing.T) {
 	cmd.Flags().Bool("author", false, "")
 	cmd.Flags().String("since", "", "")
 	cmd.Flags().String("component", "", "")
-	cmd.Flags().String("type", "", "")
+	cmd.Flags().StringSlice("type", nil, "")
 	cmd.Flags().Bool("by-sprint", false, "")
 
 	_ = cmd.Flags().Set("no-sprint", "true")
@@ -590,7 +630,7 @@ func TestMy_TypeFilter_Uppercase(t *testing.T) {
 	cmd.Flags().Bool("author", false, "")
 	cmd.Flags().String("since", "", "")
 	cmd.Flags().String("component", "", "")
-	cmd.Flags().String("type", "", "")
+	cmd.Flags().StringSlice("type", nil, "")
 	cmd.Flags().Bool("by-sprint", false, "")
 
 	_ = cmd.Flags().Set("no-sprint", "true")
@@ -635,7 +675,7 @@ func TestMy_TypeFilter_Invalid(t *testing.T) {
 	cmd.Flags().Bool("author", false, "")
 	cmd.Flags().String("since", "", "")
 	cmd.Flags().String("component", "", "")
-	cmd.Flags().String("type", "", "")
+	cmd.Flags().StringSlice("type", nil, "")
 	cmd.Flags().Bool("by-sprint", false, "")
 
 	_ = cmd.Flags().Set("no-sprint", "true")
@@ -648,7 +688,7 @@ func TestMy_TypeFilter_Invalid(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), `resolving type: unknown "invalid"`) {
+	if !strings.Contains(err.Error(), `resolving type "invalid": unknown "invalid"`) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if !strings.Contains(err.Error(), "available:") {
@@ -656,5 +696,56 @@ func TestMy_TypeFilter_Invalid(t *testing.T) {
 	}
 	if listCalls != 0 {
 		t.Errorf("expected ListWorkPackages not to be called, got %d calls", listCalls)
+	}
+}
+
+func TestMy_TypeFilter_MultipleTypes(t *testing.T) {
+	var gotFilters []api.Filter
+
+	mock := &testutil.MockClient{
+		ProjectValue: "test",
+		GetMeFn: func() (*api.User, error) {
+			return &api.User{ID: 123, Name: "Me"}, nil
+		},
+		GetFn: func(path string, result interface{}) error {
+			if path != "/types" {
+				return fmt.Errorf("unexpected Get path: %s", path)
+			}
+			return json.Unmarshal([]byte(`{"_embedded":{"elements":[{"id":7,"name":"Bug","_links":{"self":{"href":"/api/v3/types/7"}}},{"id":8,"name":"Task","_links":{"self":{"href":"/api/v3/types/8"}}}]}}`), result)
+		},
+		ListWorkPackagesFn: func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+			gotFilters = append([]api.Filter(nil), filters...)
+			return &api.WPCollection{
+				Total: 0,
+				Embedded: struct {
+					Elements []api.WorkPackage `json:"elements"`
+				}{},
+			}, nil
+		},
+	}
+	SetClient(mock)
+
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("all", false, "")
+	cmd.Flags().String("sprint", "", "")
+	cmd.Flags().Bool("no-sprint", false, "")
+	cmd.Flags().Bool("author", false, "")
+	cmd.Flags().String("since", "", "")
+	cmd.Flags().String("component", "", "")
+	cmd.Flags().StringSlice("type", nil, "")
+	cmd.Flags().Bool("by-sprint", false, "")
+
+	_ = cmd.Flags().Set("no-sprint", "true")
+	_ = cmd.Flags().Set("type", "bug,task")
+
+	_ = captureStdout(func() {
+		err := runMy(cmd, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if !hasFilter(gotFilters, "type", "=", "7", "8") {
+		t.Errorf("expected multi-type filter in filters: %#v", gotFilters)
 	}
 }
