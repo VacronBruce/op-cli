@@ -11,7 +11,7 @@ test:
   variables:
     CGO_ENABLED: "1"
     # Coverage ratchet: bumped to (new total - 0.5) in every MR that adds tests.
-    COVERAGE_FLOOR: "50.8"
+    COVERAGE_FLOOR: "54.2"
   script:
     - go test -race -coverprofile=coverage.out ./...
     - go tool cover -func=coverage.out
