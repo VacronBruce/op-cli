@@ -159,6 +159,8 @@ type UpdateWPRequest struct {
 	Description    *Formattable         `json:"description,omitempty"`
 	StoryPoints    *int                 `json:"storyPoints,omitempty"`
 	PercentageDone *int                 `json:"percentageDone,omitempty"`
+	StartDate      string               `json:"startDate,omitempty"`
+	DueDate        string               `json:"dueDate,omitempty"`
 	Links          map[string]LinkValue `json:"_links,omitempty"`
 }
 

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/display"
@@ -35,9 +36,17 @@ func init() {
 	updateCmd.Flags().String("to-project", "", "Move work package to another project (identifier)")
 	updateCmd.Flags().String("release", "", "Set release (e.g. \"[iOS][ETV] 1.0.9\")")
 	updateCmd.Flags().StringSlice("component", nil, "Component (android, ios, ott, engineering, analytics)")
+	updateCmd.Flags().StringP("epic", "e", "", "Epic name (partial match)")
+	updateCmd.Flags().String("parent", "", "Parent work package ID")
+	updateCmd.Flags().String("start", "", "Start date (YYYY-MM-DD)")
+	updateCmd.Flags().String("due", "", "Due date (YYYY-MM-DD)")
+	updateCmd.Flags().StringSlice("product", nil, "Product (eet, entd, djy, cntd, gan_jing_world)")
+	updateCmd.Flags().StringSlice("label", nil, "Label (team#appios, team#appandroid, ...)")
 
 	_ = updateCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
 	_ = updateCmd.RegisterFlagCompletionFunc("release", completeRelease())
+	_ = updateCmd.RegisterFlagCompletionFunc("product", completeCustomField("product"))
+	_ = updateCmd.RegisterFlagCompletionFunc("label", completeCustomField("label"))
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {
@@ -148,6 +157,48 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		req.Links[field] = links
+		hasChanges = true
+	}
+
+	// Product / label (multi-value custom fields, same registry as create)
+	for _, fieldName := range []string{"product", "label"} {
+		if values, _ := cmd.Flags().GetStringSlice(fieldName); len(values) > 0 {
+			field, links, err := customFieldLinks(fieldName, values)
+			if err != nil {
+				return err
+			}
+			req.Links[field] = links
+			hasChanges = true
+		}
+	}
+
+	// Epic (resolved by name within the project, same as create)
+	if epicName, _ := cmd.Flags().GetString("epic"); epicName != "" {
+		epic, err := resolver.ResolveEpic(epicName)
+		if err != nil {
+			return fmt.Errorf("resolving epic: %w", err)
+		}
+		req.Links["epic"] = api.Link{Href: epic.Href}
+		hasChanges = true
+	}
+
+	// Parent
+	if parentStr, _ := cmd.Flags().GetString("parent"); parentStr != "" {
+		parentInt, err := strconv.Atoi(parentStr)
+		if err != nil {
+			return fmt.Errorf("invalid parent ID: %s", parentStr)
+		}
+		req.Links["parent"] = api.Link{Href: fmt.Sprintf("/api/v3/work_packages/%d", parentInt)}
+		hasChanges = true
+	}
+
+	// Start / due dates
+	if start, _ := cmd.Flags().GetString("start"); start != "" {
+		req.StartDate = start
+		hasChanges = true
+	}
+	if due, _ := cmd.Flags().GetString("due"); due != "" {
+		req.DueDate = due
 		hasChanges = true
 	}
 

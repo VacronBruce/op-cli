@@ -24,10 +24,16 @@ func newUpdateCmd() *cobra.Command {
 	c.Flags().String("to-project", "", "")
 	c.Flags().String("release", "", "")
 	c.Flags().StringSlice("component", nil, "")
+	c.Flags().StringP("epic", "e", "", "")
+	c.Flags().String("parent", "", "")
+	c.Flags().String("start", "", "")
+	c.Flags().String("due", "", "")
+	c.Flags().StringSlice("product", nil, "")
+	c.Flags().StringSlice("label", nil, "")
 	return c
 }
 
-// resolverCollections serves the /statuses and project assignee collections the
+// resolverCollections serves the /statuses, assignee and epic collections the
 // update resolver fetches, so flag tests can exercise real resolution.
 func resolverCollections(path string, result interface{}) error {
 	var js string
@@ -39,6 +45,10 @@ func resolverCollections(path string, result interface{}) error {
 	case strings.Contains(path, "available_assignees"):
 		js = `{"_embedded":{"elements":[
 			{"id":5,"name":"Ken Peng","_links":{"self":{"href":"/api/v3/users/5"}}}]}}`
+	case strings.Contains(path, "/work_packages?filters=") && strings.Contains(path, "%225%22"):
+		// epics (type id 5) in the project
+		js = `{"_embedded":{"elements":[
+			{"id":100,"subject":"NTD+ Launch","_links":{"self":{"href":"/api/v3/work_packages/100"}}}]}}`
 	default:
 		return fmt.Errorf("unexpected GET %s", path)
 	}
@@ -197,5 +207,99 @@ func TestAssign_ResolvesUserAndPatchesAssignee(t *testing.T) {
 	}
 	if !strings.Contains(out, "assigned to Ken Peng") {
 		t.Errorf("expected confirmation, got: %s", out)
+	}
+}
+
+// --- create-parity flags (#81742) ---
+
+func TestUpdate_EpicResolvesToLink(t *testing.T) {
+	// --epic mirrors create: resolve the epic by name within the project and
+	// link its href, so tickets can be re-parented to an epic after creation.
+	var got *api.UpdateWPRequest
+	SetClient(updateMock(&got))
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("epic", "ntd+")
+	testutil.CaptureStdout(func() {
+		if err := runUpdate(cmd, []string{"123"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if got.Links["epic"].(api.Link).Href != "/api/v3/work_packages/100" {
+		t.Errorf("expected resolved epic href, got %+v", got.Links)
+	}
+}
+
+func TestUpdate_ParentSetsHrefAndRejectsGarbage(t *testing.T) {
+	// --parent takes a numeric WP id; a typo must fail before the PATCH.
+	var got *api.UpdateWPRequest
+	SetClient(updateMock(&got))
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("parent", "456")
+	testutil.CaptureStdout(func() {
+		if err := runUpdate(cmd, []string{"123"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+	if got.Links["parent"].(api.Link).Href != "/api/v3/work_packages/456" {
+		t.Errorf("expected parent href, got %+v", got.Links)
+	}
+
+	got = nil
+	cmd = newUpdateCmd()
+	_ = cmd.Flags().Set("parent", "abc")
+	err := runUpdate(cmd, []string{"123"})
+	if err == nil || !strings.Contains(err.Error(), "invalid parent ID") {
+		t.Fatalf("expected invalid parent error, got: %v", err)
+	}
+	if got != nil {
+		t.Error("PATCH must not happen on invalid parent")
+	}
+}
+
+func TestUpdate_StartAndDueDates(t *testing.T) {
+	// Dates could only be set at create time; update must carry them in the
+	// PATCH body (startDate/dueDate), and only when flagged.
+	var got *api.UpdateWPRequest
+	SetClient(updateMock(&got))
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("start", "2026-07-01")
+	_ = cmd.Flags().Set("due", "2026-07-15")
+	testutil.CaptureStdout(func() {
+		if err := runUpdate(cmd, []string{"123"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if got.StartDate != "2026-07-01" || got.DueDate != "2026-07-15" {
+		t.Errorf("expected dates in request, got start=%q due=%q", got.StartDate, got.DueDate)
+	}
+}
+
+func TestUpdate_ProductAndLabelMultiLinks(t *testing.T) {
+	// product/label are multi-value custom fields resolved from the local
+	// registry — same as create — so classification can be fixed post-creation.
+	var got *api.UpdateWPRequest
+	SetClient(updateMock(&got))
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("product", "entd")
+	_ = cmd.Flags().Set("label", "team#appandroid")
+	testutil.CaptureStdout(func() {
+		if err := runUpdate(cmd, []string{"123"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	prod, ok := got.Links["customField4"].([]api.Link)
+	if !ok || len(prod) != 1 {
+		t.Fatalf("expected one product link on customField4, got %+v", got.Links)
+	}
+	label, ok := got.Links["customField13"].([]api.Link)
+	if !ok || len(label) != 1 {
+		t.Fatalf("expected one label link on customField13, got %+v", got.Links)
 	}
 }
