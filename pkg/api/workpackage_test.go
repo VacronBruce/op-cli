@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -169,5 +170,104 @@ func TestNewFilter(t *testing.T) {
 	}
 	if spec["operator"] != "=" {
 		t.Errorf("expected operator='=', got %v", spec["operator"])
+	}
+}
+
+func TestSearchByJiraID_FilterAndPageSize(t *testing.T) {
+	// `op search` relies on this building a contains-filter on the configured
+	// jira-id custom field (default customField3) across ALL projects; a wrong
+	// field key or a project-scoped path would silently return nothing.
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v3/work_packages" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		filters := r.URL.Query().Get("filters")
+		if !strings.Contains(filters, "customField3") || !strings.Contains(filters, `"~"`) {
+			t.Errorf("expected contains-filter on customField3, got %s", filters)
+		}
+		if r.URL.Query().Get("pageSize") != "20" {
+			t.Errorf("expected pageSize=20, got %q", r.URL.Query().Get("pageSize"))
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"total": 1,
+			"_embedded": map[string]interface{}{
+				"elements": []map[string]interface{}{{"id": 42, "subject": "Found"}},
+			},
+		})
+	})
+	defer ts.Close()
+
+	got, err := c.SearchByJiraID("AR-178")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got.Embedded.Elements) != 1 || got.Embedded.Elements[0].ID != 42 {
+		t.Errorf("unexpected result: %+v", got)
+	}
+}
+
+func TestListAllWorkPackages_DefaultsPageSizeTo200(t *testing.T) {
+	// Cross-project listings (overview, search fallback) must not inherit the
+	// API's tiny default page size, or results silently truncate.
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("pageSize") != "200" {
+			t.Errorf("expected default pageSize=200, got %q", r.URL.Query().Get("pageSize"))
+		}
+		json.NewEncoder(w).Encode(WPCollection{})
+	})
+	defer ts.Close()
+
+	if _, err := c.ListAllWorkPackages(nil, "", 0); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestSetMultiLink_MarshalsAsArray(t *testing.T) {
+	// Multi-value custom fields (components, labels) require a JSON array in
+	// _links; a single object would make OpenProject reject the create with 422.
+	req := &CreateWPRequest{Links: map[string]LinkValue{}}
+	req.SetMultiLink("customField12", []Link{{Href: "/a"}, {Href: "/b"}})
+
+	data, err := json.Marshal(req.Links)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var decoded map[string][]map[string]string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("multi-link field did not marshal as an array: %s", data)
+	}
+	if len(decoded["customField12"]) != 2 {
+		t.Errorf("expected 2 links, got %s", data)
+	}
+}
+
+func TestCreateRelation(t *testing.T) {
+	// `op link --blocks/--relates-to` posts to the FROM work package's relations
+	// collection with the TO end as an href — direction matters for "blocks".
+	var gotPath string
+	var gotBody map[string]interface{}
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		json.NewDecoder(r.Body).Decode(&gotBody)
+		json.NewEncoder(w).Encode(map[string]string{"_type": "Relation"})
+	})
+	defer ts.Close()
+
+	if err := c.CreateRelation(12, "blocks", 34); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotPath != "/api/v3/work_packages/12/relations" {
+		t.Errorf("unexpected path: %s", gotPath)
+	}
+	if gotBody["type"] != "blocks" {
+		t.Errorf("expected type=blocks, got %v", gotBody["type"])
+	}
+	links := gotBody["_links"].(map[string]interface{})
+	to := links["to"].(map[string]interface{})
+	if to["href"] != "/api/v3/work_packages/34" {
+		t.Errorf("expected to-href for #34, got %v", to["href"])
 	}
 }

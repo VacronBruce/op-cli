@@ -3,6 +3,8 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -321,5 +323,94 @@ func TestVersionFilter_NoDefiningProject(t *testing.T) {
 	}
 	if f == nil {
 		t.Fatal("expected filter, got nil")
+	}
+}
+
+func TestCreateVersion(t *testing.T) {
+	// `op sprint create` posts to the global /versions collection (NOT the
+	// project-scoped path) with the project carried in _links — the API rejects
+	// project-scoped POSTs, so a path regression breaks sprint creation outright.
+	var gotPath, gotMethod string
+	var gotBody map[string]interface{}
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		gotPath, gotMethod = r.URL.Path, r.Method
+		json.NewDecoder(r.Body).Decode(&gotBody)
+		json.NewEncoder(w).Encode(Version{ID: 99, Name: "Sprint 25"})
+	})
+	defer ts.Close()
+
+	v, err := c.CreateVersion(&CreateVersionRequest{
+		Name:      "Sprint 25",
+		StartDate: "2026-06-15",
+		EndDate:   "2026-06-29",
+		Links:     map[string]Link{"definingProject": {Href: "/api/v3/projects/1"}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotMethod != "POST" || gotPath != "/api/v3/versions" {
+		t.Errorf("expected POST /api/v3/versions, got %s %s", gotMethod, gotPath)
+	}
+	if gotBody["name"] != "Sprint 25" || gotBody["startDate"] != "2026-06-15" {
+		t.Errorf("unexpected body: %v", gotBody)
+	}
+	if v.ID != 99 {
+		t.Errorf("expected created version ID 99, got %d", v.ID)
+	}
+}
+
+func newReleaseServer(t *testing.T) (*httptest.Server, *Client) {
+	t.Helper()
+	return newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(VersionCollection{
+			Total: 3,
+			Embedded: struct {
+				Elements []Version `json:"elements"`
+			}{Elements: []Version{
+				{ID: 1, Name: "Sprint 24", Kind: "sprint"},
+				{ID: 2, Name: "v0.12.0", Kind: "release"},
+				{ID: 3, Name: "v0.13.0", Kind: "release"},
+			}},
+		})
+	})
+}
+
+func TestResolveRelease_ExactName(t *testing.T) {
+	ts, c := newReleaseServer(t)
+	defer ts.Close()
+	v, err := c.ResolveRelease("app", "v0.13.0")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if v.ID != 3 {
+		t.Errorf("expected ID 3, got %d", v.ID)
+	}
+}
+
+func TestResolveRelease_CaseInsensitiveAndByID(t *testing.T) {
+	// Users type release names from memory and sometimes paste numeric IDs;
+	// both must resolve so `op update --release` doesn't force exact casing.
+	ts, c := newReleaseServer(t)
+	defer ts.Close()
+	if v, err := c.ResolveRelease("app", "V0.12.0"); err != nil || v.ID != 2 {
+		t.Errorf("case-insensitive match failed: v=%v err=%v", v, err)
+	}
+	if v, err := c.ResolveRelease("app", "3"); err != nil || v.ID != 3 {
+		t.Errorf("by-ID match failed: v=%v err=%v", v, err)
+	}
+}
+
+func TestResolveRelease_IgnoresNonReleaseKinds(t *testing.T) {
+	// Sprints share the versions collection with releases; resolving a sprint
+	// name as a release must fail loudly (listing only the real releases),
+	// otherwise `op update --release "Sprint 24"` would mis-link a sprint.
+	ts, c := newReleaseServer(t)
+	defer ts.Close()
+	_, err := c.ResolveRelease("app", "Sprint 24")
+	if err == nil {
+		t.Fatal("expected error resolving a sprint as a release, got nil")
+	}
+	if !strings.Contains(err.Error(), "v0.12.0") || strings.Contains(err.Error(), "Sprint 24, ") {
+		t.Errorf("error should list only releases, got: %v", err)
 	}
 }

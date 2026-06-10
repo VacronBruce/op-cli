@@ -300,3 +300,84 @@ func TestResolver_ResolveUser(t *testing.T) {
 		t.Errorf("expected ID=36, got %d", r3.ID)
 	}
 }
+
+func TestResolver_ResolvePriority(t *testing.T) {
+	// `op create --priority=P1` and check rules both depend on priority names
+	// resolving through the same prefix/case-insensitive logic as other
+	// collections, and on the result being cached (one /priorities fetch).
+	calls := 0
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if r.URL.Path != "/api/v3/priorities" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(collectionResponse{
+			Embedded: struct {
+				Elements []json.RawMessage `json:"elements"`
+			}{Elements: []json.RawMessage{
+				json.RawMessage(`{"id":8,"name":"P1","_links":{"self":{"href":"/api/v3/priorities/8"}}}`),
+				json.RawMessage(`{"id":9,"name":"SEV1","_links":{"self":{"href":"/api/v3/priorities/9"}}}`),
+			}},
+		})
+	})
+	defer ts.Close()
+
+	resolver := NewResolver(c, "proj")
+	p, err := resolver.ResolvePriority("p1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.ID != 8 {
+		t.Errorf("expected P1 (id 8), got %+v", p)
+	}
+	if _, err := resolver.ResolvePriority("sev1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if calls != 1 {
+		t.Errorf("expected 1 fetch (cached), got %d", calls)
+	}
+	if _, err := resolver.ResolvePriority("nope"); err == nil {
+		t.Error("expected error for unknown priority")
+	}
+}
+
+func TestResolver_ResolveEpic(t *testing.T) {
+	// `op create --epic="NTD+"` matches epics by case-insensitive substring of
+	// the subject, scoped to the project and to type id 5 — a filter regression
+	// would link tasks to arbitrary work packages.
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.URL.Path, "/api/v3/projects/app/work_packages") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if !strings.Contains(r.URL.Query().Get("filters"), `"5"`) {
+			t.Errorf("expected type-5 (epic) filter, got %s", r.URL.Query().Get("filters"))
+		}
+		w.Write([]byte(`{"_embedded":{"elements":[
+			{"id":100,"subject":"NTD+ Launch","_links":{"self":{"href":"/api/v3/work_packages/100"}}},
+			{"id":101,"subject":"Refactor Epic","_links":{"self":{"href":"/api/v3/work_packages/101"}}}]}}`))
+	})
+	defer ts.Close()
+
+	resolver := NewResolver(c, "app")
+	e, err := resolver.ResolveEpic("ntd+")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if e.ID != 100 || e.Href != "/api/v3/work_packages/100" {
+		t.Errorf("unexpected epic: %+v", e)
+	}
+
+	// Unknown epics fail loudly and list what exists, so the user can correct
+	// the name instead of getting a silently unlinked ticket.
+	_, err = resolver.ResolveEpic("missing")
+	if err == nil || !strings.Contains(err.Error(), "NTD+ Launch") {
+		t.Errorf("expected unknown-epic error listing available epics, got: %v", err)
+	}
+}
+
+func TestResolver_ResolveEpic_RequiresProject(t *testing.T) {
+	resolver := NewResolver(nil, "")
+	if _, err := resolver.ResolveEpic("any"); err == nil {
+		t.Fatal("expected error when no project is set")
+	}
+}
