@@ -60,6 +60,8 @@ Consult these before constructing a command — don't guess flags or values:
 22. **"what's the OP number for WP-23 / look up a JIRA ID"** → `op search <jira-id>` (maps the JIRA ID custom field to the OpenProject work package number); use `--field <name>` to search a different custom field (e.g. `op search AR-178 --field key` when tickets were renamed and the key is in a separate field); if the key only appears in historical activity (e.g. a renamed ticket's old key in a journal note), use `op search AR-178 --scan --project <id>` to scan activity journals
 23. **"set parent / link tickets"** → `op link <id> --parent=X` (or `--relates-to`, `--blocks`, `--no-parent`)
 23a. **"start work on / start a ticket"** → `op start <id>` (creates branch `<project>-<id>-<slug>`, moves it to In Progress, assigns to you; run inside the git repo)
+23b. **"what's linked to this ticket / show relations"** → `op link <id> --list`
+23c. **"remove a relation / unlink tickets"** → `op unlink <id> --relates-to=X` or `--blocks=X` (the relation ID is resolved for you)
 24. **"review as PM"** → invoke /op:ticket-prep skill
 25. **"verify as developer"** → invoke /op:ticket-verify skill
 26. **"fully review / bot-review a ticket"** → invoke /op:ticket-review skill (combined PM + Dev, posts one comment)

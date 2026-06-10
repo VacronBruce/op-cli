@@ -30,6 +30,8 @@ type APIClient interface {
 	SearchByJiraID(jiraID string) (*WPCollection, error)
 	CreateWorkPackage(project string, req *CreateWPRequest) (*WorkPackage, error)
 	UpdateWorkPackage(id int, req *UpdateWPRequest) (*WorkPackage, error)
+	ListRelations(wpID int) (*RelationCollection, error)
+	DeleteRelation(relID int) error
 
 	// Versions/sprints
 	ListVersions(project string) (*VersionCollection, error)

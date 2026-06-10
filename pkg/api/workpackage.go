@@ -317,3 +317,43 @@ func (c *Client) UpdateWorkPackage(id int, req *UpdateWPRequest) (*WorkPackage, 
 	}
 	return &wp, nil
 }
+
+// Relation is a typed link between two work packages.
+type Relation struct {
+	ID    int    `json:"id"`
+	Type  string `json:"type"`
+	Links struct {
+		From Link `json:"from"`
+		To   Link `json:"to"`
+	} `json:"_links"`
+}
+
+// RelationCollection is the response from listing a work package's relations.
+type RelationCollection struct {
+	Total    int `json:"total"`
+	Embedded struct {
+		Elements []Relation `json:"elements"`
+	} `json:"_embedded"`
+}
+
+// ListRelations lists the relations of a work package.
+func (c *Client) ListRelations(wpID int) (*RelationCollection, error) {
+	var result RelationCollection
+	if err := c.Get(fmt.Sprintf("/work_packages/%d/relations", wpID), &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// DeleteRelation removes a relation by its relation ID (not a work-package ID).
+func (c *Client) DeleteRelation(relID int) error {
+	resp, err := c.DoRaw("DELETE", fmt.Sprintf("/api/v3/relations/%d", relID))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("deleting relation %d: HTTP %d", relID, resp.StatusCode)
+	}
+	return nil
+}

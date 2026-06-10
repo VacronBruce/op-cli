@@ -35,6 +35,8 @@ type MockClient struct {
 	PostCommentFn         func(wpID int, markdown string) error
 	EditCommentFn         func(activityID int, markdown string) error
 	CreateRelationFn      func(fromID int, relType string, toID int) error
+	ListRelationsFn       func(wpID int) (*api.RelationCollection, error)
+	DeleteRelationFn      func(relID int) error
 }
 
 func (m *MockClient) RequireProject() (string, error) {
@@ -204,6 +206,20 @@ func (m *MockClient) EditComment(activityID int, markdown string) error {
 func (m *MockClient) CreateRelation(fromID int, relType string, toID int) error {
 	if m.CreateRelationFn != nil {
 		return m.CreateRelationFn(fromID, relType, toID)
+	}
+	return nil
+}
+
+func (m *MockClient) ListRelations(wpID int) (*api.RelationCollection, error) {
+	if m.ListRelationsFn != nil {
+		return m.ListRelationsFn(wpID)
+	}
+	return &api.RelationCollection{}, nil
+}
+
+func (m *MockClient) DeleteRelation(relID int) error {
+	if m.DeleteRelationFn != nil {
+		return m.DeleteRelationFn(relID)
 	}
 	return nil
 }

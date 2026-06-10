@@ -271,3 +271,63 @@ func TestCreateRelation(t *testing.T) {
 		t.Errorf("expected to-href for #34, got %v", to["href"])
 	}
 }
+
+func TestListRelations(t *testing.T) {
+	// `op link <id> --list` reads the FROM work package's relations collection;
+	// the from/to titles and the relation id are what unlink needs to target.
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v3/work_packages/12/relations" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		w.Write([]byte(`{"total":2,"_embedded":{"elements":[
+			{"id":7,"type":"relates","_links":{
+				"from":{"href":"/api/v3/work_packages/12","title":"This one"},
+				"to":{"href":"/api/v3/work_packages/34","title":"That one"}}},
+			{"id":8,"type":"blocks","_links":{
+				"from":{"href":"/api/v3/work_packages/12","title":"This one"},
+				"to":{"href":"/api/v3/work_packages/56","title":"Blocked one"}}}]}}`))
+	})
+	defer ts.Close()
+
+	got, err := c.ListRelations(12)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.Total != 2 || len(got.Embedded.Elements) != 2 {
+		t.Fatalf("expected 2 relations, got %+v", got)
+	}
+	rel := got.Embedded.Elements[1]
+	if rel.ID != 8 || rel.Type != "blocks" || rel.Links.To.Href != "/api/v3/work_packages/56" {
+		t.Errorf("unexpected relation decode: %+v", rel)
+	}
+}
+
+func TestDeleteRelation(t *testing.T) {
+	// Relations are deleted by RELATION id on the global collection — not by
+	// work-package id — so the method must hit /relations/<relID> with DELETE.
+	var gotMethod, gotPath string
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		w.WriteHeader(http.StatusNoContent)
+	})
+	defer ts.Close()
+
+	if err := c.DeleteRelation(8); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotMethod != "DELETE" || gotPath != "/api/v3/relations/8" {
+		t.Errorf("expected DELETE /api/v3/relations/8, got %s %s", gotMethod, gotPath)
+	}
+}
+
+func TestDeleteRelation_ErrorStatus(t *testing.T) {
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(`{"_type":"Error","message":"forbidden"}`))
+	})
+	defer ts.Close()
+
+	if err := c.DeleteRelation(8); err == nil {
+		t.Fatal("expected error on 403, got nil")
+	}
+}

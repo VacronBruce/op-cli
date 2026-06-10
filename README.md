@@ -199,6 +199,9 @@ op link 81482 --parent=81477       # Set parent work package
 op link 81482 --no-parent          # Remove parent link
 op link 81482 --relates-to=81483   # Create a "relates" relation
 op link 81482 --blocks=81485       # Create a "blocks" relation
+op link 81482 --list               # List existing relations
+op unlink 81482 --relates-to=81483 # Remove the "relates" relation to #81483
+op unlink 81482 --blocks=81485     # Remove the "blocks" relation to #81485
 ```
 
 ### Sprint management
