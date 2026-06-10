@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
+	"github.com/chenhuijun/op-cli/pkg/display"
 	"github.com/spf13/cobra"
 )
 
@@ -53,22 +54,13 @@ func runReleaseList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("listing releases: %w", err)
 	}
 
-	fmt.Printf("%-6s  %-8s  %-12s  %-12s  %s\n", "ID", "STATUS", "START", "END", "NAME")
-	fmt.Printf("%-6s  %-8s  %-12s  %-12s  %s\n", "--", "------", "-----", "---", "----")
+	var releases []api.Version
 	for _, v := range versions.Embedded.Elements {
-		if v.Kind != "release" {
-			continue
+		if v.Kind == "release" {
+			releases = append(releases, v)
 		}
-		start := v.StartDate
-		if start == "" {
-			start = "-"
-		}
-		end := v.EndDate
-		if end == "" {
-			end = "-"
-		}
-		fmt.Printf("%-6d  %-8s  %-12s  %-12s  %s\n", v.ID, v.Status, start, end, v.Name)
 	}
+	display.VersionTable(releases)
 	return nil
 }
 

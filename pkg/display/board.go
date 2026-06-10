@@ -56,11 +56,7 @@ func Board(wps []api.WorkPackage) {
 			if assignee == "" {
 				assignee = "unassigned"
 			}
-			pts := ""
-			if wp.StoryPoints != nil {
-				pts = fmt.Sprintf(" [%dpt]", *wp.StoryPoints)
-			}
-			fmt.Printf("  #%-5d %s%s\n", wp.ID, truncate(wp.Subject, 45), pts)
+			fmt.Printf("  #%-5d %s%s\n", wp.ID, truncate(wp.Subject, 45), FormatPoints(wp))
 			fmt.Printf("         @%s  %s\n", assignee, wp.Links.Priority.Title)
 		}
 	}
@@ -76,8 +72,7 @@ func Board(wps []api.WorkPackage) {
 			pts = *wp.StoryPoints
 		}
 		totalPoints += pts
-		status := strings.ToLower(wp.Links.Status.Title)
-		if status == "closed" || status == "resolved" || status == "done" {
+		if IsCompleted(wp) {
 			doneCount++
 			donePoints += pts
 		}

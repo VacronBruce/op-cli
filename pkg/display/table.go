@@ -93,10 +93,7 @@ func GroupByAssignee(wps []api.WorkPackage) {
 		fmt.Printf("\n%s (%d items)\n", name, len(items))
 		fmt.Println(strings.Repeat("-", len(name)+15))
 		for _, wp := range items {
-			pts := ""
-			if wp.StoryPoints != nil {
-				pts = fmt.Sprintf(" [%dpt]", *wp.StoryPoints)
-			}
+			pts := FormatPoints(wp)
 			fmt.Printf("  #%-6d %-12s %-10s %s%s\n",
 				wp.ID,
 				wp.Links.Status.Title,
@@ -161,4 +158,38 @@ func truncate(s string, max int) string {
 		return s
 	}
 	return s[:max-3] + "..."
+}
+
+// FormatPoints renders a work package's story points as " [Npt]", or "" when
+// unestimated, for inline list rendering.
+func FormatPoints(wp api.WorkPackage) string {
+	if wp.StoryPoints == nil {
+		return ""
+	}
+	return fmt.Sprintf(" [%dpt]", *wp.StoryPoints)
+}
+
+// IsCompleted reports whether a work package's status counts as done for
+// sprint accounting (closed, resolved, or done — case-insensitive).
+func IsCompleted(wp api.WorkPackage) bool {
+	status := strings.ToLower(wp.Links.Status.Title)
+	return status == "closed" || status == "resolved" || status == "done"
+}
+
+// VersionTable prints versions (sprints or releases) as the shared
+// ID/STATUS/START/END/NAME table, with "-" for missing dates.
+func VersionTable(versions []api.Version) {
+	fmt.Printf("%-6s  %-8s  %-12s  %-12s  %s\n", "ID", "STATUS", "START", "END", "NAME")
+	fmt.Printf("%-6s  %-8s  %-12s  %-12s  %s\n", "--", "------", "-----", "---", "----")
+	for _, v := range versions {
+		start := v.StartDate
+		if start == "" {
+			start = "-"
+		}
+		end := v.EndDate
+		if end == "" {
+			end = "-"
+		}
+		fmt.Printf("%-6d  %-8s  %-12s  %-12s  %s\n", v.ID, v.Status, start, end, v.Name)
+	}
 }

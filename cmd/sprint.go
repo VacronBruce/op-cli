@@ -197,12 +197,11 @@ func runSprintProgress(cmd *cobra.Command, args []string) error {
 		}
 		totalPoints += pts
 
-		status := strings.ToLower(wp.Links.Status.Title)
 		switch {
-		case status == "closed" || status == "resolved" || status == "done":
+		case display.IsCompleted(wp):
 			doneCount++
 			donePoints += pts
-		case status != "new":
+		case !strings.EqualFold(wp.Links.Status.Title, "new"):
 			inProgressCount++
 		}
 	}
@@ -233,19 +232,7 @@ func runSprintList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("listing versions: %w", err)
 	}
 
-	fmt.Printf("%-6s  %-8s  %-12s  %-12s  %s\n", "ID", "STATUS", "START", "END", "NAME")
-	fmt.Printf("%-6s  %-8s  %-12s  %-12s  %s\n", "--", "------", "-----", "---", "----")
-	for _, v := range versions.Embedded.Elements {
-		start := v.StartDate
-		if start == "" {
-			start = "-"
-		}
-		end := v.EndDate
-		if end == "" {
-			end = "-"
-		}
-		fmt.Printf("%-6d  %-8s  %-12s  %-12s  %s\n", v.ID, v.Status, start, end, v.Name)
-	}
+	display.VersionTable(versions.Embedded.Elements)
 	return nil
 }
 
@@ -312,8 +299,7 @@ func runSprintClose(cmd *cobra.Command, args []string) error {
 
 	var done, notDone []api.WorkPackage
 	for _, wp := range result.Embedded.Elements {
-		status := strings.ToLower(wp.Links.Status.Title)
-		if status == "closed" || status == "resolved" || status == "done" {
+		if display.IsCompleted(wp) {
 			done = append(done, wp)
 		} else {
 			notDone = append(notDone, wp)
@@ -325,21 +311,13 @@ func runSprintClose(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("\nCompleted (%d):\n", len(done))
 	for _, wp := range done {
-		pts := ""
-		if wp.StoryPoints != nil {
-			pts = fmt.Sprintf(" [%dpt]", *wp.StoryPoints)
-		}
-		fmt.Printf("  #%-6d %s%s\n", wp.ID, wp.Subject, pts)
+		fmt.Printf("  #%-6d %s%s\n", wp.ID, wp.Subject, display.FormatPoints(wp))
 	}
 
 	if len(notDone) > 0 {
 		fmt.Printf("\nIncomplete - carry over (%d):\n", len(notDone))
 		for _, wp := range notDone {
-			pts := ""
-			if wp.StoryPoints != nil {
-				pts = fmt.Sprintf(" [%dpt]", *wp.StoryPoints)
-			}
-			fmt.Printf("  #%-6d %-12s %s%s\n", wp.ID, wp.Links.Status.Title, wp.Subject, pts)
+			fmt.Printf("  #%-6d %-12s %s%s\n", wp.ID, wp.Links.Status.Title, wp.Subject, display.FormatPoints(wp))
 		}
 		fmt.Printf("\nUse 'op sprint add <ids> --sprint=\"<next>\"' to carry over items.\n")
 	}

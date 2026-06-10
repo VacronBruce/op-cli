@@ -65,10 +65,7 @@ func reportSection(title string, wps []api.WorkPackage) {
 		if assignee == "" {
 			assignee = "unassigned"
 		}
-		pts := ""
-		if wp.StoryPoints != nil {
-			pts = fmt.Sprintf(" [%dpt]", *wp.StoryPoints)
-		}
+		pts := FormatPoints(wp)
 		fmt.Printf("- #%d %s%s (@%s)\n", wp.ID, wp.Subject, pts, assignee)
 	}
 	fmt.Println()
