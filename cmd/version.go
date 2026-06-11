@@ -38,7 +38,29 @@ func init() {
 	rootCmd.AddCommand(upgradeCmd)
 }
 
-const pkgBaseURL = "https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest"
+// pkgBaseURL is a var (not const) so tests can point it at a local server.
+var pkgBaseURL = "https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest"
+
+// Seams for tests. Production wiring locates the running binary and tries
+// glab first, then a token download — both do exec/network/file I/O that
+// tests stub out to cover runUpgrade's orchestration.
+var (
+	upgradeExecPath = func() (string, error) {
+		p, err := os.Executable()
+		if err != nil {
+			return "", err
+		}
+		p, _ = filepath.EvalSymlinks(p)
+		return p, nil
+	}
+	upgradeDownload = func(assetName string) (string, error) {
+		tmpPath, err := downloadViaGlab(assetName)
+		if err != nil {
+			tmpPath, err = downloadViaCurl(assetName)
+		}
+		return tmpPath, err
+	}
+)
 
 func runUpgrade(cmd *cobra.Command, args []string) error {
 	binary := fmt.Sprintf("op-%s-%s", runtime.GOOS, runtime.GOARCH)
@@ -47,17 +69,12 @@ func runUpgrade(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Downloading latest %s...\n", binary)
 
 	// Find where the current binary lives so we can replace it.
-	execPath, err := os.Executable()
+	execPath, err := upgradeExecPath()
 	if err != nil {
 		return fmt.Errorf("finding current binary: %w", err)
 	}
-	execPath, _ = filepath.EvalSymlinks(execPath)
 
-	// Try glab first, then curl with token.
-	tmpPath, err := downloadViaGlab(binary)
-	if err != nil {
-		tmpPath, err = downloadViaCurl(binary)
-	}
+	tmpPath, err := upgradeDownload(binary)
 	if err != nil {
 		return err
 	}
