@@ -66,7 +66,7 @@ func init() {
 	myCmd.Flags().String("component", "", "Filter by component (android, ios, ott, engineering, analytics)")
 	myCmd.Flags().StringSlice("type", nil, "Filter by type (e.g. bug,task)")
 	myCmd.Flags().Bool("by-sprint", false, "Group results by sprint")
-	_ = myCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
+	registerCustomFieldCompletions(myCmd, "component")
 	myTeamCmd.Flags().String("sprint", "", "Sprint name (defaults to active sprint)")
 	myTeamAliasCmd.Flags().String("sprint", "", "Sprint name (defaults to active sprint)")
 }

@@ -45,10 +45,8 @@ func init() {
 	updateCmd.Flags().StringSlice("product", nil, "Product (eet, entd, djy, cntd, gan_jing_world)")
 	updateCmd.Flags().StringSlice("label", nil, "Label (team#appios, team#appandroid, ...)")
 
-	_ = updateCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
+	registerCustomFieldCompletions(updateCmd, "component", "product", "label")
 	_ = updateCmd.RegisterFlagCompletionFunc("release", completeRelease())
-	_ = updateCmd.RegisterFlagCompletionFunc("product", completeCustomField("product"))
-	_ = updateCmd.RegisterFlagCompletionFunc("label", completeCustomField("label"))
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {

@@ -33,7 +33,7 @@ func init() {
 	checkCmd.Flags().Bool("comment", false, "Post results as comment on ticket")
 	checkCmd.Flags().String("component", "", "Filter by component (for --sprint)")
 
-	_ = checkCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
+	registerCustomFieldCompletions(checkCmd, "component")
 }
 
 func runCheck(cmd *cobra.Command, args []string) error {

@@ -53,6 +53,14 @@ func completeCustomField(fieldName string) func(*cobra.Command, []string, string
 	}
 }
 
+// registerCustomFieldCompletions wires shell completion for each named flag to
+// the logical custom field of the same name.
+func registerCustomFieldCompletions(c *cobra.Command, fields ...string) {
+	for _, f := range fields {
+		_ = c.RegisterFlagCompletionFunc(f, completeCustomField(f))
+	}
+}
+
 func completeRelease() func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 	return func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		project := viper.GetString("project")

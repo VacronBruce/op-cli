@@ -31,8 +31,7 @@ func init() {
 	boardCmd.Flags().String("label", "", "Filter by label (team#appios, team#appandroid, etc.)")
 	boardCmd.Flags().String("status", "", "Filter by status (e.g. blocked, in-progress, new)")
 
-	_ = boardCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
-	_ = boardCmd.RegisterFlagCompletionFunc("label", completeCustomField("label"))
+	registerCustomFieldCompletions(boardCmd, "component", "label")
 }
 
 func runBoard(cmd *cobra.Command, args []string) error {

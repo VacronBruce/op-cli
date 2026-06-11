@@ -43,10 +43,7 @@ func init() {
 	createCmd.Flags().StringSlice("label", nil, "Label (team#appios, team#appandroid, team#appall, team#web, ntd, seo, roku)")
 	createCmd.Flags().StringSlice("attach", nil, "File path(s) to attach (images, PDFs, etc.)")
 
-	_ = createCmd.RegisterFlagCompletionFunc("component", completeCustomField("component"))
-	_ = createCmd.RegisterFlagCompletionFunc("product", completeCustomField("product"))
-	_ = createCmd.RegisterFlagCompletionFunc("tech-area", completeCustomField("tech-area"))
-	_ = createCmd.RegisterFlagCompletionFunc("label", completeCustomField("label"))
+	registerCustomFieldCompletions(createCmd, "component", "product", "tech-area", "label")
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
