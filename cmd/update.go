@@ -241,9 +241,10 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 		if len(args) == 1 {
 			fmt.Printf("Updated #%d\n", wp.ID)
+			fmt.Println(client.WorkPackageURL(wp.ID))
 			display.WorkPackageDetail(wp)
 		} else {
-			fmt.Printf("Updated #%d %s\n", wp.ID, wp.Subject)
+			fmt.Printf("Updated #%d %s  %s\n", wp.ID, wp.Subject, client.WorkPackageURL(wp.ID))
 		}
 	}
 

@@ -556,3 +556,30 @@ func TestCreate_AttachPartialFailureKeepsCreate(t *testing.T) {
 		t.Fatalf("error = %v, want the created-but-incomplete contract", err)
 	}
 }
+
+// --- URL output tests (#81722) ---
+
+// A successful create must print the new ticket's browser URL so the user
+// can open or share it without hand-building the link.
+func TestCreate_PrintsWorkPackageURL(t *testing.T) {
+	isolateSprintConfig(t, "")
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		GetFn:        fullGetFn("app"),
+		CreateWorkPackageFn: func(project string, req *api.CreateWPRequest) (*api.WorkPackage, error) {
+			return &api.WorkPackage{ID: 123, Subject: req.Subject}, nil
+		},
+	}
+	SetClient(mock)
+
+	root := newCreateRoot()
+	root.SetArgs([]string{"create", "task", "s"})
+	var err error
+	out := testutil.CaptureStdout(func() { err = root.Execute() })
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "https://op.example.com/work_packages/123") {
+		t.Errorf("create must print the new work package URL, got: %s", out)
+	}
+}

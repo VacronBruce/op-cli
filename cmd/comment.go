@@ -53,6 +53,7 @@ func runComment(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("editing comment: %w", err)
 		}
 		fmt.Printf("Comment #%d updated\n", editID)
+		fmt.Println(client.WorkPackageURL(id))
 		return nil
 	}
 
@@ -66,6 +67,7 @@ func runComment(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("posting comment: %w", err)
 		}
 		fmt.Printf("Comment posted on #%d\n", id)
+		fmt.Println(client.WorkPackageURL(id))
 		return nil
 	}
 

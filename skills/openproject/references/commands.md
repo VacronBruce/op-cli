@@ -73,6 +73,10 @@ op comment <id> "message"             # Post a comment
 op comment <id> "message" --edit=<comment-id>  # Edit an existing comment's text
 ```
 
+> **Ticket URLs:** `op create`, `op update`, and `op comment` (post/edit) print the
+> work package's browser URL (`<base>/work_packages/<id>`) after the confirmation
+> line — include it when reporting the result so the ticket is one click away.
+
 ## Sprint Management
 ```bash
 op sprint list                        # List all sprints (ID, status, dates)

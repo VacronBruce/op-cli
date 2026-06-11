@@ -10,6 +10,7 @@ import (
 // MockClient implements api.APIClient for testing.
 type MockClient struct {
 	ProjectValue string
+	BaseURLValue string
 
 	RequireProjectFn      func() (string, error)
 	GetFn                 func(path string, result interface{}) error
@@ -47,6 +48,14 @@ func (m *MockClient) RequireProject() (string, error) {
 		return m.ProjectValue, nil
 	}
 	return "", fmt.Errorf("no project")
+}
+
+func (m *MockClient) WorkPackageURL(id int) string {
+	base := m.BaseURLValue
+	if base == "" {
+		base = "https://op.example.com"
+	}
+	return fmt.Sprintf("%s/work_packages/%d", base, id)
 }
 
 func (m *MockClient) Get(path string, result interface{}) error {

@@ -194,6 +194,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("Created #%d\n", wp.ID)
+	fmt.Println(client.WorkPackageURL(wp.ID))
 	display.WorkPackageDetail(wp)
 
 	// Upload attachments. The work package already exists at this point, so a

@@ -390,3 +390,38 @@ func TestUpdate_SingleID_KeepsDetailOutput(t *testing.T) {
 		t.Errorf("single ID must not print the bulk summary, got: %s", out)
 	}
 }
+
+// --- URL output tests (#81722) ---
+
+// Both update paths must surface the ticket's browser URL: the single-ID
+// detail view on its own line, and each bulk line inline — so the user can
+// open or share any updated ticket without hand-building the link.
+func TestUpdate_PrintsWorkPackageURL(t *testing.T) {
+	var got *api.UpdateWPRequest
+	SetClient(updateMock(&got))
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("points", "3")
+	out := testutil.CaptureStdout(func() {
+		if err := runUpdate(cmd, []string{"123"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+	if !strings.Contains(out, "https://op.example.com/work_packages/123") {
+		t.Errorf("single update must print the work package URL, got: %s", out)
+	}
+
+	SetClient(updateMock(&got))
+	cmd = newUpdateCmd()
+	_ = cmd.Flags().Set("points", "3")
+	out = testutil.CaptureStdout(func() {
+		if err := runUpdate(cmd, []string{"101", "102"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+	for _, id := range []string{"101", "102"} {
+		if !strings.Contains(out, "https://op.example.com/work_packages/"+id) {
+			t.Errorf("bulk update must print each work package URL, got: %s", out)
+		}
+	}
+}

@@ -338,3 +338,31 @@ func TestComment_InvalidID_Empty(t *testing.T) {
 		t.Errorf("expected invalid ID error, got: %v", err)
 	}
 }
+
+// --- URL output tests (#81722) ---
+
+// Every comment write must end with the work package's browser URL so the
+// user can open or share the ticket without hand-building the link.
+func TestComment_PostAndEdit_PrintWorkPackageURL(t *testing.T) {
+	mock := &testutil.MockClient{
+		PostCommentFn: func(int, string) error { return nil },
+		EditCommentFn: func(int, string) error { return nil },
+	}
+
+	out, err := runCommentWith(t, mock, []string{"81321", "LGTM"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "https://op.example.com/work_packages/81321") {
+		t.Errorf("post must print the work package URL, got: %s", out)
+	}
+
+	out, err = runCommentEditWith(t, mock, 1234, []string{"81321", "fixed"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// The URL targets the work package (81321), not the comment ID (1234).
+	if !strings.Contains(out, "https://op.example.com/work_packages/81321") {
+		t.Errorf("edit must print the work package URL, got: %s", out)
+	}
+}

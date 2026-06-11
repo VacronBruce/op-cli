@@ -22,6 +22,7 @@ type APIClient interface {
 	Post(path string, body interface{}, result interface{}) error
 	Patch(path string, body interface{}, result interface{}) error
 	DoRaw(method, href string) (*http.Response, error)
+	WorkPackageURL(id int) string
 
 	// Work packages
 	GetWorkPackage(id int) (*WorkPackage, error)
@@ -119,6 +120,11 @@ func NewClient(baseURL, apiKey, project string) *Client {
 			Timeout: 60 * time.Second,
 		},
 	}
+}
+
+// WorkPackageURL returns the browser URL of a work package.
+func (c *Client) WorkPackageURL(id int) string {
+	return fmt.Sprintf("%s/work_packages/%d", c.BaseURL, id)
 }
 
 // do executes an HTTP request with auth headers.
