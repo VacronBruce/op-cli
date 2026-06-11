@@ -287,3 +287,272 @@ func TestCreate_ExplicitSprintResolvesAgainstBugBoard(t *testing.T) {
 		t.Errorf("ResolveVersion name = %q, want %q", resolveName, "BugSprint1")
 	}
 }
+
+// fullGetFn extends resolverGetFn with the project-scoped collections the
+// optional create flags resolve against: available assignees and epics.
+func fullGetFn(project string) func(string, interface{}) error {
+	base := resolverGetFn()
+	return func(path string, result interface{}) error {
+		switch {
+		case strings.HasPrefix(path, "/projects/"+project+"/available_assignees"):
+			js := `{"_embedded":{"elements":[
+				{"id":42,"name":"Ken Peng","_links":{"self":{"href":"/api/v3/users/42"}}}]}}`
+			return json.Unmarshal([]byte(js), result)
+		case strings.HasPrefix(path, "/projects/"+project+"/work_packages"):
+			js := `{"_embedded":{"elements":[
+				{"id":900,"subject":"NTD+ launch","_links":{"self":{"href":"/api/v3/work_packages/900"}}}]}}`
+			return json.Unmarshal([]byte(js), result)
+		}
+		return base(path, result)
+	}
+}
+
+// Every optional create flag must land in the outgoing request — asserted on the
+// marshaled JSON, i.e. exactly what the API would receive. A flag that silently
+// drops out of the payload (e.g. a typo'd Links key) is invisible to the user at
+// create time and only surfaces as a mis-filed ticket later.
+func TestCreate_OptionalFlagsPopulateRequest(t *testing.T) {
+	isolateSprintConfig(t, "")
+	var gotReq *api.CreateWPRequest
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		GetFn:        fullGetFn("app"),
+		CreateWorkPackageFn: func(project string, req *api.CreateWPRequest) (*api.WorkPackage, error) {
+			gotReq = req
+			return &api.WorkPackage{ID: 123, Subject: req.Subject}, nil
+		},
+	}
+	SetClient(mock)
+
+	root := newCreateRoot()
+	root.SetArgs([]string{"create", "task", "a subject",
+		"-d", "desc text", "--points", "3", "--start", "2026-06-01", "--due", "2026-06-15",
+		"-a", "Ken Peng", "--parent", "777", "-e", "NTD",
+		"--component", "android", "--product", "entd", "--tech-area", "app",
+		"--label", "team#appandroid"})
+	var err error
+	testutil.CaptureStdout(func() { err = root.Execute() })
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotReq == nil {
+		t.Fatal("create request was never captured")
+	}
+
+	if gotReq.Description == nil || gotReq.Description.Raw != "desc text" {
+		t.Errorf("description = %+v, want raw 'desc text'", gotReq.Description)
+	}
+	if gotReq.StoryPoints == nil || *gotReq.StoryPoints != 3 {
+		t.Errorf("storyPoints = %v, want 3", gotReq.StoryPoints)
+	}
+	if gotReq.StartDate != "2026-06-01" || gotReq.DueDate != "2026-06-15" {
+		t.Errorf("dates = %q/%q, want 2026-06-01/2026-06-15", gotReq.StartDate, gotReq.DueDate)
+	}
+
+	payload, err := json.Marshal(gotReq)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	js := string(payload)
+	wantHrefs := map[string]string{
+		"assignee": "/api/v3/users/42",
+		"parent":   "/api/v3/work_packages/777",
+		"epic":     "/api/v3/work_packages/900", // partial match "NTD" -> "NTD+ launch"
+	}
+	for field, href := range wantHrefs {
+		if !strings.Contains(js, fmt.Sprintf("%q", href)) {
+			t.Errorf("payload missing %s href %s: %s", field, href, js)
+		}
+	}
+	for _, logical := range []struct{ field, option string }{
+		{"component", "android"}, {"product", "entd"}, {"tech-area", "app"}, {"label", "team#appandroid"},
+	} {
+		cf, err := api.CustomFieldByName(logical.field)
+		if err != nil {
+			t.Fatalf("registry missing %s: %v", logical.field, err)
+		}
+		href, err := cf.ResolveHref(logical.option)
+		if err != nil {
+			t.Fatalf("registry can't resolve %s=%s: %v", logical.field, logical.option, err)
+		}
+		if !strings.Contains(js, fmt.Sprintf("%q", cf.Field)) || !strings.Contains(js, fmt.Sprintf("%q", href)) {
+			t.Errorf("payload missing %s (%s -> %s): %s", logical.field, cf.Field, href, js)
+		}
+	}
+}
+
+// Each resolve failure must abort the create BEFORE the write — a half-validated
+// ticket must never be created — and the error must name the flag that failed so
+// the user knows what to fix.
+func TestCreate_ResolveErrorsAbortBeforeWrite(t *testing.T) {
+	cases := []struct {
+		name    string
+		args    []string
+		wantErr string
+	}{
+		{"unknown type", []string{"create", "zzz", "s"}, "resolving type"},
+		{"unknown priority", []string{"create", "task", "s", "--priority", "Nope"}, "resolving priority"},
+		{"non-numeric parent", []string{"create", "task", "s", "--parent", "abc"}, "invalid parent ID"},
+		{"unknown assignee", []string{"create", "task", "s", "-a", "Nobody"}, "resolving assignee"},
+		{"unknown epic", []string{"create", "task", "s", "-e", "does-not-exist"}, "resolving epic"},
+		{"unknown component", []string{"create", "task", "s", "--component", "zzz"}, "resolving component"},
+		{"unknown product", []string{"create", "task", "s", "--product", "zzz"}, "resolving product"},
+		{"unknown tech-area", []string{"create", "task", "s", "--tech-area", "zzz"}, "resolving tech-area"},
+		{"unknown label", []string{"create", "task", "s", "--label", "zzz"}, "resolving label"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			isolateSprintConfig(t, "")
+			created := false
+			mock := &testutil.MockClient{
+				ProjectValue: "app",
+				GetFn:        fullGetFn("app"),
+				CreateWorkPackageFn: func(project string, req *api.CreateWPRequest) (*api.WorkPackage, error) {
+					created = true
+					return &api.WorkPackage{ID: 1}, nil
+				},
+			}
+			SetClient(mock)
+
+			root := newCreateRoot()
+			root.SetArgs(tc.args)
+			var err error
+			testutil.CaptureStdout(func() { err = root.Execute() })
+
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("error = %v, want containing %q", err, tc.wantErr)
+			}
+			if created {
+				t.Error("work package must not be created when a flag fails to resolve")
+			}
+		})
+	}
+}
+
+// An ambient sprint that fails to resolve on an UNROUTED create must fail loud
+// (the user asked for that sprint via config) — and must not create the ticket.
+func TestCreate_AmbientSprintResolveErrorAborts(t *testing.T) {
+	isolateSprintConfig(t, "Ghost Sprint")
+	created := false
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		GetFn:        fullGetFn("app"),
+		ResolveVersionFn: func(project, name string) (*api.Version, error) {
+			return nil, fmt.Errorf("no version %q in %s", name, project)
+		},
+		CreateWorkPackageFn: func(project string, req *api.CreateWPRequest) (*api.WorkPackage, error) {
+			created = true
+			return &api.WorkPackage{ID: 1}, nil
+		},
+	}
+	SetClient(mock)
+
+	root := newCreateRoot()
+	root.SetArgs([]string{"create", "task", "s"})
+	var err error
+	testutil.CaptureStdout(func() { err = root.Execute() })
+
+	if err == nil || !strings.Contains(err.Error(), "resolving sprint") {
+		t.Fatalf("error = %v, want containing 'resolving sprint'", err)
+	}
+	if created {
+		t.Error("work package must not be created when the sprint fails to resolve")
+	}
+}
+
+// With no -d flag, the per-type template from config (templates.<type>) becomes
+// the description — that's the documented .oprc workflow for pre-filled bug
+// forms. An explicit -d must still win over the template.
+func TestCreate_DescriptionTemplateFromConfig(t *testing.T) {
+	isolateSprintConfig(t, "")
+	prev := viper.Get("templates.task")
+	viper.Set("templates.task", "## Steps\n1.")
+	t.Cleanup(func() { viper.Set("templates.task", prev) })
+
+	var gotReq *api.CreateWPRequest
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		GetFn:        fullGetFn("app"),
+		CreateWorkPackageFn: func(project string, req *api.CreateWPRequest) (*api.WorkPackage, error) {
+			gotReq = req
+			return &api.WorkPackage{ID: 1}, nil
+		},
+	}
+	SetClient(mock)
+
+	root := newCreateRoot()
+	root.SetArgs([]string{"create", "task", "s"})
+	testutil.CaptureStdout(func() { _ = root.Execute() })
+	if gotReq == nil || gotReq.Description == nil || gotReq.Description.Raw != "## Steps\n1." {
+		t.Errorf("template must fill description, got %+v", gotReq.Description)
+	}
+
+	root = newCreateRoot()
+	root.SetArgs([]string{"create", "task", "s", "-d", "explicit"})
+	testutil.CaptureStdout(func() { _ = root.Execute() })
+	if gotReq == nil || gotReq.Description == nil || gotReq.Description.Raw != "explicit" {
+		t.Errorf("-d must override the template, got %+v", gotReq.Description)
+	}
+}
+
+// An API failure on the write itself must surface as a wrapped error, not a
+// silent exit — scripts key off the exit code.
+func TestCreate_CreateWorkPackageErrorSurfaces(t *testing.T) {
+	isolateSprintConfig(t, "")
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		GetFn:        fullGetFn("app"),
+		CreateWorkPackageFn: func(project string, req *api.CreateWPRequest) (*api.WorkPackage, error) {
+			return nil, fmt.Errorf("HTTP 422")
+		},
+	}
+	SetClient(mock)
+
+	root := newCreateRoot()
+	root.SetArgs([]string{"create", "task", "s"})
+	var err error
+	testutil.CaptureStdout(func() { err = root.Execute() })
+	if err == nil || !strings.Contains(err.Error(), "creating work package") {
+		t.Fatalf("error = %v, want containing 'creating work package'", err)
+	}
+}
+
+// The work package exists once the create succeeds, so a failed upload must NOT
+// look like a failed create: the success output stays, each failure is warned
+// per file, and the command exits non-zero naming the created ID — that exact
+// contract lets scripts detect "created but incomplete".
+func TestCreate_AttachPartialFailureKeepsCreate(t *testing.T) {
+	isolateSprintConfig(t, "")
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		GetFn:        fullGetFn("app"),
+		CreateWorkPackageFn: func(project string, req *api.CreateWPRequest) (*api.WorkPackage, error) {
+			return &api.WorkPackage{ID: 123, Subject: req.Subject}, nil
+		},
+		UploadAttachmentFn: func(wpID int, filePath, description string) (*api.Attachment, error) {
+			if filePath == "bad.png" {
+				return nil, fmt.Errorf("boom")
+			}
+			return &api.Attachment{ID: 7, FileName: filePath, FileSize: 5}, nil
+		},
+	}
+	SetClient(mock)
+
+	root := newCreateRoot()
+	root.SetArgs([]string{"create", "task", "s", "--attach", "ok.png", "--attach", "bad.png"})
+	var err error
+	out := testutil.CaptureStdout(func() { err = root.Execute() })
+
+	if !strings.Contains(out, "Created #123") {
+		t.Errorf("create success output must survive an attach failure, got: %s", out)
+	}
+	if !strings.Contains(out, "Attached: ok.png") {
+		t.Errorf("successful attachment must be reported, got: %s", out)
+	}
+	if !strings.Contains(out, "failed to attach bad.png") {
+		t.Errorf("failed attachment must be warned per file, got: %s", out)
+	}
+	if err == nil || !strings.Contains(err.Error(), "#123 created, but 1 attachment(s) failed") {
+		t.Fatalf("error = %v, want the created-but-incomplete contract", err)
+	}
+}
