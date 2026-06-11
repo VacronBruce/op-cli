@@ -265,6 +265,8 @@ op check --sprint --component=android  # Check android tickets only
 
 ```bash
 op projects                        # List all accessible projects
+op fields                          # List custom fields (component, product, ...)
+op fields component                # List the allowed --component values
 op version                         # Print CLI version
 op upgrade                         # Upgrade to latest version
 ```

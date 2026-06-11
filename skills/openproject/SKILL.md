@@ -66,6 +66,8 @@ Consult these before constructing a command — don't guess flags or values:
 24. **"review as PM"** → invoke /op:ticket-prep skill
 25. **"verify as developer"** → invoke /op:ticket-verify skill
 26. **"fully review / bot-review a ticket"** → invoke /op:ticket-review skill (combined PM + Dev, posts one comment)
+27. **"what components/products/labels are valid?"** → `op fields` (overview) or `op fields component` (values)
+28. **"remove an attachment"** → `op attach <id> --list` to find the attachment ID, then `op attach <id> --remove=<attachment-id>`
 
 For exact flags and field values on any of the above, read `references/commands.md`
 and `references/custom-fields.md` first.

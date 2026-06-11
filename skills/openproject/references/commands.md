@@ -132,6 +132,15 @@ op check --sprint                     # Check all sprint tickets
 op check --sprint --component=android # Filter + check
 ```
 
+## Custom Fields
+```bash
+op fields                             # List custom fields (name, field key, option count)
+op fields component                   # List the allowed --component values
+```
+Shows the same registry the `--component`/`--product`/`--tech-area`/`--label`/
+`--jira-id` flags resolve against, including `~/.oprc` overrides. Works without
+URL/API-key config.
+
 ## Global Flags
 - `-p, --project <id>` — Override default project
 - `--sprint <name>` — Override default sprint
