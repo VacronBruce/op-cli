@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 )
@@ -54,15 +55,39 @@ func (r *Runner) Run(id int) (*Report, error) {
 	return report, nil
 }
 
-// RunBatch runs checks on a slice of work packages.
+// batchConcurrency bounds parallel checks so a 40-ticket sprint doesn't open
+// 120 simultaneous connections against the OpenProject server.
+const batchConcurrency = 5
+
+// RunBatch runs checks on a slice of work packages. Each check is several
+// API round-trips, so checks run concurrently (bounded); reports stay in
+// input order and any failure fails the batch naming the first failing
+// ticket in input order, same as the sequential contract.
 func (r *Runner) RunBatch(wps []api.WorkPackage) ([]Report, error) {
-	var reports []Report
-	for _, wp := range wps {
-		report, err := r.Run(wp.ID)
+	reports := make([]Report, len(wps))
+	errs := make([]error, len(wps))
+	sem := make(chan struct{}, batchConcurrency)
+	var wg sync.WaitGroup
+	for i, wp := range wps {
+		wg.Add(1)
+		go func(i, id int) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			report, err := r.Run(id)
+			if err != nil {
+				errs[i] = fmt.Errorf("checking #%d: %w", id, err)
+				return
+			}
+			reports[i] = *report
+		}(i, wp.ID)
+	}
+	wg.Wait()
+
+	for _, err := range errs {
 		if err != nil {
-			return nil, fmt.Errorf("checking #%d: %w", wp.ID, err)
+			return nil, err
 		}
-		reports = append(reports, *report)
 	}
 	return reports, nil
 }

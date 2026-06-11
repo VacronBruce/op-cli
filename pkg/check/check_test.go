@@ -2,7 +2,10 @@ package check
 
 import (
 	"fmt"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/chenhuijun/op-cli/internal/testutil"
 	"github.com/chenhuijun/op-cli/pkg/api"
@@ -430,5 +433,97 @@ func TestRunnerError(t *testing.T) {
 	_, err := runner.Run(999)
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+}
+
+// --- RunBatch concurrency ---
+
+func batchMock(getWP func(id int) (*api.WorkPackage, error)) *testutil.MockClient {
+	return &testutil.MockClient{
+		GetWorkPackageFn: getWP,
+		GetFn:            func(path string, result interface{}) error { return nil },
+		ListActivitiesFn: func(wpID int) (*api.ActivityCollection, error) {
+			return &api.ActivityCollection{}, nil
+		},
+	}
+}
+
+// Checks fetch concurrently, but the reports must come back in INPUT order —
+// the sprint table reads top-to-bottom and diffs between runs must be stable.
+func TestRunBatch_PreservesInputOrder(t *testing.T) {
+	mock := batchMock(func(id int) (*api.WorkPackage, error) {
+		wp := makeWP("Task", "l1\nl2\nl3")
+		wp.ID = id
+		wp.Subject = fmt.Sprintf("ticket-%d", id)
+		return wp, nil
+	})
+	r := &Runner{Client: mock}
+
+	wps := make([]api.WorkPackage, 20)
+	for i := range wps {
+		wps[i] = api.WorkPackage{ID: 1000 + i}
+	}
+	reports, err := r.RunBatch(wps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(reports) != 20 {
+		t.Fatalf("expected 20 reports, got %d", len(reports))
+	}
+	for i, rep := range reports {
+		if rep.WPID != 1000+i {
+			t.Fatalf("report %d is for #%d — order not preserved", i, rep.WPID)
+		}
+	}
+}
+
+// RunBatch must actually overlap requests: two checks block until BOTH have
+// started; a sequential implementation deadlocks here (caught by the timeout).
+func TestRunBatch_RunsConcurrently(t *testing.T) {
+	started := make(chan struct{}, 2)
+	release := make(chan struct{})
+	var once sync.Once
+	mock := batchMock(func(id int) (*api.WorkPackage, error) {
+		started <- struct{}{}
+		once.Do(func() {
+			go func() {
+				<-started
+				<-started
+				close(release)
+			}()
+		})
+		select {
+		case <-release:
+		case <-time.After(2 * time.Second):
+			return nil, fmt.Errorf("timed out waiting for a second concurrent check — RunBatch is sequential")
+		}
+		wp := makeWP("Task", "l1\nl2\nl3")
+		wp.ID = id
+		return wp, nil
+	})
+	r := &Runner{Client: mock}
+
+	_, err := r.RunBatch([]api.WorkPackage{{ID: 1}, {ID: 2}})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// The error contract is unchanged: any failed check fails the batch, naming
+// the FIRST failing ticket in input order regardless of completion order.
+func TestRunBatch_FirstErrorInInputOrderWins(t *testing.T) {
+	mock := batchMock(func(id int) (*api.WorkPackage, error) {
+		if id == 2 || id == 4 {
+			return nil, fmt.Errorf("boom-%d", id)
+		}
+		wp := makeWP("Task", "l1\nl2\nl3")
+		wp.ID = id
+		return wp, nil
+	})
+	r := &Runner{Client: mock}
+
+	_, err := r.RunBatch([]api.WorkPackage{{ID: 1}, {ID: 2}, {ID: 3}, {ID: 4}})
+	if err == nil || !strings.Contains(err.Error(), "checking #2") {
+		t.Fatalf("expected first input-order error (#2), got: %v", err)
 	}
 }

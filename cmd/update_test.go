@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/chenhuijun/op-cli/internal/testutil"
 	"github.com/chenhuijun/op-cli/pkg/api"
@@ -57,11 +59,16 @@ func resolverCollections(path string, result interface{}) error {
 }
 
 func updateMock(captured **api.UpdateWPRequest) *testutil.MockClient {
+	var mu sync.Mutex
 	return &testutil.MockClient{
 		ProjectValue: "app",
 		GetFn:        resolverCollections,
 		UpdateWorkPackageFn: func(id int, req *api.UpdateWPRequest) (*api.WorkPackage, error) {
-			*captured = req
+			mu.Lock()
+			if captured != nil {
+				*captured = req
+			}
+			mu.Unlock()
 			wp := &api.WorkPackage{ID: id, Subject: "updated"}
 			wp.Links.Type = api.Link{Title: "Task"}
 			wp.Links.Status = api.Link{Title: "In progress"}
@@ -312,14 +319,17 @@ func TestUpdate_MultiID_AppliesSameChangeToAll(t *testing.T) {
 	// every listed ID gets the same change. Each PATCH must arrive with
 	// LockVersion reset to 0 — reusing ticket A's lockVersion on ticket B
 	// would 409 (or worse, silently overwrite a newer revision).
-	var ids []int
+	var mu sync.Mutex
+	ids := map[int]bool{}
 	mock := updateMock(nil)
 	mock.UpdateWorkPackageFn = func(id int, req *api.UpdateWPRequest) (*api.WorkPackage, error) {
 		if req.LockVersion != 0 {
 			t.Errorf("PATCH for #%d carried stale LockVersion %d", id, req.LockVersion)
 		}
 		req.LockVersion = 7 // simulate the client filling it in per call
-		ids = append(ids, id)
+		mu.Lock()
+		ids[id] = true
+		mu.Unlock()
 		return &api.WorkPackage{ID: id, Subject: "x"}, nil
 	}
 	SetClient(mock)
@@ -332,7 +342,7 @@ func TestUpdate_MultiID_AppliesSameChangeToAll(t *testing.T) {
 		}
 	})
 
-	if len(ids) != 3 || ids[0] != 101 || ids[2] != 103 {
+	if len(ids) != 3 || !ids[101] || !ids[102] || !ids[103] {
 		t.Errorf("expected updates for 101,102,103, got %v", ids)
 	}
 	if !strings.Contains(out, "Updated 3 work package(s)") {
@@ -343,13 +353,70 @@ func TestUpdate_MultiID_AppliesSameChangeToAll(t *testing.T) {
 func TestUpdate_MultiID_ContinuesPastFailures(t *testing.T) {
 	// One bad ticket (locked, missing, garbage id) must not strand the rest:
 	// the loop continues, the summary names the count, and the exit is non-zero.
-	var ids []int
+	var mu sync.Mutex
+	ids := map[int]bool{}
 	mock := updateMock(nil)
 	mock.UpdateWorkPackageFn = func(id int, req *api.UpdateWPRequest) (*api.WorkPackage, error) {
 		if id == 102 {
 			return nil, errors.New("locked")
 		}
-		ids = append(ids, id)
+		mu.Lock()
+		ids[id] = true
+		mu.Unlock()
+		return &api.WorkPackage{ID: id, Subject: "x"}, nil
+	}
+	SetClient(mock)
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("points", "3")
+	var err error
+	out := testutil.CaptureStdout(func() {
+		err = runUpdate(cmd, []string{"101", "102", "abc", "103"})
+	})
+
+	if err == nil || !strings.Contains(err.Error(), "2 of 4") {
+		t.Fatalf("expected '2 of 4' aggregate error, got: %v", err)
+	}
+	if len(ids) != 2 || !ids[101] || !ids[103] {
+		t.Errorf("expected 101 and 103 updated despite failures, got %v", ids)
+	}
+	// Updates run concurrently, but the report must read in ARGUMENT order —
+	// users scan it against the list they typed.
+	for _, pair := range [][2]string{
+		{"Updated #101", "Error updating #102"},
+		{"Error updating #102", "Skipping invalid ID: abc"},
+		{"Skipping invalid ID: abc", "Updated #103"},
+	} {
+		if strings.Index(out, pair[0]) > strings.Index(out, pair[1]) {
+			t.Errorf("output out of argument order: %q must precede %q in: %s", pair[0], pair[1], out)
+		}
+	}
+}
+
+// Bulk updates must actually overlap requests: two updates block until BOTH
+// have started; a sequential implementation deadlocks here (caught by the
+// timeout). Each goroutine must get its own request copy — a shared one
+// races on the LockVersion the client writes back.
+func TestUpdate_MultiID_RunsConcurrently(t *testing.T) {
+	started := make(chan struct{}, 2)
+	release := make(chan struct{})
+	var once sync.Once
+	mock := updateMock(nil)
+	mock.UpdateWorkPackageFn = func(id int, req *api.UpdateWPRequest) (*api.WorkPackage, error) {
+		started <- struct{}{}
+		once.Do(func() {
+			go func() {
+				<-started
+				<-started
+				close(release)
+			}()
+		})
+		select {
+		case <-release:
+		case <-time.After(2 * time.Second):
+			return nil, errors.New("timed out waiting for a second concurrent update — bulk update is sequential")
+		}
+		req.LockVersion = 7
 		return &api.WorkPackage{ID: id, Subject: "x"}, nil
 	}
 	SetClient(mock)
@@ -358,14 +425,10 @@ func TestUpdate_MultiID_ContinuesPastFailures(t *testing.T) {
 	_ = cmd.Flags().Set("points", "3")
 	var err error
 	testutil.CaptureStdout(func() {
-		err = runUpdate(cmd, []string{"101", "102", "abc", "103"})
+		err = runUpdate(cmd, []string{"101", "102"})
 	})
-
-	if err == nil || !strings.Contains(err.Error(), "2 of 4") {
-		t.Fatalf("expected '2 of 4' aggregate error, got: %v", err)
-	}
-	if len(ids) != 2 || ids[0] != 101 || ids[1] != 103 {
-		t.Errorf("expected 101 and 103 updated despite failures, got %v", ids)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

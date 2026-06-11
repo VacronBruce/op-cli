@@ -3,11 +3,16 @@ package cmd
 import (
 	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/display"
 	"github.com/spf13/cobra"
 )
+
+// updateConcurrency bounds parallel bulk updates (each is a GET + PATCH pair)
+// to keep load on the OpenProject server reasonable.
+const updateConcurrency = 4
 
 var updateCmd = &cobra.Command{
 	Use:   "update <id> [<id>...]",
@@ -214,41 +219,61 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		req.Links = nil
 	}
 
-	failures := 0
-	for _, arg := range args {
-		wpID, err := parseWorkPackageID(arg)
-		if err != nil {
-			fmt.Printf("Skipping invalid ID: %s\n", arg)
-			failures++
-			continue
-		}
-
-		// Each ticket has its own lockVersion; carrying the previous one over
-		// would conflict (or silently clobber a newer revision).
+	// Single-ID keeps its original contract: fail fast with the API error and
+	// render the full detail view.
+	if len(args) == 1 {
+		wpID, _ := parseWorkPackageID(args[0]) // validated above
 		req.LockVersion = 0
-
 		wp, err := client.UpdateWorkPackage(wpID, req)
 		if err != nil {
-			if len(args) == 1 {
-				return fmt.Errorf("updating work package: %w", err)
-			}
-			fmt.Printf("Error updating #%d: %s\n", wpID, err)
-			failures++
+			return fmt.Errorf("updating work package: %w", err)
+		}
+		fmt.Printf("Updated #%d\n", wp.ID)
+		fmt.Println(client.WorkPackageURL(wp.ID))
+		display.WorkPackageDetail(wp)
+		return nil
+	}
+
+	// Bulk: updates run concurrently (bounded). Each goroutine gets its OWN
+	// copy of the request — UpdateWorkPackage writes the fetched lockVersion
+	// back into it, and each ticket has its own. Results are collected and
+	// printed in argument order so the report reads against the typed list.
+	lines := make([]string, len(args))
+	failed := make([]bool, len(args))
+	sem := make(chan struct{}, updateConcurrency)
+	var wg sync.WaitGroup
+	for i, arg := range args {
+		wpID, err := parseWorkPackageID(arg)
+		if err != nil {
+			lines[i] = fmt.Sprintf("Skipping invalid ID: %s", arg)
+			failed[i] = true
 			continue
 		}
+		wg.Add(1)
+		go func(i, wpID int) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			reqCopy := *req // own LockVersion; the link maps are only read
+			wp, err := client.UpdateWorkPackage(wpID, &reqCopy)
+			if err != nil {
+				lines[i] = fmt.Sprintf("Error updating #%d: %s", wpID, err)
+				failed[i] = true
+				return
+			}
+			lines[i] = fmt.Sprintf("Updated #%d %s  %s", wp.ID, wp.Subject, client.WorkPackageURL(wp.ID))
+		}(i, wpID)
+	}
+	wg.Wait()
 
-		if len(args) == 1 {
-			fmt.Printf("Updated #%d\n", wp.ID)
-			fmt.Println(client.WorkPackageURL(wp.ID))
-			display.WorkPackageDetail(wp)
-		} else {
-			fmt.Printf("Updated #%d %s  %s\n", wp.ID, wp.Subject, client.WorkPackageURL(wp.ID))
+	failures := 0
+	for i, line := range lines {
+		fmt.Println(line)
+		if failed[i] {
+			failures++
 		}
 	}
-
-	if len(args) > 1 {
-		fmt.Printf("Updated %d work package(s)\n", len(args)-failures)
-	}
+	fmt.Printf("Updated %d work package(s)\n", len(args)-failures)
 	if failures > 0 {
 		return fmt.Errorf("%d of %d update(s) failed", failures, len(args))
 	}
