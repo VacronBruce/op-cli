@@ -206,6 +206,13 @@ op unlink 81482 --relates-to=81483 # Remove the "relates" relation to #81483
 op unlink 81482 --blocks=81485     # Remove the "blocks" relation to #81485
 ```
 
+All OpenProject relation types are available as flags on both `op link` and
+`op unlink`: `--relates-to`, `--blocks`, `--blocked-by`, `--duplicates`,
+`--duplicated-by`, `--precedes`, `--follows`, `--includes`, `--part-of`,
+`--requires`, `--required-by`. `op unlink` matches the relation in either
+direction (e.g. `--blocked-by` also removes a relation stored as "blocks"
+from the other side).
+
 ### Sprint management
 
 ```bash

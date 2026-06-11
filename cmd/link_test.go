@@ -18,8 +18,9 @@ func runLinkWith(t *testing.T, mock *testutil.MockClient, args []string) (string
 	cmd := &cobra.Command{}
 	cmd.Flags().String("parent", "", "")
 	cmd.Flags().Bool("no-parent", false, "")
-	cmd.Flags().String("relates-to", "", "")
-	cmd.Flags().String("blocks", "", "")
+	for _, rf := range relationFlags {
+		cmd.Flags().String(rf.flag, "", "")
+	}
 
 	// Parse flags from args
 	var positional []string

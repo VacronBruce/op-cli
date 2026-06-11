@@ -66,6 +66,10 @@ op link <id> --parent=81477           # Set parent work package
 op link <id> --no-parent              # Remove parent link
 op link <id> --relates-to=81483       # Create "relates" relation
 op link <id> --blocks=81485           # Create "blocks" relation
+  # All OpenProject relation types are available as flags:
+  # --relates-to --blocks --blocked-by --duplicates --duplicated-by
+  # --precedes --follows --includes --part-of --requires --required-by
+  # `op unlink` takes the same flags and matches in either direction.
 
 op attach <id> file.png [file2.jpg]   # Upload attachments
 op comment <id>                       # List comments (shows comment IDs; inline images as [image #ID: file])

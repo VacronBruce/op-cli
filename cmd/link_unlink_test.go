@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -76,8 +77,9 @@ func TestLink_ListEmpty(t *testing.T) {
 
 func newUnlinkCmd() *cobra.Command {
 	c := &cobra.Command{}
-	c.Flags().String("relates-to", "", "")
-	c.Flags().String("blocks", "", "")
+	for _, rf := range relationFlags {
+		c.Flags().String(rf.flag, "", "")
+	}
 	return c
 }
 
@@ -144,7 +146,83 @@ func TestUnlink_NoMatchFailsLoudListingExisting(t *testing.T) {
 func TestUnlink_RequiresExactlyOneFlag(t *testing.T) {
 	SetClient(&testutil.MockClient{})
 	err := runUnlink(newUnlinkCmd(), []string{"12"})
-	if err == nil || !strings.Contains(err.Error(), "--relates-to or --blocks") {
+	if err == nil || !strings.Contains(err.Error(), "relation flag") {
 		t.Fatalf("expected usage error, got: %v", err)
+	}
+}
+
+// --- Extended relation types (#81747) ---
+
+// relationBetween builds a stored relation of the given type from one WP to another.
+func relationBetween(id int, relType string, fromWP, toWP int) api.Relation {
+	rel := api.Relation{ID: id, Type: relType}
+	rel.Links.From = api.Link{Href: fmt.Sprintf("/api/v3/work_packages/%d", fromWP)}
+	rel.Links.To = api.Link{Href: fmt.Sprintf("/api/v3/work_packages/%d", toWP)}
+	return rel
+}
+
+// Every OpenProject relation type is creatable; the flag's API type is sent
+// verbatim so the server canonicalizes direction, not the CLI.
+func TestLink_AllRelationTypesSendAPIType(t *testing.T) {
+	for _, rf := range relationFlags {
+		var gotType string
+		var gotFrom, gotTo int
+		mock := &testutil.MockClient{
+			CreateRelationFn: func(fromID int, relType string, toID int) error {
+				gotFrom, gotType, gotTo = fromID, relType, toID
+				return nil
+			},
+		}
+		out, err := runLinkWith(t, mock, []string{"100", "--" + rf.flag + "=200"})
+		if err != nil {
+			t.Fatalf("--%s: unexpected error: %v", rf.flag, err)
+		}
+		if gotFrom != 100 || gotTo != 200 || gotType != rf.relType {
+			t.Errorf("--%s: sent (%d, %q, %d), want (100, %q, 200)", rf.flag, gotFrom, gotType, gotTo, rf.relType)
+		}
+		if !strings.Contains(out, rf.verb) {
+			t.Errorf("--%s: confirmation must phrase the relation (%q), got: %s", rf.flag, rf.verb, out)
+		}
+	}
+}
+
+// A relation created as --blocked-by may be STORED by OpenProject as "blocks"
+// from the other side; unlink must still find and remove it.
+func TestUnlink_MatchesReverseStoredType(t *testing.T) {
+	var deleted int
+	col := &api.RelationCollection{}
+	col.Embedded.Elements = []api.Relation{
+		relationBetween(7, "blocks", 200, 100), // #200 blocks #100, stored canonically
+	}
+	mock := &testutil.MockClient{
+		ListRelationsFn: func(wpID int) (*api.RelationCollection, error) { return col, nil },
+		DeleteRelationFn: func(relID int) error {
+			deleted = relID
+			return nil
+		},
+	}
+	SetClient(mock)
+
+	cmd := newUnlinkCmd()
+	_ = cmd.Flags().Set("blocked-by", "200")
+	var err error
+	testutil.CaptureStdout(func() { err = runUnlink(cmd, []string{"100"}) })
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if deleted != 7 {
+		t.Errorf("expected relation 7 deleted, got %d", deleted)
+	}
+}
+
+// Two relation flags at once is ambiguous — fail loud, never guess.
+func TestUnlink_TwoFlagsIsAnError(t *testing.T) {
+	SetClient(&testutil.MockClient{})
+	cmd := newUnlinkCmd()
+	_ = cmd.Flags().Set("blocks", "1")
+	_ = cmd.Flags().Set("follows", "2")
+	err := runUnlink(cmd, []string{"12"})
+	if err == nil || !strings.Contains(err.Error(), "exactly one") {
+		t.Fatalf("expected exactly-one error, got: %v", err)
 	}
 }
