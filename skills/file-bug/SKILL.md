@@ -12,6 +12,8 @@ allowed-tools: Bash(op *)
 Turn a bug report into a clean `op create bug`. Treat `$ARGUMENTS` as the initial
 description and **only ask for what's missing** — don't interrogate.
 
+> `op create bug` files to the Bug Backlog board (`bug`) by default, with **no sprint** — the `.oprc`/`OP_SPRINT` sprint is not applied (triage assigns one). Pass `-p <board>` only to file it elsewhere, or `--sprint="<name>"` to put it on a bug-board sprint (it must exist there).
+
 ## Collect
 
 - **Title** — concise, with platform tag if relevant, e.g. `[Android] CC button crashes on publish`.

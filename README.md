@@ -161,12 +161,13 @@ op start 12345                     # Start work: branch <project>-12345-<slug>, 
 
 ### Create & update
 
+> `op create bug` files to the Bug Backlog board (`bug`) by default, with **no sprint** (the `.oprc`/`OP_SPRINT` sprint belongs to the ambient project and is not applied — triage assigns one). Pass `-p <board>` to file it elsewhere, or `--sprint="<name>"` to place it on a bug-board sprint.
+
 ```bash
 op create task "Fix login page" --assignee="Ken Peng" --priority=P1
-op create bug "Crash on save" --priority=SEV1 \
-  --epic="NTD+" --component=android --product=entd \
-  --tech-area=app --label=team#appandroid --attach=screenshot.png
-op create feature "Dark mode" --points=3 --sprint="App_06/02/2026"
+op create bug "Crash on save" --priority=SEV1 --attach=screenshot.png   # -> Bug Backlog board
+op create feature "Dark mode" --points=3 --sprint="App_06/02/2026" \
+  --component=android --product=entd --tech-area=app --label=team#appandroid
 op update 12345 --status=in-progress
 op update 12345 --assignee="Bruce Chen" --points=3
 op update 12345 --description="Updated description here"

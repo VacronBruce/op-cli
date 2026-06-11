@@ -50,21 +50,23 @@ func init() {
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
-	project, err := client.RequireProject()
+	typeName := args[0]
+	subject := args[1]
+
+	// Resolve the type before routing so `op create bug` routes by the canonical
+	// type ("Bug") even when abbreviated (`op create b`). The /types collection is
+	// project-independent, so a bare resolver suffices here.
+	wpType, err := api.NewResolver(client, "").ResolveType(typeName)
+	if err != nil {
+		return fmt.Errorf("resolving type: %w", err)
+	}
+
+	project, routed, err := createProject(cmd, wpType.Name)
 	if err != nil {
 		return err
 	}
 
-	typeName := args[0]
-	subject := args[1]
-
 	resolver := api.NewResolver(client, project)
-
-	// Resolve type
-	wpType, err := resolver.ResolveType(typeName)
-	if err != nil {
-		return fmt.Errorf("resolving type: %w", err)
-	}
 
 	// Resolve priority
 	priorityName, _ := cmd.Flags().GetString("priority")
@@ -112,8 +114,11 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		req.SetLink("assignee", api.Link{Href: user.Href})
 	}
 
-	// Optional: sprint/version (flag overrides config)
-	if sprintName := viper.GetString("sprint"); sprintName != "" {
+	// Optional: sprint/version (flag overrides config). A config/env sprint belongs
+	// to the ambient project — don't carry it onto a routed board (e.g. a bug filed
+	// on the bug board); an explicitly typed --sprint still applies.
+	if sprintName := viper.GetString("sprint"); sprintName != "" &&
+		(cmd.Flags().Changed("sprint") || !routed) {
 		version, err := client.ResolveVersion(project, sprintName)
 		if err != nil {
 			return fmt.Errorf("resolving sprint: %w", err)
@@ -174,6 +179,14 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		req.SetMultiLink(field, links)
 	}
 
+	// When a type was auto-routed to its dedicated board (e.g. a bug to the bug
+	// board), tell the user before the write and how to override. Only fires on
+	// auto-routing: an explicit -p is a deliberate choice that needs no notice.
+	if routed {
+		fmt.Printf("Filing this %s on the %q board; pass -p <board> to create it elsewhere.\n",
+			strings.ToLower(wpType.Name), project)
+	}
+
 	// Create
 	wp, err := client.CreateWorkPackage(project, req)
 	if err != nil {
@@ -203,4 +216,28 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("#%d created, but %d attachment(s) failed", wp.ID, attachFailures)
 	}
 	return nil
+}
+
+// createProject decides which project a new work package lands in. An explicitly
+// typed -p always wins; otherwise bugs default to the bug board (so `op create
+// bug` never lands on the App board by accident even when an ambient
+// OP_PROJECT/.oprc points elsewhere); other types use the ambient project.
+func createProject(cmd *cobra.Command, typeName string) (project string, routed bool, err error) {
+	if f := cmd.Flag("project"); f != nil && f.Changed {
+		p, err := client.RequireProject()
+		return p, false, err
+	}
+	if proj := typeProjectFor(typeName); proj != "" {
+		return proj, true, nil
+	}
+	p, err := client.RequireProject()
+	return p, false, err
+}
+
+// typeProjectFor returns the board a work-package type routes to, or "" for none.
+func typeProjectFor(typeName string) string {
+	if strings.EqualFold(typeName, "bug") {
+		return "bug"
+	}
+	return ""
 }
