@@ -247,9 +247,9 @@ fi
 
 echo ""
 
-# Verify
+# Verify — op setup prints an [ok]/[--] checklist with a fix for each gap
 echo "--- Verifying ---"
-if op projects 2>/dev/null | head -3; then
+if op setup; then
   echo ""
   echo "================================"
   echo "  Setup complete!"
@@ -262,6 +262,6 @@ if op projects 2>/dev/null | head -3; then
   echo "  op --help         # All commands"
 else
   echo ""
-  echo "Binary installed but could not connect."
-  echo "Check your API key in ~/.oprc"
+  echo "Some checks failed — each [--] line above shows the fix."
+  echo "Re-run 'op setup' anytime to re-check."
 fi

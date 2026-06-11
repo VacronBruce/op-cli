@@ -23,7 +23,7 @@ var rootCmd = &cobra.Command{
 	Long:  "A lean CLI to manage sprints, backlogs, and work packages in OpenProject.",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Skip client init for config-only commands
-		if cmd.Name() == "help" || cmd.Name() == "version" || cmd.Name() == "upgrade" || cmd.Name() == "completion" || cmd.Name() == "fields" {
+		if cmd.Name() == "help" || cmd.Name() == "version" || cmd.Name() == "upgrade" || cmd.Name() == "completion" || cmd.Name() == "fields" || cmd.Name() == "setup" {
 			return nil
 		}
 

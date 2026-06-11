@@ -132,6 +132,13 @@ op check --sprint                     # Check all sprint tickets
 op check --sprint --component=android # Filter + check
 ```
 
+## Setup & Config
+```bash
+op setup                              # [ok]/[--] health check: config, key, connection, project, sprint, completion
+op setup --sprint="<name>"            # update one ~/.oprc key in place (also --project, --api-key, --url)
+```
+Works without valid config — it's the tool for diagnosing config problems.
+
 ## Custom Fields
 ```bash
 op fields                             # List custom fields (name, field key, option count)

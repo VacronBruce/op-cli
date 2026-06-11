@@ -124,10 +124,17 @@ templates:
     - [ ]
 ```
 
-Verify:
+### Verify & maintain
+
+`op setup` prints an `[ok]`/`[--]` checklist (config, credentials, connection,
+project, sprint, completion) with the exact fix for anything missing, and its
+flags update single keys in `~/.oprc` without touching the rest of the file:
 
 ```bash
-op projects
+op setup                              # health check — run anytime
+op setup --sprint="App_06/15/2026"    # rotate the sprint each cycle
+op setup --project=app                # change default project
+op setup --api-key=<key>              # store a new API key
 ```
 
 ## Usage
