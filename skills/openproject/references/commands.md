@@ -72,6 +72,8 @@ op link <id> --blocks=81485           # Create "blocks" relation
   # `op unlink` takes the same flags and matches in either direction.
 
 op attach <id> file.png [file2.jpg]   # Upload attachments
+op attach <id> --list                 # List attachments with their IDs
+op attach <id> --remove=<attachment-id>  # Remove an attachment (must belong to <id>)
 op comment <id>                       # List comments (shows comment IDs; inline images as [image #ID: file])
 op comment <id> "message"             # Post a comment
 op comment <id> "message" --edit=<comment-id>  # Edit an existing comment's text

@@ -39,12 +39,8 @@ func TestShow_ValidID(t *testing.T) {
 			wp.Links.Project = api.Link{Title: "App"}
 			return wp, nil
 		},
-		GetFn: func(path string, result interface{}) error {
-			if strings.Contains(path, "attachments") {
-				// return empty attachments
-				return nil
-			}
-			return fmt.Errorf("unexpected Get path: %s", path)
+		ListAttachmentsFn: func(wpID int) (*api.AttachmentCollection, error) {
+			return &api.AttachmentCollection{}, nil
 		},
 		ListActivitiesFn: func(wpID int) (*api.ActivityCollection, error) {
 			return &api.ActivityCollection{}, nil
@@ -112,30 +108,24 @@ func TestShow_DownloadAttachments(t *testing.T) {
 			wp.Links.Project = api.Link{Title: "App"}
 			return wp, nil
 		},
-		GetFn: func(path string, result interface{}) error {
-			if strings.Contains(path, "attachments") {
-				// mock returning an attachment collection
-				attCol, ok := result.(*attachmentCollection)
-				if ok {
-					attCol.Total = 1
-					attCol.Embedded.Elements = []api.Attachment{
-						{
-							FileName:    "test.png",
-							ContentType: "image/png",
-							FileSize:    1024,
-							Links: struct {
-								Self             api.Link `json:"self"`
-								DownloadLocation api.Link `json:"downloadLocation"`
-							}{
-								Self:             api.Link{},
-								DownloadLocation: api.Link{Href: "http://example.com/download/1"},
-							},
-						},
-					}
-				}
-				return nil
+		ListAttachmentsFn: func(wpID int) (*api.AttachmentCollection, error) {
+			attCol := &api.AttachmentCollection{Total: 1}
+			attCol.Embedded.Elements = []api.Attachment{
+				{
+					ID:          318,
+					FileName:    "test.png",
+					ContentType: "image/png",
+					FileSize:    1024,
+					Links: struct {
+						Self             api.Link `json:"self"`
+						DownloadLocation api.Link `json:"downloadLocation"`
+					}{
+						Self:             api.Link{},
+						DownloadLocation: api.Link{Href: "http://example.com/download/1"},
+					},
+				},
 			}
-			return fmt.Errorf("unexpected path: %s", path)
+			return attCol, nil
 		},
 		ListActivitiesFn: func(wpID int) (*api.ActivityCollection, error) {
 			return &api.ActivityCollection{}, nil

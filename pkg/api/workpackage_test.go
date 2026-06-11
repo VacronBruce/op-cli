@@ -331,3 +331,57 @@ func TestDeleteRelation_ErrorStatus(t *testing.T) {
 		t.Fatal("expected error on 403, got nil")
 	}
 }
+
+func TestListAttachments(t *testing.T) {
+	// `op attach <id> --list/--remove` and `op show` read the work package's
+	// attachments collection; the attachment id is what --remove targets.
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v3/work_packages/12/attachments" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		w.Write([]byte(`{"total":1,"_embedded":{"elements":[
+			{"id":318,"fileName":"screen.png","fileSize":1024,"contentType":"image/png"}]}}`))
+	})
+	defer ts.Close()
+
+	got, err := c.ListAttachments(12)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.Total != 1 || len(got.Embedded.Elements) != 1 {
+		t.Fatalf("expected 1 attachment, got %+v", got)
+	}
+	att := got.Embedded.Elements[0]
+	if att.ID != 318 || att.FileName != "screen.png" {
+		t.Errorf("unexpected attachment decode: %+v", att)
+	}
+}
+
+func TestDeleteAttachment(t *testing.T) {
+	// Attachments are deleted by ATTACHMENT id on the global collection — not
+	// by work-package id — so the method must hit /attachments/<id> with DELETE.
+	var gotMethod, gotPath string
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		w.WriteHeader(http.StatusNoContent)
+	})
+	defer ts.Close()
+
+	if err := c.DeleteAttachment(318); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotMethod != "DELETE" || gotPath != "/api/v3/attachments/318" {
+		t.Errorf("expected DELETE /api/v3/attachments/318, got %s %s", gotMethod, gotPath)
+	}
+}
+
+func TestDeleteAttachment_ErrorStatus(t *testing.T) {
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	})
+	defer ts.Close()
+
+	if err := c.DeleteAttachment(318); err == nil {
+		t.Fatal("expected error on HTTP 403, got nil")
+	}
+}

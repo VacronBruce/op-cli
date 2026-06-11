@@ -30,13 +30,6 @@ func init() {
 	showCmd.Flags().StringP("out", "o", ".", "Download directory")
 }
 
-type attachmentCollection struct {
-	Total    int `json:"total"`
-	Embedded struct {
-		Elements []api.Attachment `json:"elements"`
-	} `json:"_embedded"`
-}
-
 func runShow(cmd *cobra.Command, args []string) error {
 	id, err := parseWorkPackageID(args[0])
 	if err != nil {
@@ -51,15 +44,15 @@ func runShow(cmd *cobra.Command, args []string) error {
 	display.WorkPackageDetail(wp)
 
 	// List attachments
-	var attachments attachmentCollection
-	if err := client.Get(fmt.Sprintf("/work_packages/%d/attachments", id), &attachments); err != nil {
+	attachments, err := client.ListAttachments(id)
+	if err != nil {
 		return fmt.Errorf("listing attachments: %w", err)
 	}
 
 	if attachments.Total > 0 {
 		fmt.Printf("\n  Attachments (%d):\n", attachments.Total)
 		for _, att := range attachments.Embedded.Elements {
-			fmt.Printf("    - %s (%s, %d bytes)\n", att.FileName, att.ContentType, att.FileSize)
+			fmt.Printf("    - #%d %s (%s, %d bytes)\n", att.ID, att.FileName, att.ContentType, att.FileSize)
 			fmt.Printf("      %s\n", att.Links.DownloadLocation.Href)
 		}
 	}

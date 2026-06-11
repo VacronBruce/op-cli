@@ -32,6 +32,8 @@ type MockClient struct {
 	GetProjectFn          func(identifier string) (*api.Project, error)
 	GetMeFn               func() (*api.User, error)
 	UploadAttachmentFn    func(wpID int, filePath string, description string) (*api.Attachment, error)
+	ListAttachmentsFn     func(wpID int) (*api.AttachmentCollection, error)
+	DeleteAttachmentFn    func(attID int) error
 	ListActivitiesFn      func(wpID int) (*api.ActivityCollection, error)
 	PostCommentFn         func(wpID int, markdown string) error
 	EditCommentFn         func(activityID int, markdown string) error
@@ -189,6 +191,20 @@ func (m *MockClient) UploadAttachment(wpID int, filePath string, description str
 		return m.UploadAttachmentFn(wpID, filePath, description)
 	}
 	return nil, fmt.Errorf("UploadAttachment not mocked")
+}
+
+func (m *MockClient) ListAttachments(wpID int) (*api.AttachmentCollection, error) {
+	if m.ListAttachmentsFn != nil {
+		return m.ListAttachmentsFn(wpID)
+	}
+	return nil, fmt.Errorf("ListAttachments not mocked")
+}
+
+func (m *MockClient) DeleteAttachment(attID int) error {
+	if m.DeleteAttachmentFn != nil {
+		return m.DeleteAttachmentFn(attID)
+	}
+	return fmt.Errorf("DeleteAttachment not mocked")
 }
 
 func (m *MockClient) ListActivities(wpID int) (*api.ActivityCollection, error) {

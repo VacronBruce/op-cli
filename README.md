@@ -180,6 +180,8 @@ op update 12345 --start=2026-07-01 --due=2026-07-15
 op update 12345 --product=entd --label=team#appandroid
 op update 101 102 103 --status=done            # bulk: same change applied to every ID
 op attach 12345 screenshot.png
+op attach 12345 --list                         # list attachments with their IDs
+op attach 12345 --remove=318                   # remove attachment #318 (must belong to #12345)
 ```
 
 `--product` is repeatable to tag multiple products: `--product=eet --product=entd`.

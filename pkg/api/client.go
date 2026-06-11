@@ -50,6 +50,8 @@ type APIClient interface {
 
 	// Attachments
 	UploadAttachment(wpID int, filePath string, description string) (*Attachment, error)
+	ListAttachments(wpID int) (*AttachmentCollection, error)
+	DeleteAttachment(attID int) error
 
 	// Activities/comments
 	ListActivities(wpID int) (*ActivityCollection, error)
@@ -253,6 +255,36 @@ type Attachment struct {
 		Self             Link `json:"self"`
 		DownloadLocation Link `json:"downloadLocation"`
 	} `json:"_links"`
+}
+
+// AttachmentCollection is the API response for a work package's attachments.
+type AttachmentCollection struct {
+	Total    int `json:"total"`
+	Embedded struct {
+		Elements []Attachment `json:"elements"`
+	} `json:"_embedded"`
+}
+
+// ListAttachments lists a work package's attachments.
+func (c *Client) ListAttachments(wpID int) (*AttachmentCollection, error) {
+	var result AttachmentCollection
+	if err := c.Get(fmt.Sprintf("/work_packages/%d/attachments", wpID), &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// DeleteAttachment removes an attachment by its attachment ID (not a work-package ID).
+func (c *Client) DeleteAttachment(attID int) error {
+	resp, err := c.DoRaw("DELETE", fmt.Sprintf("/api/v3/attachments/%d", attID))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("deleting attachment %d: HTTP %d", attID, resp.StatusCode)
+	}
+	return nil
 }
 
 // UploadAttachment uploads a file to a work package.
