@@ -11,7 +11,7 @@ test:
   variables:
     CGO_ENABLED: "1"
     # Coverage ratchet: bumped to (new total - 0.5) in every MR that adds tests.
-    COVERAGE_FLOOR: "76.0"
+    COVERAGE_FLOOR: "78.3"
   script:
     - go vet ./...
     # Pinned so a new staticcheck release can't break CI out of the blue.

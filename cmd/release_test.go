@@ -126,6 +126,56 @@ func TestReleaseCreate_InvalidStartDate(t *testing.T) {
 	}
 }
 
+// `op release list` must show only kind=release versions — sprints share the
+// same /versions collection, and listing them here would bury the releases.
+func TestReleaseList_ShowsOnlyReleases(t *testing.T) {
+	col := &api.VersionCollection{}
+	col.Embedded.Elements = []api.Version{
+		{ID: 1, Name: "App_06/02/2026", Kind: "sprint"},
+		{ID: 2, Name: "[iOS][ETV] 1.0.9", Kind: "release", Status: "open"},
+		{ID: 3, Name: "[Android][EET] 3.2.0", Kind: "release", Status: "closed"},
+	}
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		ListVersionsFn: func(project string) (*api.VersionCollection, error) {
+			if project != "app" {
+				t.Errorf("expected project app, got %q", project)
+			}
+			return col, nil
+		},
+	}
+	SetClient(mock)
+
+	var err error
+	out := testutil.CaptureStdout(func() {
+		err = runReleaseList(&cobra.Command{}, nil)
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "[iOS][ETV] 1.0.9") || !strings.Contains(out, "[Android][EET] 3.2.0") {
+		t.Errorf("expected both releases listed, got: %q", out)
+	}
+	if strings.Contains(out, "App_06/02/2026") {
+		t.Errorf("sprints must not appear in release list, got: %q", out)
+	}
+}
+
+func TestReleaseList_APIError(t *testing.T) {
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		ListVersionsFn: func(string) (*api.VersionCollection, error) {
+			return nil, errors.New("boom")
+		},
+	}
+	SetClient(mock)
+
+	err := runReleaseList(&cobra.Command{}, nil)
+	if err == nil || !strings.Contains(err.Error(), "listing releases") {
+		t.Errorf("expected wrapped listing error, got: %v", err)
+	}
+}
+
 func TestReleaseCreate_APIError(t *testing.T) {
 	mock := &testutil.MockClient{
 		ProjectValue: "app",

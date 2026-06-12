@@ -129,7 +129,9 @@ func (c *Client) WorkPackageURL(id int) string {
 	return fmt.Sprintf("%s/work_packages/%d", c.BaseURL, id)
 }
 
-// do executes an HTTP request with auth headers.
+// do executes an HTTP request with auth headers. The path is relative to the
+// API root: "/api/v3" is prepended (unlike DoRaw, which takes a full URL or a
+// server-rooted href as returned by the API).
 func (c *Client) do(method, path string, body io.Reader) (*http.Response, error) {
 	url := c.BaseURL + "/api/v3" + path
 
@@ -160,7 +162,8 @@ func (c *Client) do(method, path string, body io.Reader) (*http.Response, error)
 	return resp, nil
 }
 
-// Get performs a GET request and decodes the response.
+// Get performs a GET request and decodes the response. The path is relative
+// to the API root ("/api/v3" is prepended); see DoRaw for server-rooted hrefs.
 func (c *Client) Get(path string, result interface{}) error {
 	resp, err := c.do("GET", path, nil)
 	if err != nil {
@@ -172,13 +175,14 @@ func (c *Client) Get(path string, result interface{}) error {
 }
 
 // Post performs a POST request with a JSON body and decodes the response.
+// The path is relative to the API root ("/api/v3" is prepended).
 func (c *Client) Post(path string, body interface{}, result interface{}) error {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return fmt.Errorf("marshaling body: %w", err)
 	}
 
-	resp, err := c.do("POST", path, strings.NewReader(string(data)))
+	resp, err := c.do("POST", path, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
@@ -191,13 +195,14 @@ func (c *Client) Post(path string, body interface{}, result interface{}) error {
 }
 
 // Patch performs a PATCH request with a JSON body and decodes the response.
+// The path is relative to the API root ("/api/v3" is prepended).
 func (c *Client) Patch(path string, body interface{}, result interface{}) error {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return fmt.Errorf("marshaling body: %w", err)
 	}
 
-	resp, err := c.do("PATCH", path, strings.NewReader(string(data)))
+	resp, err := c.do("PATCH", path, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
@@ -209,8 +214,10 @@ func (c *Client) Patch(path string, body interface{}, result interface{}) error 
 	return nil
 }
 
-// DoRaw performs an authenticated GET request and returns the raw response.
-// The href can be a full URL or a path relative to the API base.
+// DoRaw performs an authenticated request and returns the raw response.
+// Unlike Get/Post/Patch, the href is NOT prefixed with "/api/v3": it must be
+// a full URL or a server-rooted path (e.g. "/api/v3/work_packages/1/activities"),
+// matching the href format the API returns in _links.
 func (c *Client) DoRaw(method, href string) (*http.Response, error) {
 	url := href
 	if !strings.HasPrefix(href, "http") {

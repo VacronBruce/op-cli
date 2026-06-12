@@ -26,8 +26,9 @@ Examples:
   op setup --sprint="App_06/15/2026"     Point config at the new sprint
   op setup --project=app                 Set the default project
   op setup --api-key=<key>               Store a (new) API key`,
-	Args: cobra.NoArgs,
-	RunE: runSetup,
+	Args:        cobra.NoArgs,
+	Annotations: skipClientInit(),
+	RunE:        runSetup,
 	// The issues themselves are the output; a usage dump after them is noise.
 	SilenceUsage: true,
 }

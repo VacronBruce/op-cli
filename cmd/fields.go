@@ -19,8 +19,9 @@ section of ~/.oprc — so this shows exactly what create/update/board accept.
 Examples:
   op fields              List all custom fields
   op fields component    List the allowed --component values`,
-	Args: cobra.MaximumNArgs(1),
-	RunE: runFields,
+	Args:        cobra.MaximumNArgs(1),
+	Annotations: skipClientInit(),
+	RunE:        runFields,
 }
 
 func init() {

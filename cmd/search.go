@@ -15,13 +15,6 @@ import (
 // opKeyRe matches OP/Jira-style identifiers like AR-178 or WEB-1462.
 var opKeyRe = regexp.MustCompile(`^[A-Z]+-\d+$`)
 
-var (
-	searchField     string
-	searchScan      bool
-	searchProject   string
-	searchScanLimit int
-)
-
 var searchCmd = &cobra.Command{
 	Use:   "search <value>",
 	Short: "Map a JIRA ID (or other custom field) to its OpenProject work package",
@@ -44,14 +37,18 @@ Examples:
 
 func init() {
 	rootCmd.AddCommand(searchCmd)
-	searchCmd.Flags().StringVarP(&searchField, "field", "f", "jira-id", "custom field to search; jira-id prefers exact matches, other fields substring-match (configured in ~/.oprc)")
-	searchCmd.Flags().BoolVar(&searchScan, "scan", false, "scan work package activity journals for the value")
-	searchCmd.Flags().StringVar(&searchProject, "project", "", "project identifier to scan (required with --scan)")
-	searchCmd.Flags().IntVar(&searchScanLimit, "limit", 200, "max work packages to scan (with --scan)")
+	searchCmd.Flags().StringP("field", "f", "jira-id", "custom field to search; jira-id prefers exact matches, other fields substring-match (configured in ~/.oprc)")
+	searchCmd.Flags().Bool("scan", false, "scan work package activity journals for the value")
+	searchCmd.Flags().String("project", "", "project identifier to scan (required with --scan)")
+	searchCmd.Flags().Int("limit", 200, "max work packages to scan (with --scan)")
 }
 
 func runSearch(cmd *cobra.Command, args []string) error {
 	query := strings.TrimSpace(args[0])
+	searchField, _ := cmd.Flags().GetString("field")
+	searchScan, _ := cmd.Flags().GetBool("scan")
+	searchProject, _ := cmd.Flags().GetString("project")
+	searchScanLimit, _ := cmd.Flags().GetInt("limit")
 
 	if searchScan {
 		if searchProject == "" {

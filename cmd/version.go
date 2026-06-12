@@ -17,16 +17,18 @@ import (
 var Version = "dev"
 
 var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print op-cli version",
+	Use:         "version",
+	Short:       "Print op-cli version",
+	Annotations: skipClientInit(),
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("op-cli %s (%s/%s)\n", Version, runtime.GOOS, runtime.GOARCH)
 	},
 }
 
 var upgradeCmd = &cobra.Command{
-	Use:   "upgrade",
-	Short: "Upgrade op-cli to the latest version",
+	Use:         "upgrade",
+	Short:       "Upgrade op-cli to the latest version",
+	Annotations: skipClientInit(),
 	Long: `Download and install the latest op-cli binary.
 
 Uses glab CLI (preferred) or GITLAB_TOKEN to download from the package registry.`,

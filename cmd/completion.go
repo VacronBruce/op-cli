@@ -7,10 +7,11 @@ import (
 )
 
 var completionCmd = &cobra.Command{
-	Use:       "completion [bash|zsh]",
-	Short:     "Generate shell completion script",
-	ValidArgs: []string{"bash", "zsh"},
-	Args:      cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
+	Use:         "completion [bash|zsh]",
+	Short:       "Generate shell completion script",
+	ValidArgs:   []string{"bash", "zsh"},
+	Args:        cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
+	Annotations: skipClientInit(),
 	Long: `Generate a shell completion script for op.
 
 Bash — one-time:

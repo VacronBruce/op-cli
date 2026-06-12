@@ -17,12 +17,24 @@ func wpWithJira(id int, jira, subject, status string) api.WorkPackage {
 	return wp
 }
 
-func runSearchWith(t *testing.T, mock *testutil.MockClient, args []string) (string, error) {
+// runSearchWith invokes runSearch with a fresh flag set; flags maps flag names
+// to values (e.g. "field" -> "component"), mirroring command-line usage.
+func runSearchWith(t *testing.T, mock *testutil.MockClient, flags map[string]string, args []string) (string, error) {
 	t.Helper()
 	SetClient(mock)
+	cmd := &cobra.Command{}
+	cmd.Flags().String("field", "jira-id", "")
+	cmd.Flags().Bool("scan", false, "")
+	cmd.Flags().String("project", "", "")
+	cmd.Flags().Int("limit", 200, "")
+	for name, value := range flags {
+		if err := cmd.Flags().Set(name, value); err != nil {
+			t.Fatalf("setting flag %s=%s: %v", name, value, err)
+		}
+	}
 	var err error
 	out := testutil.CaptureStdout(func() {
-		err = runSearch(&cobra.Command{}, args)
+		err = runSearch(cmd, args)
 	})
 	return out, err
 }
@@ -40,7 +52,7 @@ func TestSearch_ExactMatch(t *testing.T) {
 			return col, nil
 		},
 	}
-	out, err := runSearchWith(t, mock, []string{"WP-23"})
+	out, err := runSearchWith(t, mock, nil, []string{"WP-23"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -61,7 +73,7 @@ func TestSearch_PrefersExactOverPartial(t *testing.T) {
 	mock := &testutil.MockClient{
 		SearchByJiraIDFn: func(string) (*api.WPCollection, error) { return col, nil },
 	}
-	out, err := runSearchWith(t, mock, []string{"WP-2"})
+	out, err := runSearchWith(t, mock, nil, []string{"WP-2"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -77,7 +89,7 @@ func TestSearch_NoMatch(t *testing.T) {
 	mock := &testutil.MockClient{
 		SearchByJiraIDFn: func(string) (*api.WPCollection, error) { return &api.WPCollection{}, nil },
 	}
-	_, err := runSearchWith(t, mock, []string{"NOPE-1"})
+	_, err := runSearchWith(t, mock, nil, []string{"NOPE-1"})
 	if err == nil {
 		t.Fatal("expected error for no match, got nil")
 	}
@@ -98,11 +110,8 @@ func TestSearch_ByField(t *testing.T) {
 		},
 	}
 
-	orig := searchField
-	searchField = "component" // registered built-in field; no custom ~/.oprc needed
-	defer func() { searchField = orig }()
-
-	out, err := runSearchWith(t, mock, []string{"AR-178"})
+	// "component" is a registered built-in field; no custom ~/.oprc needed
+	out, err := runSearchWith(t, mock, map[string]string{"field": "component"}, []string{"AR-178"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -118,11 +127,7 @@ func TestSearch_ByField_NoMatch(t *testing.T) {
 		},
 	}
 
-	orig := searchField
-	searchField = "component"
-	defer func() { searchField = orig }()
-
-	_, err := runSearchWith(t, mock, []string{"AR-178"})
+	_, err := runSearchWith(t, mock, map[string]string{"field": "component"}, []string{"AR-178"})
 	if err == nil {
 		t.Fatal("expected error for no match, got nil")
 	}
@@ -132,11 +137,7 @@ func TestSearch_ByField_NoMatch(t *testing.T) {
 }
 
 func TestSearch_ByField_Unknown(t *testing.T) {
-	orig := searchField
-	searchField = "no-such-field"
-	defer func() { searchField = orig }()
-
-	_, err := runSearchWith(t, &testutil.MockClient{}, []string{"AR-178"})
+	_, err := runSearchWith(t, &testutil.MockClient{}, map[string]string{"field": "no-such-field"}, []string{"AR-178"})
 	if err == nil {
 		t.Fatal("expected error for unknown field, got nil")
 	}
@@ -166,11 +167,7 @@ func TestSearch_Scan_Found(t *testing.T) {
 		},
 	}
 
-	origScan, origProj, origLimit := searchScan, searchProject, searchScanLimit
-	searchScan, searchProject, searchScanLimit = true, "app", 200
-	defer func() { searchScan, searchProject, searchScanLimit = origScan, origProj, origLimit }()
-
-	out, err := runSearchWith(t, mock, []string{"AR-178"})
+	out, err := runSearchWith(t, mock, map[string]string{"scan": "true", "project": "app"}, []string{"AR-178"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -180,11 +177,7 @@ func TestSearch_Scan_Found(t *testing.T) {
 }
 
 func TestSearch_Scan_NoProject(t *testing.T) {
-	origScan, origProj := searchScan, searchProject
-	searchScan, searchProject = true, ""
-	defer func() { searchScan, searchProject = origScan, origProj }()
-
-	_, err := runSearchWith(t, &testutil.MockClient{}, []string{"AR-178"})
+	_, err := runSearchWith(t, &testutil.MockClient{}, map[string]string{"scan": "true"}, []string{"AR-178"})
 	if err == nil || !strings.Contains(err.Error(), "--project") {
 		t.Errorf("expected --project error, got: %v", err)
 	}

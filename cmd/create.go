@@ -65,6 +65,15 @@ func runCreate(cmd *cobra.Command, args []string) error {
 
 	resolver := api.NewResolver(client, project)
 
+	// On an auto-routed board, assignee/epic/sprint names resolve against the
+	// routed project, not the ambient one — say so when resolution fails, or
+	// the "not found" reads as if the name itself were wrong.
+	routedNote := ""
+	if routed {
+		routedNote = fmt.Sprintf(" (this %s was auto-routed to the %q board and names resolve there; pass -p <board> to file it elsewhere)",
+			strings.ToLower(wpType.Name), project)
+	}
+
 	// Resolve priority
 	priorityName, _ := cmd.Flags().GetString("priority")
 	priority, err := resolver.ResolvePriority(priorityName)
@@ -106,7 +115,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	if assignee, _ := cmd.Flags().GetString("assignee"); assignee != "" {
 		user, err := resolver.ResolveUser(assignee)
 		if err != nil {
-			return fmt.Errorf("resolving assignee: %w", err)
+			return fmt.Errorf("resolving assignee: %w%s", err, routedNote)
 		}
 		req.SetLink("assignee", api.Link{Href: user.Href})
 	}
@@ -118,7 +127,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		(cmd.Flags().Changed("sprint") || !routed) {
 		version, err := client.ResolveVersion(project, sprintName)
 		if err != nil {
-			return fmt.Errorf("resolving sprint: %w", err)
+			return fmt.Errorf("resolving sprint: %w%s", err, routedNote)
 		}
 		req.SetLink("version", api.Link{Href: version.Links.Self.Href})
 	}
@@ -136,7 +145,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	if epicName, _ := cmd.Flags().GetString("epic"); epicName != "" {
 		epic, err := resolver.ResolveEpic(epicName)
 		if err != nil {
-			return fmt.Errorf("resolving epic: %w", err)
+			return fmt.Errorf("resolving epic: %w%s", err, routedNote)
 		}
 		req.SetLink("epic", api.Link{Href: epic.Href})
 	}

@@ -144,6 +144,78 @@ func TestDownloadViaCurl_DownloadsAssetWithToken(t *testing.T) {
 	}
 }
 
+// --- downloadViaGlab ---
+
+// fakeGlab installs a shell script named "glab" as the only thing on PATH.
+// The script body sees the real arguments, so $ASSET/$DEST (parsed from
+// --asset-name= and -D) let tests simulate any glab outcome.
+func fakeGlab(t *testing.T, body string) {
+	t.Helper()
+	dir := t.TempDir()
+	script := `#!/bin/sh
+ASSET=""; DEST=""; PREV=""
+for a in "$@"; do
+  case "$a" in --asset-name=*) ASSET="${a#--asset-name=}" ;; esac
+  if [ "$PREV" = "-D" ]; then DEST="$a"; fi
+  PREV="$a"
+done
+` + body + "\n"
+	if err := os.WriteFile(filepath.Join(dir, "glab"), []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir)
+}
+
+func TestDownloadViaGlab_NotInstalled(t *testing.T) {
+	t.Setenv("PATH", t.TempDir()) // empty dir: no glab anywhere
+	_, err := downloadViaGlab("op-darwin-arm64")
+	if err == nil || !strings.Contains(err.Error(), "glab not found") {
+		t.Fatalf("expected glab-not-found error, got: %v", err)
+	}
+}
+
+func TestDownloadViaGlab_DownloadsAsset(t *testing.T) {
+	fakeGlab(t, `printf 'glab-bytes' > "$DEST/$ASSET"`)
+
+	var path string
+	var err error
+	testutil.CaptureStdout(func() { path, err = downloadViaGlab("op-darwin-arm64") })
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	t.Cleanup(func() { os.Remove(path) })
+
+	got, readErr := os.ReadFile(path)
+	if readErr != nil {
+		t.Fatalf("reading downloaded binary: %v", readErr)
+	}
+	if string(got) != "glab-bytes" {
+		t.Errorf("downloaded content mismatch: %s", got)
+	}
+}
+
+// glab's own stderr is the only clue to what went wrong (auth, network, repo),
+// so a failed download must surface it in the error.
+func TestDownloadViaGlab_FailureSurfacesGlabOutput(t *testing.T) {
+	fakeGlab(t, `echo "401 unauthorized: run glab auth login" >&2; exit 1`)
+
+	_, err := downloadViaGlab("op-darwin-arm64")
+	if err == nil || !strings.Contains(err.Error(), "401 unauthorized") {
+		t.Fatalf("expected glab's output in the error, got: %v", err)
+	}
+}
+
+// glab exiting 0 without producing the asset (e.g. wrong asset name in a
+// release) must be an error, not an empty binary installed over the real one.
+func TestDownloadViaGlab_MissingAssetAfterDownload(t *testing.T) {
+	fakeGlab(t, `exit 0`)
+
+	_, err := downloadViaGlab("op-darwin-arm64")
+	if err == nil || !strings.Contains(err.Error(), "asset not found") {
+		t.Fatalf("expected asset-not-found error, got: %v", err)
+	}
+}
+
 func TestDownloadViaCurl_HTTPErrorMentionsStatusAndToken(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)

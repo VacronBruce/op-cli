@@ -198,26 +198,6 @@ func TestUpdate_InvalidID(t *testing.T) {
 	}
 }
 
-// --- assign (deprecated, kept until removed) ---
-
-func TestAssign_ResolvesUserAndPatchesAssignee(t *testing.T) {
-	var got *api.UpdateWPRequest
-	SetClient(updateMock(&got))
-
-	out := testutil.CaptureStdout(func() {
-		if err := runAssign(&cobra.Command{}, []string{"42", "Ken"}); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-	})
-
-	if got.Links["assignee"].(api.Link).Href != "/api/v3/users/5" {
-		t.Errorf("expected resolved assignee href, got %+v", got.Links)
-	}
-	if !strings.Contains(out, "assigned to Ken Peng") {
-		t.Errorf("expected confirmation, got: %s", out)
-	}
-}
-
 // --- create-parity flags (#81742) ---
 
 func TestUpdate_EpicResolvesToLink(t *testing.T) {

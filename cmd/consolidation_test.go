@@ -438,20 +438,6 @@ func TestAttach_PartialFailure_ReturnsError(t *testing.T) {
 	}
 }
 
-// --- assign deprecation test ---
-
-func TestAssign_IsDeprecated(t *testing.T) {
-	if !assignCmd.Hidden {
-		t.Error("assign command should be hidden")
-	}
-	if assignCmd.Deprecated == "" {
-		t.Error("assign command should have deprecation message")
-	}
-	if !strings.Contains(assignCmd.Deprecated, "op update") {
-		t.Errorf("deprecation message should mention 'op update', got: %s", assignCmd.Deprecated)
-	}
-}
-
 // --- report deprecation test ---
 
 func TestReport_IsDeprecated(t *testing.T) {

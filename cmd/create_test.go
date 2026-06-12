@@ -200,6 +200,40 @@ func TestCreate_RoutedBugAnnouncesDestination(t *testing.T) {
 	}
 }
 
+// On a routed bug, --epic/--assignee names resolve against the bug board, not the
+// ambient project the user is probably thinking of. A bare "not found" reads as if
+// the name were wrong — the error must say where resolution happened and how to
+// override, or users will retype the same correct name in vain.
+func TestCreate_RoutedBugResolveErrorExplainsRouting(t *testing.T) {
+	isolateSprintConfig(t, "")
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		GetFn: func(path string, result interface{}) error {
+			if strings.HasPrefix(path, "/projects/bug/work_packages") {
+				// The bug board has no epics, so any --epic name fails here.
+				return json.Unmarshal([]byte(`{"_embedded":{"elements":[]}}`), result)
+			}
+			return resolverGetFn()(path, result)
+		},
+		CreateWorkPackageFn: func(project string, req *api.CreateWPRequest) (*api.WorkPackage, error) {
+			t.Fatal("create must not run when epic resolution fails")
+			return nil, nil
+		},
+	}
+	SetClient(mock)
+
+	root := newCreateRoot()
+	root.SetArgs([]string{"create", "bug", "a subject", "--epic", "NTD+"})
+	var err error
+	testutil.CaptureStdout(func() { err = root.Execute() })
+	if err == nil {
+		t.Fatal("expected epic resolution to fail, got nil")
+	}
+	if !strings.Contains(err.Error(), `auto-routed to the "bug" board`) || !strings.Contains(err.Error(), "-p <board>") {
+		t.Errorf("error must explain routing and the -p override, got: %v", err)
+	}
+}
+
 // A sprint configured in .oprc/OP_SPRINT belongs to the ambient project. When a bug
 // routes to the bug board, that ambient sprint must NOT be resolved against (it lives
 // on a different board, so resolution fails) nor attached. Pins the reported crash.
