@@ -298,118 +298,85 @@ func TestBacklog_TypeFilter_MultipleTypes(t *testing.T) {
 
 // --- board --status tests ---
 
-func TestBoard_StatusFilter(t *testing.T) {
-	mock := &testutil.MockClient{
-		ProjectValue: "test",
-		ResolveVersionFn: func(project, name string) (*api.Version, error) {
-			return &api.Version{
-				ID:   1,
-				Name: "Sprint 1",
-				Links: struct {
-					Self            api.Link `json:"self"`
-					DefiningProject api.Link `json:"definingProject"`
-				}{Self: api.Link{Href: "/api/v3/versions/1"}},
-			}, nil
-		},
-		ListWorkPackagesFn: func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
-			return &api.WPCollection{
-				Total: 3,
-				Embedded: struct {
-					Elements []api.WorkPackage `json:"elements"`
-				}{
-					Elements: []api.WorkPackage{
-						{ID: 1, Subject: "Blocked task", Links: api.WPLinks{
-							Status:   api.Link{Title: "Blocked"},
-							Assignee: api.Link{Title: "Alice"},
-							Priority: api.Link{Title: "High"},
-						}},
-						{ID: 2, Subject: "Open task", Links: api.WPLinks{
-							Status:   api.Link{Title: "New"},
-							Assignee: api.Link{Title: "Bob"},
-							Priority: api.Link{Title: "Normal"},
-						}},
-						{ID: 3, Subject: "Another blocked", Links: api.WPLinks{
-							Status:   api.Link{Title: "Blocked"},
-							Assignee: api.Link{Title: "Carol"},
-							Priority: api.Link{Title: "Normal"},
-						}},
-					},
-				},
-			}, nil
-		},
-	}
-	SetClient(mock)
-
+func boardStatusCmd(status string, noSprint bool) *cobra.Command {
 	cmd := &cobra.Command{}
 	cmd.Flags().String("sprint", "", "")
 	cmd.Flags().Bool("no-sprint", false, "")
 	cmd.Flags().String("component", "", "")
 	cmd.Flags().String("label", "", "")
 	cmd.Flags().String("status", "", "")
-	cmd.Flags().Set("status", "blocked")
-
-	out := testutil.CaptureStdout(func() {
-		err := runBoard(cmd, nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-	})
-
-	if !strings.Contains(out, "Blocked task") {
-		t.Errorf("expected 'Blocked task' in output, got: %s", out)
+	_ = cmd.Flags().Set("status", status)
+	if noSprint {
+		_ = cmd.Flags().Set("no-sprint", "true")
 	}
-	if !strings.Contains(out, "Another blocked") {
-		t.Errorf("expected 'Another blocked' in output, got: %s", out)
-	}
-	if strings.Contains(out, "Open task") {
-		t.Errorf("should not include 'Open task' when filtering by blocked, got: %s", out)
-	}
+	return cmd
 }
 
-// A hyphenated filter value ("in-progress") must match a spaced status title
-// ("In progress"); the old exact match returned nothing and looked like "no
-// items in progress".
-func TestBoard_StatusFilter_NormalizesSeparators(t *testing.T) {
+// --status must filter on the SERVER, resolved like `op update --status`
+// ("in-progress" matches "In progress"): a client-side filter only saw the
+// fetched page and silently dropped matches beyond it.
+func TestBoard_StatusFilter_IsServerSide(t *testing.T) {
+	var gotFilters []api.Filter
 	mock := &testutil.MockClient{
 		ProjectValue: "test",
+		GetFn:        resolverCollections, // serves /statuses: New(1), In progress(7)
 		ResolveVersionFn: func(project, name string) (*api.Version, error) {
 			return &api.Version{ID: 1, Name: "Sprint 1"}, nil
 		},
 		ListWorkPackagesFn: func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+			gotFilters = append([]api.Filter(nil), filters...)
 			return &api.WPCollection{
-				Total: 2,
+				Total: 1,
 				Embedded: struct {
 					Elements []api.WorkPackage `json:"elements"`
-				}{
-					Elements: []api.WorkPackage{
-						{ID: 1, Subject: "Active task", Links: api.WPLinks{Status: api.Link{Title: "In progress"}}},
-						{ID: 2, Subject: "Fresh task", Links: api.WPLinks{Status: api.Link{Title: "New"}}},
-					},
-				},
+				}{Elements: []api.WorkPackage{
+					{ID: 1, Subject: "Active task", Links: api.WPLinks{Status: api.Link{Title: "In progress"}}},
+				}},
 			}, nil
 		},
 	}
 	SetClient(mock)
 
-	cmd := &cobra.Command{}
-	cmd.Flags().String("sprint", "", "")
-	cmd.Flags().Bool("no-sprint", false, "")
-	cmd.Flags().String("component", "", "")
-	cmd.Flags().String("label", "", "")
-	cmd.Flags().String("status", "", "")
-	cmd.Flags().Set("status", "in-progress")
-
 	out := testutil.CaptureStdout(func() {
-		if err := runBoard(cmd, nil); err != nil {
+		if err := runBoard(boardStatusCmd("in-progress", false), nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 
-	if !strings.Contains(out, "Active task") {
-		t.Errorf("expected 'Active task' for --status=in-progress, got: %s", out)
+	if !hasFilter(gotFilters, "status", "=", "7") {
+		t.Errorf("expected server-side status=7 filter, got: %#v", gotFilters)
 	}
-	if strings.Contains(out, "Fresh task") {
-		t.Errorf("should not include 'Fresh task' (status New), got: %s", out)
+	if !strings.Contains(out, "Active task") {
+		t.Errorf("expected 'Active task' in output, got: %s", out)
+	}
+}
+
+// With --no-sprint the board normally adds an open-only filter; an explicit
+// --status must REPLACE it, not AND with it — otherwise asking for a closed
+// status would always return nothing.
+func TestBoard_StatusFilter_ReplacesOpenOnlyFilter(t *testing.T) {
+	var gotFilters []api.Filter
+	mock := &testutil.MockClient{
+		ProjectValue: "test",
+		GetFn:        resolverCollections,
+		ListWorkPackagesFn: func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+			gotFilters = append([]api.Filter(nil), filters...)
+			return &api.WPCollection{}, nil
+		},
+	}
+	SetClient(mock)
+
+	testutil.CaptureStdout(func() {
+		if err := runBoard(boardStatusCmd("new", true), nil); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if !hasFilter(gotFilters, "status", "=", "1") {
+		t.Errorf("expected status=1 filter, got: %#v", gotFilters)
+	}
+	if hasFilter(gotFilters, "status", "o", "") {
+		t.Errorf("open-only filter must be dropped when --status is explicit, got: %#v", gotFilters)
 	}
 }
 

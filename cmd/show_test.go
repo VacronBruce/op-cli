@@ -170,3 +170,22 @@ func TestShow_DownloadAttachments(t *testing.T) {
 		t.Errorf("expected non-empty downloaded file")
 	}
 }
+
+// Attachment filenames come from the SERVER; one like "../../x" must not be
+// able to write outside the chosen download directory.
+func TestSafeFileName_NeutralizesTraversal(t *testing.T) {
+	cases := map[string]string{
+		"shot.png":         "shot.png",
+		"../../../.bashrc": ".bashrc",
+		"..":               "fallback",
+		".":                "fallback",
+		"":                 "fallback",
+		"dir/inner.png":    "inner.png",
+		"/etc/passwd":      "passwd",
+	}
+	for in, want := range cases {
+		if got := safeFileName(in, "fallback"); got != want {
+			t.Errorf("safeFileName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

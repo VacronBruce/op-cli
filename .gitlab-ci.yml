@@ -13,6 +13,9 @@ test:
     # Coverage ratchet: bumped to (new total - 0.5) in every MR that adds tests.
     COVERAGE_FLOOR: "76.0"
   script:
+    - go vet ./...
+    # Pinned so a new staticcheck release can't break CI out of the blue.
+    - go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...
     - go test -race -coverprofile=coverage.out ./...
     - go tool cover -func=coverage.out
     - |

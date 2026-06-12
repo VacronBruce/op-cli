@@ -102,6 +102,7 @@ func runSprintPlan(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("Backlog items ready for sprint (%d):\n", result.Total)
+	warnTruncated(result.Total, len(result.Embedded.Elements))
 	display.WorkPackageTable(result.Embedded.Elements)
 	return nil
 }

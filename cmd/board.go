@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
+	"strconv"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/display"
@@ -55,8 +55,21 @@ func runBoard(cmd *cobra.Command, args []string) error {
 		filters = append(filters, vf)
 	}
 
-	// Only show open items when querying across sprints
-	if noSprint {
+	// Status filter (server-side, resolved like `op update --status` so
+	// "in-progress"/"in-prog" match "In progress"). Resolving up front also
+	// means the filter sees ALL matching items, not just the fetched page.
+	statusFilter, _ := cmd.Flags().GetString("status")
+	if statusFilter != "" {
+		status, err := api.NewResolver(client, project).ResolveStatus(statusFilter)
+		if err != nil {
+			return fmt.Errorf("resolving status: %w", err)
+		}
+		filters = append(filters, api.NewFilter("status", "=", strconv.Itoa(status.ID)))
+	}
+
+	// Only show open items when querying across sprints — unless the user
+	// asked for a specific status, which would AND to nothing for closed ones.
+	if noSprint && statusFilter == "" {
 		filters = append(filters, api.NewFilter("status", "o", ""))
 	}
 
@@ -83,19 +96,7 @@ func runBoard(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("listing work packages: %w", err)
 	}
 
-	// Status filter (client-side). Match on a normalized substring so that
-	// "in-progress", "in progress", and "progress" all match a status titled
-	// "In progress" — an exact match silently returned nothing otherwise.
-	if statusFilter, _ := cmd.Flags().GetString("status"); statusFilter != "" {
-		want := api.NormalizeName(statusFilter)
-		var filtered []api.WorkPackage
-		for _, wp := range result.Embedded.Elements {
-			if strings.Contains(api.NormalizeName(wp.Links.Status.Title), want) {
-				filtered = append(filtered, wp)
-			}
-		}
-		result.Embedded.Elements = filtered
-	}
+	warnTruncated(result.Total, len(result.Embedded.Elements))
 
 	if noSprint {
 		display.GroupBySprint(result.Embedded.Elements)

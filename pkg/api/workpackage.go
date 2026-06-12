@@ -48,21 +48,7 @@ func (wp *WorkPackage) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &w); err != nil {
 		return err
 	}
-	*wp = WorkPackage{
-		ID:             w.ID,
-		LockVersion:    w.LockVersion,
-		Subject:        w.Subject,
-		Description:    w.Description,
-		StoryPoints:    w.StoryPoints,
-		PercentageDone: w.PercentageDone,
-		StartDate:      w.StartDate,
-		DueDate:        w.DueDate,
-		CreatedAt:      w.CreatedAt,
-		UpdatedAt:      w.UpdatedAt,
-		JiraID:         w.JiraID,
-		UserStory:      w.UserStory,
-		Links:          w.Links,
-	}
+	*wp = WorkPackage(w)
 	// If the configured field differs from the default, read from the actual field.
 	if fieldKey := jiraIDFieldKey(); fieldKey != "customField3" {
 		var raw map[string]json.RawMessage
@@ -301,18 +287,23 @@ func (c *Client) CreateRelation(fromID int, relType string, toID int) error {
 // UpdateWorkPackage updates an existing work package.
 // Automatically fetches lockVersion to avoid conflicts.
 func (c *Client) UpdateWorkPackage(id int, req *UpdateWPRequest) (*WorkPackage, error) {
+	// Work on a copy — writing the fetched lockVersion into the caller's
+	// request would poison reuse: a second call (retry, bulk loop) would send
+	// the first ticket's stale version and 409.
+	r := *req
+
 	// Fetch current lockVersion if not set
-	if req.LockVersion == 0 {
+	if r.LockVersion == 0 {
 		current, err := c.GetWorkPackage(id)
 		if err != nil {
 			return nil, fmt.Errorf("fetching lockVersion: %w", err)
 		}
-		req.LockVersion = current.LockVersion
+		r.LockVersion = current.LockVersion
 	}
 
 	var wp WorkPackage
 	path := fmt.Sprintf("/work_packages/%d", id)
-	if err := c.Patch(path, req, &wp); err != nil {
+	if err := c.Patch(path, r, &wp); err != nil {
 		return nil, err
 	}
 	return &wp, nil

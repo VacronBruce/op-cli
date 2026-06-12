@@ -2,10 +2,19 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 )
+
+// warnTruncated tells the user when the API matched more items than the page
+// returned — a count header above a shorter table silently lies otherwise.
+func warnTruncated(total, shown int) {
+	if total > shown {
+		fmt.Fprintf(os.Stderr, "warning: %d items matched; only the first %d are shown\n", total, shown)
+	}
+}
 
 // parseWorkPackageID parses a work-package ID argument with the shared
 // "invalid work package ID" error every command reports.

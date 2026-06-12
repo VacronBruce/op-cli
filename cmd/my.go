@@ -158,6 +158,7 @@ func runMy(cmd *cobra.Command, args []string) error {
 		label = "Created by me"
 	}
 	fmt.Printf("%s (%d):\n", label, result.Total)
+	warnTruncated(result.Total, len(result.Embedded.Elements))
 
 	bySprint, _ := cmd.Flags().GetBool("by-sprint")
 	if bySprint {

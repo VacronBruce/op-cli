@@ -23,6 +23,14 @@ LDFLAGS="-X github.com/chenhuijun/op-cli/cmd.Version=${VERSION#v}"
 GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/op-darwin-arm64 .
 GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/op-darwin-amd64 .
 GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/op-linux-amd64 .
+# Ad-hoc sign the darwin binaries with a stable identifier so macOS tools
+# (Gatekeeper, Little Snitch) see a named code identity instead of "a.out".
+# Note: the identity hash still changes per build — only a real Developer ID
+# certificate makes it stable across versions.
+if command -v codesign &>/dev/null; then
+  codesign -s - -f -i com.gmedtn.op-cli dist/op-darwin-arm64 dist/op-darwin-amd64
+  echo "    Signed darwin binaries (ad-hoc)."
+fi
 echo "    Done."
 
 # Step 2: Update version in install.sh + the plugin manifest
@@ -43,7 +51,9 @@ echo "4/4 Uploading to package registry..."
 for path in "${VERSION#v}" "latest"; do
   for file in dist/op-darwin-arm64 dist/op-darwin-amd64 dist/op-linux-amd64 install.sh; do
     name=$(basename $file)
-    curl -s --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+    # -f makes HTTP errors fail the script (set -e) instead of silently
+    # producing a release page with dead links; -S still prints the error.
+    curl -fsS --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
       --upload-file "$file" \
       "${PKG_BASE}/${path}/${name}?status=default" > /dev/null
     echo "    Uploaded ${name} → ${path}"

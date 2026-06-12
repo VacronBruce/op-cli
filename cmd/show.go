@@ -64,7 +64,7 @@ func runShow(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 
 		for _, att := range attachments.Embedded.Elements {
-			outPath := filepath.Join(outDir, att.FileName)
+			outPath := filepath.Join(outDir, safeFileName(att.FileName, fmt.Sprintf("attachment-%d", att.ID)))
 			if err := downloadAttachment(att.Links.DownloadLocation.Href, outPath); err != nil {
 				fmt.Printf("  Error downloading %s: %s\n", att.FileName, err)
 				continue
@@ -100,7 +100,8 @@ func runShow(cmd *cobra.Command, args []string) error {
 					}
 					// Prefix with the attachment ID: inline screenshots are often all
 					// named "image.png" and would otherwise overwrite each other.
-					outPath := filepath.Join(outDir, fmt.Sprintf("%d-%s", iid, att.FileName))
+					name := fmt.Sprintf("%d-%s", iid, safeFileName(att.FileName, "attachment"))
+					outPath := filepath.Join(outDir, name)
 					if err := downloadAttachment(att.Links.DownloadLocation.Href, outPath); err != nil {
 						fmt.Printf("  Error downloading #%d: %s\n", iid, err)
 						continue
@@ -112,6 +113,17 @@ func runShow(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// safeFileName reduces a server-supplied filename to its base name so a
+// hostile value like "../../x" cannot climb out of the download directory,
+// falling back when nothing usable remains.
+func safeFileName(name, fallback string) string {
+	base := filepath.Base(name)
+	if base == "." || base == ".." || base == string(filepath.Separator) || base == "" {
+		return fallback
+	}
+	return base
 }
 
 func downloadAttachment(href, outPath string) error {

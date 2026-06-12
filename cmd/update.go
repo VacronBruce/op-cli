@@ -223,7 +223,6 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	// render the full detail view.
 	if len(args) == 1 {
 		wpID, _ := parseWorkPackageID(args[0]) // validated above
-		req.LockVersion = 0
 		wp, err := client.UpdateWorkPackage(wpID, req)
 		if err != nil {
 			return fmt.Errorf("updating work package: %w", err)
@@ -234,10 +233,10 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Bulk: updates run concurrently (bounded). Each goroutine gets its OWN
-	// copy of the request — UpdateWorkPackage writes the fetched lockVersion
-	// back into it, and each ticket has its own. Results are collected and
-	// printed in argument order so the report reads against the typed list.
+	// Bulk: updates run concurrently (bounded) sharing one request —
+	// UpdateWorkPackage never mutates it (contract-tested in pkg/api), and
+	// each call fetches its own ticket's lockVersion. Results are collected
+	// and printed in argument order so the report reads against the typed list.
 	lines := make([]string, len(args))
 	failed := make([]bool, len(args))
 	sem := make(chan struct{}, updateConcurrency)
@@ -254,8 +253,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			reqCopy := *req // own LockVersion; the link maps are only read
-			wp, err := client.UpdateWorkPackage(wpID, &reqCopy)
+			wp, err := client.UpdateWorkPackage(wpID, req)
 			if err != nil {
 				lines[i] = fmt.Sprintf("Error updating #%d: %s", wpID, err)
 				failed[i] = true

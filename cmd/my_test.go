@@ -402,3 +402,30 @@ func TestMyTeam_APIError(t *testing.T) {
 		}
 	})
 }
+
+// The header prints the API's TOTAL match count while the table renders one
+// page — without a warning the header silently lies when they differ.
+func TestMy_WarnsWhenResultsTruncated(t *testing.T) {
+	mock := &testutil.MockClient{
+		ProjectValue: "test",
+		GetMeFn:      func() (*api.User, error) { return &api.User{ID: 7}, nil },
+		ListWorkPackagesFn: func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+			col := &api.WPCollection{Total: 143}
+			col.Embedded.Elements = []api.WorkPackage{myWP(1, "a"), myWP(2, "b")}
+			return col, nil
+		},
+	}
+	SetClient(mock)
+
+	var errOut string
+	testutil.CaptureStdout(func() {
+		errOut = testutil.CaptureStderr(func() {
+			if err := runMy(newMyCmd(), nil); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	})
+	if !strings.Contains(errOut, "143 items matched; only the first 2 are shown") {
+		t.Errorf("expected truncation warning on stderr, got: %q", errOut)
+	}
+}

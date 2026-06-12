@@ -326,7 +326,6 @@ func TestUpdate_MultiID_AppliesSameChangeToAll(t *testing.T) {
 		if req.LockVersion != 0 {
 			t.Errorf("PATCH for #%d carried stale LockVersion %d", id, req.LockVersion)
 		}
-		req.LockVersion = 7 // simulate the client filling it in per call
 		mu.Lock()
 		ids[id] = true
 		mu.Unlock()
@@ -395,8 +394,8 @@ func TestUpdate_MultiID_ContinuesPastFailures(t *testing.T) {
 
 // Bulk updates must actually overlap requests: two updates block until BOTH
 // have started; a sequential implementation deadlocks here (caught by the
-// timeout). Each goroutine must get its own request copy — a shared one
-// races on the LockVersion the client writes back.
+// timeout). The shared request is safe because UpdateWorkPackage never
+// mutates it (contract-tested in pkg/api).
 func TestUpdate_MultiID_RunsConcurrently(t *testing.T) {
 	started := make(chan struct{}, 2)
 	release := make(chan struct{})
@@ -416,7 +415,6 @@ func TestUpdate_MultiID_RunsConcurrently(t *testing.T) {
 		case <-time.After(2 * time.Second):
 			return nil, errors.New("timed out waiting for a second concurrent update — bulk update is sequential")
 		}
-		req.LockVersion = 7
 		return &api.WorkPackage{ID: id, Subject: "x"}, nil
 	}
 	SetClient(mock)

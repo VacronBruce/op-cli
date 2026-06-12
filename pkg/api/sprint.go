@@ -30,10 +30,12 @@ type VersionCollection struct {
 	} `json:"_embedded"`
 }
 
-// ListVersions lists all versions for a project.
+// ListVersions lists all versions for a project. The page size is explicit:
+// OpenProject's default is 25, which silently truncates once a project
+// accumulates more sprints+releases than that, breaking name resolution.
 func (c *Client) ListVersions(project string) (*VersionCollection, error) {
 	var result VersionCollection
-	if err := c.Get(fmt.Sprintf("/projects/%s/versions", project), &result); err != nil {
+	if err := c.Get(fmt.Sprintf("/projects/%s/versions?pageSize=500", project), &result); err != nil {
 		return nil, err
 	}
 	return &result, nil

@@ -385,3 +385,25 @@ func TestDeleteAttachment_ErrorStatus(t *testing.T) {
 		t.Fatal("expected error on HTTP 403, got nil")
 	}
 }
+
+// UpdateWorkPackage must NEVER write the fetched lockVersion back into the
+// caller's request: callers reuse one request across bulk updates and
+// retries, and a leaked lockVersion from ticket A would 409 on ticket B.
+func TestUpdateWorkPackage_DoesNotMutateRequest(t *testing.T) {
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			w.Write([]byte(`{"id":12,"lockVersion":7,"subject":"s"}`))
+			return
+		}
+		w.Write([]byte(`{"id":12,"lockVersion":8,"subject":"s"}`))
+	})
+	defer ts.Close()
+
+	req := &UpdateWPRequest{Subject: "new"}
+	if _, err := c.UpdateWorkPackage(12, req); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if req.LockVersion != 0 {
+		t.Errorf("caller's request was mutated: LockVersion = %d, want 0", req.LockVersion)
+	}
+}
