@@ -38,7 +38,7 @@ func init() {
 	rootCmd.AddCommand(upgradeCmd)
 }
 
-const pkgBaseURL = "https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest"
+const pkgBaseURL = "https://gitlab.shenxun.org/api/v4/projects/swat%2Fop-cli/packages/generic/op-cli/latest"
 
 func runUpgrade(cmd *cobra.Command, args []string) error {
 	binary := fmt.Sprintf("op-%s-%s", runtime.GOOS, runtime.GOARCH)
@@ -92,12 +92,12 @@ func downloadViaGlab(assetName string) (string, error) {
 	}
 
 	cmd := exec.Command("glab", "release", "download",
-		"--repo", "gmedtn/op-cli",
+		"--repo", "swat/op-cli",
 		"--include-external",
 		"--asset-name="+assetName,
 		"-D", dir,
 	)
-	cmd.Env = append(os.Environ(), "GITLAB_HOST=gitlab-tw.ddns.net")
+	cmd.Env = append(os.Environ(), "GITLAB_HOST=gitlab.shenxun.org")
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -137,7 +137,7 @@ func downloadViaCurl(assetName string) (string, error) {
 	if token == "" {
 		return "", fmt.Errorf(
 			"could not download. Try one of:\n" +
-				"  1. Authenticate glab:  GITLAB_HOST=gitlab-tw.ddns.net glab auth login\n" +
+				"  1. Authenticate glab:  GITLAB_HOST=gitlab.shenxun.org glab auth login\n" +
 				"  2. Set token:          export GITLAB_TOKEN=your-token")
 	}
 

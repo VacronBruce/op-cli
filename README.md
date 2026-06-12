@@ -20,13 +20,13 @@ brew install glab
 Authenticate to our GitLab (one-time):
 
 ```bash
-GITLAB_HOST=gitlab-tw.ddns.net glab auth login
+GITLAB_HOST=gitlab.shenxun.org glab auth login
 ```
 
 ### Quick Install (recommended)
 
 ```bash
-mkdir -p /tmp/op-cli && cd /tmp/op-cli && GITLAB_HOST=gitlab-tw.ddns.net glab release download --repo gmedtn/op-cli --include-external --asset-name="install.sh" && bash install.sh
+mkdir -p /tmp/op-cli && cd /tmp/op-cli && GITLAB_HOST=gitlab.shenxun.org glab release download --repo swat/op-cli --include-external --asset-name="install.sh" && bash install.sh
 ```
 
 The script will:
@@ -42,7 +42,7 @@ the plugin), or run `op upgrade` for just the binary. Already on the plugin?
 ### Alternative: Clone + Build (needs Go)
 
 ```bash
-git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git
+git clone git@gitlab.shenxun.org:swat/op-cli.git
 cd op-cli && git checkout develop && bash install.sh
 ```
 
@@ -50,7 +50,7 @@ cd op-cli && git checkout develop && bash install.sh
 
 ```bash
 curl -fsSH "PRIVATE-TOKEN: your-token" \
-  "https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest/install.sh" | bash
+  "https://gitlab.shenxun.org/api/v4/projects/swat%2Fop-cli/packages/generic/op-cli/latest/install.sh" | bash
 ```
 
 ## Setup
@@ -321,10 +321,10 @@ by hand:
 
 ```
 # This GitLab runs SSH on port 2424 — add to ~/.ssh/config:
-#   Host gitlab-tw.ddns.net
+#   Host gitlab.shenxun.org
 #       Port 2424
 
-/plugin marketplace add git@gitlab-tw.ddns.net:gmedtn/op-cli.git
+/plugin marketplace add git@gitlab.shenxun.org:swat/op-cli.git
 /plugin install op@op
 ```
 

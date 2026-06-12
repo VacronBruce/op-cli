@@ -4,14 +4,14 @@
 # op-cli installer
 #
 # Method 1 (curl + GitLab token):
-#   GITLAB_TOKEN=your-token bash <(curl -fsSH "PRIVATE-TOKEN: $GITLAB_TOKEN" https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/0.3.0/install.sh)
+#   GITLAB_TOKEN=your-token bash <(curl -fsSH "PRIVATE-TOKEN: $GITLAB_TOKEN" https://gitlab.shenxun.org/api/v4/projects/swat%2Fop-cli/packages/generic/op-cli/0.3.0/install.sh)
 #
 # Method 2 (clone + build):
-#   git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git && cd op-cli && git checkout develop && bash install.sh
+#   git clone git@gitlab.shenxun.org:swat/op-cli.git && cd op-cli && git checkout develop && bash install.sh
 
 VERSION="0.12.0"
-GITLAB_URL="https://gitlab-tw.ddns.net"
-PKG_URL="${GITLAB_URL}/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest"
+GITLAB_URL="https://gitlab.shenxun.org"
+PKG_URL="${GITLAB_URL}/api/v4/projects/swat%2Fop-cli/packages/generic/op-cli/latest"
 INSTALL_DIR="/usr/local/bin"
 OP_URL="https://openpr.epochbase.com"
 
@@ -65,8 +65,8 @@ else
     # Try glab CLI first
     if command -v glab &>/dev/null; then
       echo "    Found glab CLI, downloading via glab..."
-      GITLAB_HOST=gitlab-tw.ddns.net glab release download \
-        --repo gmedtn/op-cli --include-external \
+      GITLAB_HOST=gitlab.shenxun.org glab release download \
+        --repo swat/op-cli --include-external \
         --asset-name="${BINARY}" -D /tmp 2>/dev/null
       if [ -f "/tmp/${BINARY}" ]; then
         mv "/tmp/${BINARY}" /tmp/op-install
@@ -74,7 +74,7 @@ else
         DOWNLOADED=true
       else
         echo "    glab download failed. You may need to authenticate:"
-        echo "      GITLAB_HOST=gitlab-tw.ddns.net glab auth login"
+        echo "      GITLAB_HOST=gitlab.shenxun.org glab auth login"
         echo ""
       fi
     fi
@@ -87,7 +87,7 @@ else
       echo "    GitLab authentication required to download the binary."
       echo ""
       echo "    You need a GitLab Personal Access Token (PAT):"
-      echo "    1. Go to: https://gitlab-tw.ddns.net/-/user_settings/personal_access_tokens"
+      echo "    1. Go to: https://gitlab.shenxun.org/-/user_settings/personal_access_tokens"
       echo "    2. Create a token with 'read_api' scope"
       echo ""
       read -p "    Paste your GitLab token (or press Enter to skip): " GITLAB_TOKEN < /dev/tty
@@ -102,11 +102,11 @@ else
         echo ""
         echo "    Option B — use glab CLI:"
         echo "      brew install glab"
-        echo "      GITLAB_HOST=gitlab-tw.ddns.net glab auth login"
+        echo "      GITLAB_HOST=gitlab.shenxun.org glab auth login"
         echo "      bash install.sh"
         echo ""
         echo "    Option C — clone and build (needs Go):"
-        echo "      git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git"
+        echo "      git clone git@gitlab.shenxun.org:swat/op-cli.git"
         echo "      cd op-cli && git checkout develop && bash install.sh"
         exit 1
       fi
@@ -179,7 +179,7 @@ if command -v claude &>/dev/null; then
   if [ -d ".claude-plugin" ] && [ -f ".claude-plugin/marketplace.json" ]; then
     MP_SRC="$(pwd)"
   else
-    MP_SRC="git@gitlab-tw.ddns.net:gmedtn/op-cli.git"
+    MP_SRC="git@gitlab.shenxun.org:swat/op-cli.git"
   fi
 
   # Register the marketplace (or refresh it if already present), then install.

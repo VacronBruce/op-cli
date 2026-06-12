@@ -12,14 +12,14 @@ remembering flags. This guide gets you from zero to productive in ~5 minutes.
 
 ```bash
 brew install glab          # macOS/Linux  (or: sudo apt install glab)
-GITLAB_HOST=gitlab-tw.ddns.net glab auth login
+GITLAB_HOST=gitlab.shenxun.org glab auth login
 ```
 
 **Install op-cli + the `op` Claude Code plugin:**
 
 ```bash
 mkdir -p /tmp/op-cli && cd /tmp/op-cli && \
-  GITLAB_HOST=gitlab-tw.ddns.net glab release download --repo gmedtn/op-cli \
+  GITLAB_HOST=gitlab.shenxun.org glab release download --repo swat/op-cli \
   --include-external --asset-name="install.sh" && bash install.sh
 ```
 
@@ -115,5 +115,5 @@ Tips:
 ## 6. Help
 
 - `op <command> --help` for any command.
-- Repo: `git@gitlab-tw.ddns.net:gmedtn/op-cli.git` (README has full docs).
+- Repo: `git@gitlab.shenxun.org:swat/op-cli.git` (README has full docs).
 - `op upgrade` to self-update to the latest release.

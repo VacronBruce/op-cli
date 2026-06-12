@@ -5,8 +5,8 @@
   "author": {
     "name": "op-cli"
   },
-  "homepage": "https://gitlab-tw.ddns.net/gmedtn/op-cli",
-  "repository": "git@gitlab-tw.ddns.net:gmedtn/op-cli.git",
+  "homepage": "https://gitlab.shenxun.org/swat/op-cli",
+  "repository": "git@gitlab.shenxun.org:swat/op-cli.git",
   "license": "",
   "keywords": [
     "openproject",

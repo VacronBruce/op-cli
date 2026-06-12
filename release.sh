@@ -11,8 +11,8 @@ if [ -z "$1" ]; then
 fi
 
 VERSION="$1"
-REPO="gmedtn/op-cli"
-PKG_BASE="https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli"
+REPO="swat/op-cli"
+PKG_BASE="https://gitlab.shenxun.org/api/v4/projects/swat%2Fop-cli/packages/generic/op-cli"
 
 echo "=== Releasing op-cli ${VERSION} ==="
 echo ""
@@ -53,7 +53,7 @@ done
 # Step 5: Create GitLab release
 echo ""
 echo "Creating GitLab release..."
-GITLAB_HOST=gitlab-tw.ddns.net glab release create "${VERSION}" \
+GITLAB_HOST=gitlab.shenxun.org glab release create "${VERSION}" \
   --repo "${REPO}" \
   --ref develop \
   --name "${VERSION}" \
@@ -61,7 +61,7 @@ GITLAB_HOST=gitlab-tw.ddns.net glab release create "${VERSION}" \
 
 ### Install
 \`\`\`bash
-mkdir -p /tmp/op-cli && cd /tmp/op-cli && GITLAB_HOST=gitlab-tw.ddns.net glab release download --repo gmedtn/op-cli --include-external --asset-name=\"install.sh\" && bash install.sh
+mkdir -p /tmp/op-cli && cd /tmp/op-cli && GITLAB_HOST=gitlab.shenxun.org glab release download --repo swat/op-cli --include-external --asset-name=\"install.sh\" && bash install.sh
 \`\`\`
 
 Or click **install.sh** on the release page and run: \`bash ~/Downloads/install.sh\`
@@ -69,7 +69,7 @@ Or click **install.sh** on the release page and run: \`bash ~/Downloads/install.
 
 # Step 6: Add package registry links to release
 echo "Adding download links..."
-BASE_API="https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/releases/${VERSION}/assets/links"
+BASE_API="https://gitlab.shenxun.org/api/v4/projects/swat%2Fop-cli/releases/${VERSION}/assets/links"
 PKG="${PKG_BASE}/latest"
 
 curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type: application/json" \
@@ -83,4 +83,4 @@ curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type
 
 echo ""
 echo "=== Released ${VERSION} ==="
-echo "https://gitlab-tw.ddns.net/${REPO}/-/releases/${VERSION}"
+echo "https://gitlab.shenxun.org/${REPO}/-/releases/${VERSION}"

@@ -118,10 +118,10 @@ If a change touches them, update them in the same commit; if you can't verify an
 
 ```
 # CORRECT — works with glab, curl + token, and browser cookie
-https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest/<filename>
+https://gitlab.shenxun.org/api/v4/projects/swat%2Fop-cli/packages/generic/op-cli/latest/<filename>
 
 # WRONG — only works with browser cookie, fails with glab and curl
-https://gitlab-tw.ddns.net/gmedtn/op-cli/uploads/<hash>/<filename>
+https://gitlab.shenxun.org/swat/op-cli/uploads/<hash>/<filename>
 ```
 
 ### Release process
