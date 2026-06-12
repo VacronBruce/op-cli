@@ -9,7 +9,7 @@
 # Method 2 (clone + build):
 #   git clone git@gitlab.shenxun.org:swat/op-cli.git && cd op-cli && git checkout develop && bash install.sh
 
-VERSION="0.12.0"
+VERSION="0.12.1"
 GITLAB_URL="https://gitlab.shenxun.org"
 PKG_URL="${GITLAB_URL}/api/v4/projects/swat%2Fop-cli/packages/generic/op-cli/latest"
 INSTALL_DIR="/usr/local/bin"
