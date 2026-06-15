@@ -173,10 +173,11 @@ op start 12345                     # Start work: branch <project>-12345-<slug>, 
 ```bash
 op create task "Fix login page" --assignee="Ken Peng" --priority=P1
 op create bug "Crash on save" --priority=SEV1 --attach=screenshot.png   # -> Bug Backlog board
-op create feature "Dark mode" --points=3 --sprint="App_06/02/2026" \
+op create feature "Dark mode" --points=3 --estimate="2d" --sprint="App_06/02/2026" \
   --component=android --product=entd --tech-area=app --label=team#appandroid
 op update 12345 --status=in-progress
 op update 12345 --assignee="Bruce Chen" --points=3
+op update 12345 --estimate="2d 4h"             # set Work estimate (days at 8h/day)
 op update 12345 --description="Updated description here"
 op update 12345 --subject="New title" --done=50
 op update 12345 --assignee="Ken Peng"

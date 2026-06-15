@@ -36,6 +36,7 @@ func init() {
 	updateCmd.Flags().StringP("assignee", "a", "", "New assignee")
 	updateCmd.Flags().String("priority", "", "New priority")
 	updateCmd.Flags().Int("points", 0, "Story points")
+	updateCmd.Flags().String("estimate", "", "Estimated work (e.g. 2d, 16h, \"2d 4h\"; days at 8h/day)")
 	updateCmd.Flags().Int("done", -1, "Percentage done (0-100)")
 	updateCmd.Flags().String("subject", "", "New subject/title")
 	updateCmd.Flags().StringP("description", "d", "", "New description (markdown)")
@@ -107,6 +108,16 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	// Story points
 	if pts, _ := cmd.Flags().GetInt("points"); pts > 0 {
 		req.StoryPoints = &pts
+		hasChanges = true
+	}
+
+	// Estimated work
+	if estimate, _ := cmd.Flags().GetString("estimate"); estimate != "" {
+		iso, err := api.ParseEstimate(estimate)
+		if err != nil {
+			return err
+		}
+		req.EstimatedTime = iso
 		hasChanges = true
 	}
 

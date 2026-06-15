@@ -52,6 +52,9 @@ func WorkPackageDetail(wp *api.WorkPackage) {
 	if wp.StoryPoints != nil {
 		fmt.Printf("  Points:     %d\n", *wp.StoryPoints)
 	}
+	if work := api.FormatEstimate(wp.EstimatedTime); work != "" {
+		fmt.Printf("  Work:       %s\n", work)
+	}
 	fmt.Printf("  Progress:   %d%%\n", wp.PercentageDone)
 	if wp.StartDate != "" {
 		fmt.Printf("  Start:      %s\n", wp.StartDate)

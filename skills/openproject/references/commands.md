@@ -53,11 +53,12 @@ op create <type> "<subject>" [flags]  # Create work package
   #   --product=entd       --tech-area=app   (--product repeatable: --product=eet --product=entd)
   #   --label=team#appandroid
   #   --points=5           --sprint="Sprint 1"
+  #   --estimate="2d"      (Work estimate: 2d, 16h, "2d 4h"; days at 8h/day)
   #   --description="..."  --attach=screenshot.png
   #   --parent=81477       --start=2026-01-01   --due=2026-01-15
 
 op update <id> [flags]                # Update work package
-  # Flags: --status=in-progress --assignee="Name" --points=5 --done=80
+  # Flags: --status=in-progress --assignee="Name" --points=5 --estimate="2d 4h" --done=80
   #        --sprint="Sprint 1" --component=android --subject="..."
   #        --priority=P1 --description="..." --release="[iOS][ETV] 1.0.9"
   #        --to-project=wp   # move to another project (then assign a sprint)

@@ -31,6 +31,7 @@ func init() {
 	createCmd.Flags().String("priority", "Normal", "Priority (Low, Normal, High, Immediate)")
 	createCmd.Flags().StringP("description", "d", "", "Description (markdown)")
 	createCmd.Flags().Int("points", 0, "Story points")
+	createCmd.Flags().String("estimate", "", "Estimated work (e.g. 2d, 16h, \"2d 4h\"; days at 8h/day)")
 	createCmd.Flags().String("sprint", "", "Sprint/version name (default from config)")
 	_ = viper.BindPFlag("sprint", createCmd.Flags().Lookup("sprint"))
 	createCmd.Flags().String("start", "", "Start date (YYYY-MM-DD)")
@@ -101,6 +102,15 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	// Optional: story points
 	if pts, _ := cmd.Flags().GetInt("points"); pts > 0 {
 		req.StoryPoints = &pts
+	}
+
+	// Optional: estimated work
+	if estimate, _ := cmd.Flags().GetString("estimate"); estimate != "" {
+		iso, err := api.ParseEstimate(estimate)
+		if err != nil {
+			return err
+		}
+		req.EstimatedTime = iso
 	}
 
 	// Optional: dates

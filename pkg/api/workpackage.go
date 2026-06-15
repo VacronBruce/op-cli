@@ -13,6 +13,7 @@ type WorkPackage struct {
 	Subject        string       `json:"subject"`
 	Description    *Formattable `json:"description,omitempty"`
 	StoryPoints    *int         `json:"storyPoints,omitempty"`
+	EstimatedTime  string       `json:"estimatedTime,omitempty"`
 	PercentageDone int          `json:"percentageDone"`
 	StartDate      string       `json:"startDate,omitempty"`
 	DueDate        string       `json:"dueDate,omitempty"`
@@ -30,6 +31,7 @@ type wpWire struct {
 	Subject        string       `json:"subject"`
 	Description    *Formattable `json:"description,omitempty"`
 	StoryPoints    *int         `json:"storyPoints,omitempty"`
+	EstimatedTime  string       `json:"estimatedTime,omitempty"`
 	PercentageDone int          `json:"percentageDone"`
 	StartDate      string       `json:"startDate,omitempty"`
 	DueDate        string       `json:"dueDate,omitempty"`
@@ -125,12 +127,13 @@ type LinkValue interface{}
 
 // CreateWPRequest is the request body for creating a work package.
 type CreateWPRequest struct {
-	Subject     string               `json:"subject"`
-	Description *Formattable         `json:"description,omitempty"`
-	StoryPoints *int                 `json:"storyPoints,omitempty"`
-	StartDate   string               `json:"startDate,omitempty"`
-	DueDate     string               `json:"dueDate,omitempty"`
-	Links       map[string]LinkValue `json:"_links"`
+	Subject       string               `json:"subject"`
+	Description   *Formattable         `json:"description,omitempty"`
+	StoryPoints   *int                 `json:"storyPoints,omitempty"`
+	EstimatedTime string               `json:"estimatedTime,omitempty"`
+	StartDate     string               `json:"startDate,omitempty"`
+	DueDate       string               `json:"dueDate,omitempty"`
+	Links         map[string]LinkValue `json:"_links"`
 }
 
 // SetLink sets a single-value link field.
@@ -149,6 +152,7 @@ type UpdateWPRequest struct {
 	Subject        string               `json:"subject,omitempty"`
 	Description    *Formattable         `json:"description,omitempty"`
 	StoryPoints    *int                 `json:"storyPoints,omitempty"`
+	EstimatedTime  string               `json:"estimatedTime,omitempty"`
 	PercentageDone *int                 `json:"percentageDone,omitempty"`
 	StartDate      string               `json:"startDate,omitempty"`
 	DueDate        string               `json:"dueDate,omitempty"`
