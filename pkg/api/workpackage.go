@@ -97,6 +97,11 @@ type WPLinks struct {
 	Component []Link `json:"customField12"`
 	Product   []Link `json:"customField4"`
 	Label     []Link `json:"customField13"`
+
+	// Release is a version link scoped to kind=release (customField50). Separate
+	// from Version, which holds the sprint; a work package can carry both. The
+	// API serializes it as an array even though it holds at most one release.
+	Release []Link `json:"customField50"`
 }
 
 // Link represents an HAL link.
