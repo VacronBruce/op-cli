@@ -155,6 +155,7 @@ op overview                        # Cross-project dashboard of my open work
 op overview --projects=8 --sprints=5  # Widen the dashboard
 op blocked                         # Blocked items in sprint
 op show 12345                      # View ticket details (includes JIRA ID + User Story + inline comment images)
+op show 12345 --url                # Print only the browser URL (no API call)
 op show 12345 --download           # Download attachments and inline comment images
 op search WP-23                    # Map a JIRA ID to its OpenProject number
 op search AR-178 --field key       # Search a different custom field (substring match)

@@ -20,6 +20,7 @@ op overview --projects=8 --sprints=5  # Widen the dashboard (defaults 5 x 3)
 op blocked                            # Blocked items in sprint
 op projects                           # List all projects
 op show <id>                          # Work package details + attachments + inline comment images
+op show <id> --url                    # Print only the browser URL (no API call)
 op show <id> --download [--out=DIR]   # Download attachments AND inline comment images (default: current dir)
 op search <jira-id>                   # Map a JIRA ID (e.g. WP-23) to its OP number
 op start <id>                         # Start work: create/checkout branch <project>-<id>-<slug>,

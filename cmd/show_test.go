@@ -18,6 +18,7 @@ import (
 
 func newShowCmd() *cobra.Command {
 	cmd := &cobra.Command{}
+	cmd.Flags().Bool("url", false, "")
 	cmd.Flags().BoolP("download", "d", false, "")
 	cmd.Flags().StringP("out", "o", ".", "")
 	return cmd
@@ -62,6 +63,34 @@ func TestShow_ValidID(t *testing.T) {
 	}
 	if !strings.Contains(out, "Status:") || !strings.Contains(out, "Open") {
 		t.Errorf("expected Status label in output, got: %s", out)
+	}
+}
+
+// --url must print the browser link without hitting the work package API,
+// so callers can grab a shareable link cheaply for any known ID.
+func TestShow_URLOnly(t *testing.T) {
+	// Use a base that differs from the mock's default fallback, so the
+	// assertion fails if WorkPackageURL stops honoring the configured base.
+	mock := &testutil.MockClient{
+		BaseURLValue: "https://op.test",
+		GetWorkPackageFn: func(id int) (*api.WorkPackage, error) {
+			t.Fatal("--url must not fetch the work package")
+			return nil, nil
+		},
+	}
+	SetClient(mock)
+
+	cmd := newShowCmd()
+	_ = cmd.Flags().Set("url", "true")
+
+	out := testutil.CaptureStdout(func() {
+		if err := runShow(cmd, []string{"81321"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if strings.TrimSpace(out) != "https://op.test/work_packages/81321" {
+		t.Errorf("expected only the browser URL, got: %q", out)
 	}
 }
 

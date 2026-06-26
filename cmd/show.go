@@ -18,6 +18,7 @@ var showCmd = &cobra.Command{
 
 Examples:
   op show 81321
+  op show 81321 --url         Print only the browser URL
   op show 81321 --download    Download all attachments to current directory
   op show 81321 --download --out=/tmp`,
 	Args: cobra.ExactArgs(1),
@@ -26,6 +27,7 @@ Examples:
 
 func init() {
 	rootCmd.AddCommand(showCmd)
+	showCmd.Flags().Bool("url", false, "Print only the browser URL and exit")
 	showCmd.Flags().BoolP("download", "d", false, "Download attachments")
 	showCmd.Flags().StringP("out", "o", ".", "Download directory")
 }
@@ -34,6 +36,11 @@ func runShow(cmd *cobra.Command, args []string) error {
 	id, err := parseWorkPackageID(args[0])
 	if err != nil {
 		return err
+	}
+
+	if urlOnly, _ := cmd.Flags().GetBool("url"); urlOnly {
+		fmt.Println(client.WorkPackageURL(id))
+		return nil
 	}
 
 	wp, err := client.GetWorkPackage(id)
