@@ -5,10 +5,8 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -31,7 +29,7 @@ var upgradeCmd = &cobra.Command{
 	Annotations: skipClientInit(),
 	Long: `Download and install the latest op-cli binary.
 
-Uses glab CLI (preferred) or GITLAB_TOKEN to download from the package registry.`,
+Downloads the newest release asset from the public GitHub repo — no auth needed.`,
 	RunE: runUpgrade,
 }
 
@@ -40,12 +38,14 @@ func init() {
 	rootCmd.AddCommand(upgradeCmd)
 }
 
-// pkgBaseURL is a var (not const) so tests can point it at a local server.
-var pkgBaseURL = "https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest"
+// releaseBaseURL is a var (not const) so tests can point it at a local server.
+// GitHub serves the newest release at this stable path; the repo is public so
+// the asset is a plain download with no token.
+var releaseBaseURL = "https://github.com/VacronBruce/op-cli/releases/latest/download"
 
-// Seams for tests. Production wiring locates the running binary and tries
-// glab first, then a token download — both do exec/network/file I/O that
-// tests stub out to cover runUpgrade's orchestration.
+// Seams for tests. Production wiring locates the running binary and downloads
+// the release asset — both do network/file I/O that tests stub out to cover
+// runUpgrade's orchestration.
 var (
 	upgradeExecPath = func() (string, error) {
 		p, err := os.Executable()
@@ -55,13 +55,7 @@ var (
 		p, _ = filepath.EvalSymlinks(p)
 		return p, nil
 	}
-	upgradeDownload = func(assetName string) (string, error) {
-		tmpPath, err := downloadViaGlab(assetName)
-		if err != nil {
-			tmpPath, err = downloadViaCurl(assetName)
-		}
-		return tmpPath, err
-	}
+	upgradeDownload = downloadRelease
 )
 
 func runUpgrade(cmd *cobra.Command, args []string) error {
@@ -99,83 +93,19 @@ func runUpgrade(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// downloadViaGlab uses the glab CLI to download the release asset.
-func downloadViaGlab(assetName string) (string, error) {
-	if _, err := exec.LookPath("glab"); err != nil {
-		return "", fmt.Errorf("glab not found")
-	}
+// downloadRelease fetches the release asset from the public GitHub repo.
+// No auth: the repo is public, so /releases/latest/download/<asset> is a plain GET.
+func downloadRelease(assetName string) (string, error) {
+	url := releaseBaseURL + "/" + assetName
 
-	dir, err := os.MkdirTemp("", "op-upgrade-*")
-	if err != nil {
-		return "", err
-	}
-
-	cmd := exec.Command("glab", "release", "download",
-		"--repo", "gmedtn/op-cli",
-		"--include-external",
-		"--asset-name="+assetName,
-		"-D", dir,
-	)
-	cmd.Env = append(os.Environ(), "GITLAB_HOST=gitlab-tw.ddns.net")
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		os.RemoveAll(dir)
-		return "", fmt.Errorf("glab download failed: %s", strings.TrimSpace(string(out)))
-	}
-
-	path := filepath.Join(dir, assetName)
-	if _, err := os.Stat(path); err != nil {
-		os.RemoveAll(dir)
-		return "", fmt.Errorf("asset not found after glab download")
-	}
-
-	// Move out of temp dir so the dir can be cleaned up independently.
-	tmp, err := os.CreateTemp("", "op-bin-*")
-	if err != nil {
-		os.RemoveAll(dir)
-		return "", err
-	}
-	tmpPath := tmp.Name()
-	tmp.Close()
-
-	if err := copyFile(path, tmpPath); err != nil {
-		os.RemoveAll(dir)
-		os.Remove(tmpPath)
-		return "", err
-	}
-	os.RemoveAll(dir)
-
-	fmt.Println("Downloaded via glab.")
-	return tmpPath, nil
-}
-
-// downloadViaCurl downloads the binary using a GitLab token.
-func downloadViaCurl(assetName string) (string, error) {
-	token := os.Getenv("GITLAB_TOKEN")
-	if token == "" {
-		return "", fmt.Errorf(
-			"could not download. Try one of:\n" +
-				"  1. Authenticate glab:  GITLAB_HOST=gitlab-tw.ddns.net glab auth login\n" +
-				"  2. Set token:          export GITLAB_TOKEN=your-token")
-	}
-
-	url := pkgBaseURL + "/" + assetName
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return "", fmt.Errorf("creating request: %w", err)
-	}
-	req.Header.Set("PRIVATE-TOKEN", token)
-
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.Get(url)
 	if err != nil {
 		return "", fmt.Errorf("downloading: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("download failed (HTTP %d). Check your GITLAB_TOKEN", resp.StatusCode)
+		return "", fmt.Errorf("download failed (HTTP %d) for %s", resp.StatusCode, url)
 	}
 
 	tmp, err := os.CreateTemp("", "op-bin-*")
@@ -190,7 +120,7 @@ func downloadViaCurl(assetName string) (string, error) {
 	}
 	tmp.Close()
 
-	fmt.Println("Downloaded via token.")
+	fmt.Println("Downloaded.")
 	return tmp.Name(), nil
 }
 
