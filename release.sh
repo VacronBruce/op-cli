@@ -11,8 +11,7 @@ if [ -z "$1" ]; then
 fi
 
 VERSION="$1"
-REPO="gmedtn/op-cli"
-PKG_BASE="https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli"
+REPO="VacronBruce/op-cli"
 
 echo "=== Releasing op-cli ${VERSION} ==="
 echo ""
@@ -46,51 +45,26 @@ git commit -m "release: ${VERSION}" || true
 git tag "${VERSION}"
 git push origin develop --tags
 
-# Step 4: Upload to package registry (both versioned + latest)
-echo "4/4 Uploading to package registry..."
-for path in "${VERSION#v}" "latest"; do
-  for file in dist/op-darwin-arm64 dist/op-darwin-amd64 dist/op-linux-amd64 install.sh; do
-    name=$(basename $file)
-    # -f makes HTTP errors fail the script (set -e) instead of silently
-    # producing a release page with dead links; -S still prints the error.
-    curl -fsS --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
-      --upload-file "$file" \
-      "${PKG_BASE}/${path}/${name}?status=default" > /dev/null
-    echo "    Uploaded ${name} → ${path}"
-  done
-done
-
-# Step 5: Create GitLab release
-echo ""
-echo "Creating GitLab release..."
-GITLAB_HOST=gitlab-tw.ddns.net glab release create "${VERSION}" \
+# Step 4: Create GitHub release with the binaries + installer attached.
+# GitHub serves the newest release at /releases/latest/download/<asset>, so
+# install.sh always fetches the current version without any per-release edits.
+echo "4/4 Creating GitHub release..."
+gh release create "${VERSION}" \
   --repo "${REPO}" \
-  --ref develop \
-  --name "${VERSION}" \
+  --target develop \
+  --title "${VERSION}" \
   --notes "## op-cli ${VERSION}
 
 ### Install
 \`\`\`bash
-mkdir -p /tmp/op-cli && cd /tmp/op-cli && GITLAB_HOST=gitlab-tw.ddns.net glab release download --repo gmedtn/op-cli --include-external --asset-name=\"install.sh\" && bash install.sh
+bash <(curl -fsSL https://github.com/${REPO}/releases/latest/download/install.sh)
 \`\`\`
-
-Or click **install.sh** on the release page and run: \`bash ~/Downloads/install.sh\`
-"
-
-# Step 6: Add package registry links to release
-echo "Adding download links..."
-BASE_API="https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/releases/${VERSION}/assets/links"
-PKG="${PKG_BASE}/latest"
-
-curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type: application/json" \
-  -d "{\"name\":\"op-darwin-arm64\",\"url\":\"${PKG}/op-darwin-arm64\",\"link_type\":\"package\"}" "$BASE_API" > /dev/null
-curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type: application/json" \
-  -d "{\"name\":\"op-darwin-amd64\",\"url\":\"${PKG}/op-darwin-amd64\",\"link_type\":\"package\"}" "$BASE_API" > /dev/null
-curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type: application/json" \
-  -d "{\"name\":\"op-linux-amd64\",\"url\":\"${PKG}/op-linux-amd64\",\"link_type\":\"package\"}" "$BASE_API" > /dev/null
-curl -s -X POST --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" --header "Content-Type: application/json" \
-  -d "{\"name\":\"install.sh\",\"url\":\"${PKG}/install.sh\",\"link_type\":\"other\"}" "$BASE_API" > /dev/null
+" \
+  dist/op-darwin-arm64 \
+  dist/op-darwin-amd64 \
+  dist/op-linux-amd64 \
+  install.sh
 
 echo ""
 echo "=== Released ${VERSION} ==="
-echo "https://gitlab-tw.ddns.net/${REPO}/-/releases/${VERSION}"
+echo "https://github.com/${REPO}/releases/tag/${VERSION}"

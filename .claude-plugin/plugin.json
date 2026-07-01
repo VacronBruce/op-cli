@@ -5,8 +5,8 @@
   "author": {
     "name": "op-cli"
   },
-  "homepage": "https://gitlab-tw.ddns.net/gmedtn/op-cli",
-  "repository": "git@gitlab-tw.ddns.net:gmedtn/op-cli.git",
+  "homepage": "https://github.com/VacronBruce/op-cli",
+  "repository": "https://github.com/VacronBruce/op-cli.git",
   "license": "",
   "keywords": [
     "openproject",

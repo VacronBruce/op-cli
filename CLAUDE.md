@@ -112,27 +112,26 @@ If a change touches them, update them in the same commit; if you can't verify an
 
 ## Release
 
-### GitLab release asset URLs
+Releases live on **GitHub** at `VacronBruce/op-cli` (public repo). The repo is
+public, so release assets download with a plain `curl` — no token or login.
 
-**Use Generic Package Registry URLs** for release links. Do NOT use `/uploads/` paths.
+### Release asset URLs
+
+GitHub serves the newest release at a stable `latest/download/` path, so
+`install.sh` never needs per-release edits:
 
 ```
-# CORRECT — works with glab, curl + token, and browser cookie
-https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest/<filename>
-
-# WRONG — only works with browser cookie, fails with glab and curl
-https://gitlab-tw.ddns.net/gmedtn/op-cli/uploads/<hash>/<filename>
+https://github.com/VacronBruce/op-cli/releases/latest/download/<filename>
 ```
 
 ### Release process
 
+Requires the `gh` CLI, authenticated (`gh auth status`):
+
 ```bash
-export GITLAB_TOKEN=your-token
 bash release.sh v0.5.0
 ```
 
-The script uploads to both `<version>/` and `latest/` in the package registry. Release links always point to `latest/` so developers get the newest version.
-
-### Browser download limitation
-
-The `/api/v4/` package registry URLs return 401 when clicked in browser (browser sends cookies, not API token). For browser downloads, the release page description tells users to use glab or clone instead. This is a GitLab limitation for internal repos — no workaround exists.
+The script builds the binaries, tags + pushes to `origin` (GitHub), and runs
+`gh release create` with the binaries and `install.sh` attached. Release links
+always resolve via `/releases/latest/download/` so developers get the newest version.

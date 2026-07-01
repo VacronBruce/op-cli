@@ -3,15 +3,16 @@
 
 # op-cli installer
 #
-# Method 1 (curl + GitLab token):
-#   GITLAB_TOKEN=your-token bash <(curl -fsSH "PRIVATE-TOKEN: $GITLAB_TOKEN" https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/0.3.0/install.sh)
+# Method 1 (curl — downloads the latest release binary, no auth needed):
+#   bash <(curl -fsSL https://github.com/VacronBruce/op-cli/releases/latest/download/install.sh)
 #
 # Method 2 (clone + build):
-#   git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git && cd op-cli && git checkout develop && bash install.sh
+#   git clone https://github.com/VacronBruce/op-cli.git && cd op-cli && bash install.sh
 
 VERSION="0.20.0"
-GITLAB_URL="https://gitlab-tw.ddns.net"
-PKG_URL="${GITLAB_URL}/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest"
+REPO="VacronBruce/op-cli"
+REPO_URL="https://github.com/${REPO}"
+DL_URL="${REPO_URL}/releases/latest/download"  # GitHub always serves the newest release here
 INSTALL_DIR="${INSTALL_DIR:-}"  # override via env var; auto-detected below
 OP_URL="https://openpr.epochbase.com"
 
@@ -58,67 +59,18 @@ if [ -f "go.mod" ] && [ -f "main.go" ]; then
     exit 1
   fi
 else
-  # Mode: download pre-built binary
-  # Try to get a GitLab token from: env var → glab CLI → prompt user
-
-  if [ -z "$GITLAB_TOKEN" ]; then
-    # Try glab CLI first
-    if command -v glab &>/dev/null; then
-      echo "    Found glab CLI, downloading via glab..."
-      GITLAB_HOST=gitlab-tw.ddns.net glab release download \
-        --repo gmedtn/op-cli --include-external \
-        --asset-name="${BINARY}" -D /tmp 2>/dev/null
-      if [ -f "/tmp/${BINARY}" ]; then
-        mv "/tmp/${BINARY}" /tmp/op-install
-        echo "    Downloaded via glab."
-        DOWNLOADED=true
-      else
-        echo "    glab download failed. You may need to authenticate:"
-        echo "      GITLAB_HOST=gitlab-tw.ddns.net glab auth login"
-        echo ""
-      fi
-    fi
+  # Mode: download pre-built binary from the latest GitHub release.
+  # The repo is public, so the release asset is a plain download — no auth needed.
+  echo "    Downloading ${BINARY} from the latest GitHub release..."
+  if ! curl -fsSL -o /tmp/op-install "${DL_URL}/${BINARY}"; then
+    echo "    Error: download failed."
+    echo ""
+    echo "    Alternative — clone and build (needs Go):"
+    echo "      git clone ${REPO_URL}.git"
+    echo "      cd op-cli && bash install.sh"
+    exit 1
   fi
-
-  # If glab didn't work, try curl with token
-  if [ -z "$DOWNLOADED" ]; then
-    if [ -z "$GITLAB_TOKEN" ]; then
-      echo ""
-      echo "    GitLab authentication required to download the binary."
-      echo ""
-      echo "    You need a GitLab Personal Access Token (PAT):"
-      echo "    1. Go to: https://gitlab-tw.ddns.net/-/user_settings/personal_access_tokens"
-      echo "    2. Create a token with 'read_api' scope"
-      echo ""
-      read -p "    Paste your GitLab token (or press Enter to skip): " GITLAB_TOKEN < /dev/tty
-
-      if [ -z "$GITLAB_TOKEN" ]; then
-        echo ""
-        echo "    No token provided. Alternative install methods:"
-        echo ""
-        echo "    Option A — set token and retry:"
-        echo "      export GITLAB_TOKEN=your-gitlab-token"
-        echo "      bash install.sh"
-        echo ""
-        echo "    Option B — use glab CLI:"
-        echo "      brew install glab"
-        echo "      GITLAB_HOST=gitlab-tw.ddns.net glab auth login"
-        echo "      bash install.sh"
-        echo ""
-        echo "    Option C — clone and build (needs Go):"
-        echo "      git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git"
-        echo "      cd op-cli && git checkout develop && bash install.sh"
-        exit 1
-      fi
-    fi
-
-    echo "    Downloading ${BINARY}..."
-    if ! curl -fsSL -o /tmp/op-install -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "${PKG_URL}/${BINARY}"; then
-      echo "    Error: download failed. Check your token."
-      exit 1
-    fi
-    echo "    Downloaded."
-  fi
+  echo "    Downloaded."
 fi
 
 chmod +x /tmp/op-install
@@ -219,7 +171,7 @@ if command -v claude &>/dev/null; then
   if [ -d ".claude-plugin" ] && [ -f ".claude-plugin/marketplace.json" ]; then
     MP_SRC="$(pwd)"
   else
-    MP_SRC="git@gitlab-tw.ddns.net:gmedtn/op-cli.git"
+    MP_SRC="${REPO_URL}.git"
   fi
 
   # Register the marketplace (or refresh it if already present), then install.

@@ -4,34 +4,15 @@ A lean CLI for managing OpenProject sprints, backlogs, and work packages. Built 
 
 ## Install
 
-### Prerequisites
-
-Install `glab` (GitLab CLI) if you don't have it:
-
-```bash
-# macOS
-brew install glab
-
-# Linux
-brew install glab
-# or: sudo apt install glab
-```
-
-Authenticate to our GitLab (one-time):
-
-```bash
-GITLAB_HOST=gitlab-tw.ddns.net glab auth login
-```
-
 ### Quick Install (recommended)
 
 ```bash
-mkdir -p /tmp/op-cli && cd /tmp/op-cli && GITLAB_HOST=gitlab-tw.ddns.net glab release download --repo gmedtn/op-cli --include-external --asset-name="install.sh" && bash install.sh
+bash <(curl -fsSL https://github.com/VacronBruce/op-cli/releases/latest/download/install.sh)
 ```
 
-The script will:
+The repo is public, so this needs no login or token. The script will:
 1. Auto-detect your platform (macOS/Linux, ARM/Intel)
-2. Download the correct binary via glab
+2. Download the correct binary from the latest GitHub release
 3. Ask for your OpenProject API key
 4. Install the `op` Claude Code plugin (`/op:openproject`, `/op:standup`, `/op:file-bug`, `/op:ticket-*`)
 
@@ -42,15 +23,8 @@ the plugin), or run `op upgrade` for just the binary. Already on the plugin?
 ### Alternative: Clone + Build (needs Go)
 
 ```bash
-git clone git@gitlab-tw.ddns.net:gmedtn/op-cli.git
-cd op-cli && git checkout develop && bash install.sh
-```
-
-### Alternative: curl + GitLab Token
-
-```bash
-curl -fsSH "PRIVATE-TOKEN: your-token" \
-  "https://gitlab-tw.ddns.net/api/v4/projects/gmedtn%2Fop-cli/packages/generic/op-cli/latest/install.sh" | bash
+git clone https://github.com/VacronBruce/op-cli.git
+cd op-cli && bash install.sh
 ```
 
 ## Setup
@@ -353,11 +327,7 @@ The skills ship as the **`op` plugin** — namespaced under an `op:` prefix
 by hand:
 
 ```
-# This GitLab runs SSH on port 2424 — add to ~/.ssh/config:
-#   Host gitlab-tw.ddns.net
-#       Port 2424
-
-/plugin marketplace add git@gitlab-tw.ddns.net:gmedtn/op-cli.git
+/plugin marketplace add https://github.com/VacronBruce/op-cli.git
 /plugin install op@op
 ```
 

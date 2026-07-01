@@ -8,24 +8,15 @@ remembering flags. This guide gets you from zero to productive in ~5 minutes.
 
 ## 1. Install
 
-**Prerequisite — `glab` (GitLab CLI), authenticated once:**
+**Install op-cli + the `op` Claude Code plugin** (public repo — no login or token needed):
 
 ```bash
-brew install glab          # macOS/Linux  (or: sudo apt install glab)
-GITLAB_HOST=gitlab-tw.ddns.net glab auth login
+bash <(curl -fsSL https://github.com/VacronBruce/op-cli/releases/latest/download/install.sh)
 ```
 
-**Install op-cli + the `op` Claude Code plugin:**
-
-```bash
-mkdir -p /tmp/op-cli && cd /tmp/op-cli && \
-  GITLAB_HOST=gitlab-tw.ddns.net glab release download --repo gmedtn/op-cli \
-  --include-external --asset-name="install.sh" && bash install.sh
-```
-
-The script detects your platform, installs the `op` binary, asks for your API key,
-and installs the **`op` plugin** — all skills under the `op:` prefix
-(`/op:openproject`, `/op:standup`, `/op:file-bug`, `/op:ticket-*`).
+The script detects your platform, downloads the `op` binary from the latest GitHub
+release, asks for your API key, and installs the **`op` plugin** — all skills under
+the `op:` prefix (`/op:openproject`, `/op:standup`, `/op:file-bug`, `/op:ticket-*`).
 
 ---
 
@@ -115,5 +106,5 @@ Tips:
 ## 6. Help
 
 - `op <command> --help` for any command.
-- Repo: `git@gitlab-tw.ddns.net:gmedtn/op-cli.git` (README has full docs).
+- Repo: `https://github.com/VacronBruce/op-cli` (README has full docs).
 - `op upgrade` to self-update to the latest release.
