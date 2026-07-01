@@ -247,9 +247,10 @@ fi
 
 echo ""
 
-# Verify — op setup prints an [ok]/[--] checklist with a fix for each gap
+# Verify — op setup prints an [ok]/[--] checklist with a fix for each gap.
+# Call by full path: INSTALL_DIR may not be on this shell's PATH yet (warned above).
 echo "--- Verifying ---"
-if op setup; then
+if "${INSTALL_DIR}/op" setup; then
   echo ""
   echo "================================"
   echo "  Setup complete!"
