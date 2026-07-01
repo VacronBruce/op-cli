@@ -9,7 +9,7 @@
 # Method 2 (clone + build):
 #   git clone https://github.com/VacronBruce/op-cli.git && cd op-cli && bash install.sh
 
-VERSION="0.20.0"
+VERSION="0.21.0"
 REPO="VacronBruce/op-cli"
 REPO_URL="https://github.com/${REPO}"
 DL_URL="${REPO_URL}/releases/latest/download"  # GitHub always serves the newest release here
