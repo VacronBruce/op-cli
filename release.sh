@@ -36,6 +36,7 @@ echo "    Done."
 # Step 2: Update version in install.sh + the plugin manifest
 echo "2/4 Updating versions..."
 sed -i '' "s/^VERSION=.*/VERSION=\"${VERSION#v}\"/" install.sh
+sed -i '' "s/^\$Version   = .*/\$Version   = \"${VERSION#v}\"/" install.ps1
 sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION#v}\"/" .claude-plugin/plugin.json
 echo "    Done."
 
@@ -65,7 +66,8 @@ bash <(curl -fsSL https://github.com/${REPO}/releases/latest/download/install.sh
   dist/op-darwin-amd64 \
   dist/op-linux-amd64 \
   dist/op-windows-amd64.exe \
-  install.sh
+  install.sh \
+  install.ps1
 
 echo ""
 echo "=== Released ${VERSION} ==="
