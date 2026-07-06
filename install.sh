@@ -26,9 +26,10 @@ OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 
 case "$OS" in
-  darwin) OS="darwin" ;;
-  linux)  OS="linux" ;;
-  *)      echo "Error: unsupported OS: $OS"; exit 1 ;;
+  darwin)                OS="darwin" ;;
+  linux)                 OS="linux" ;;
+  mingw*|msys*|cygwin*)  OS="windows" ;;  # Git Bash / MSYS / Cygwin on Windows
+  *)                     echo "Error: unsupported OS: $OS"; exit 1 ;;
 esac
 
 case "$ARCH" in
@@ -37,7 +38,9 @@ case "$ARCH" in
   *)             echo "Error: unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
-BINARY="op-${OS}-${ARCH}"
+EXT=""
+[ "$OS" = "windows" ] && EXT=".exe"  # Windows binaries need the .exe extension
+BINARY="op-${OS}-${ARCH}${EXT}"
 echo "Platform: ${OS}/${ARCH}"
 echo ""
 
@@ -85,11 +88,11 @@ if [ -z "$INSTALL_DIR" ]; then
 fi
 mkdir -p "$INSTALL_DIR"
 
-echo "    Installing to ${INSTALL_DIR}/op..."
+echo "    Installing to ${INSTALL_DIR}/op${EXT}..."
 if [ -w "$INSTALL_DIR" ]; then
-  mv /tmp/op-install "${INSTALL_DIR}/op"
+  mv /tmp/op-install "${INSTALL_DIR}/op${EXT}"
 else
-  sudo mv /tmp/op-install "${INSTALL_DIR}/op"
+  sudo mv /tmp/op-install "${INSTALL_DIR}/op${EXT}"
 fi
 case ":$PATH:" in
   *":${INSTALL_DIR}:"*)

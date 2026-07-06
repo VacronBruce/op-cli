@@ -22,6 +22,7 @@ LDFLAGS="-X github.com/chenhuijun/op-cli/cmd.Version=${VERSION#v}"
 GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/op-darwin-arm64 .
 GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/op-darwin-amd64 .
 GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/op-linux-amd64 .
+GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/op-windows-amd64.exe .
 # Ad-hoc sign the darwin binaries with a stable identifier so macOS tools
 # (Gatekeeper, Little Snitch) see a named code identity instead of "a.out".
 # Note: the identity hash still changes per build — only a real Developer ID
@@ -63,6 +64,7 @@ bash <(curl -fsSL https://github.com/${REPO}/releases/latest/download/install.sh
   dist/op-darwin-arm64 \
   dist/op-darwin-amd64 \
   dist/op-linux-amd64 \
+  dist/op-windows-amd64.exe \
   install.sh
 
 echo ""

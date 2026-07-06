@@ -16,6 +16,11 @@ The repo is public, so this needs no login or token. The script will:
 3. Ask for your OpenProject API key
 4. Install the `op` Claude Code plugin (`/op:openproject`, `/op:standup`, `/op:file-bug`, `/op:ticket-*`)
 
+**Windows:** run the one-liner above from **Git Bash** or **WSL** (it installs
+`op.exe`). Or grab `op-windows-amd64.exe` directly from the
+[latest release](https://github.com/VacronBruce/op-cli/releases/latest), rename
+it to `op.exe`, and put it in a folder on your `PATH`.
+
 **Updating:** existing users re-run the same one-liner (refreshes the binary **and**
 the plugin), or run `op upgrade` for just the binary. Already on the plugin?
 `claude plugin update op` pulls the latest skills.
