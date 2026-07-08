@@ -7,7 +7,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Version   = "0.23.0"
+$Version   = "0.24.0"
 $Repo      = "VacronBruce/op-cli"
 $DlUrl     = "https://github.com/$Repo/releases/latest/download"  # GitHub serves the newest release here
 $Binary    = "op-windows-amd64.exe"
