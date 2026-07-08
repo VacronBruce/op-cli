@@ -1,6 +1,6 @@
 {
   "name": "op",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "description": "OpenProject CLI skills — manage work packages, sprints, standups, and ticket reviews via the op CLI",
   "author": {
     "name": "op-cli"
