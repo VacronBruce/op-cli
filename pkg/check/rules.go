@@ -172,61 +172,68 @@ func CheckComponent(wp *api.WorkPackage, _ int) Result {
 	return Result{Name: name, Level: Warn, Message: "No component assigned (android/ios/ott/engineering/analytics)"}
 }
 
-// RulesForType returns the appropriate check functions for a work package type.
-func RulesForType(typeName string) []CheckFunc {
-	t := strings.ToLower(typeName)
+// CheckWellFormed applies the QUS "well-formed" criterion: a user story should
+// name a role and a means — the canonical "As a <role>, I want <means>" shape
+// (the core check in the AQUSA tool). Advisory only (Pass/Warn, never Fail):
+// plenty of valid features are not phrased as stories, so this nudges the writer
+// toward the shared form rather than blocking readiness.
+func CheckWellFormed(wp *api.WorkPackage, _ int) Result {
+	name := "Well-formed user story (role + means)"
+	raw := storyText(wp)
+	role := containsAny(raw, "as a ", "as an ", "as the ")
+	means := containsAny(raw, "i want", "i need", "i'd like", "i would like", "would like to", "should be able to", "i can ", "wants to")
 	switch {
-	case t == "bug":
-		return []CheckFunc{
-			CheckDescription,
-			CheckReproductionSteps,
-			CheckStoryPoints,
-			CheckAssignee,
-			CheckPriority,
-			CheckAttachments,
-			CheckParentEpic,
-			CheckComponent,
-		}
-	case t == "feature" || t == "user story" || t == "story":
-		return []CheckFunc{
-			CheckDescription,
-			CheckAcceptanceCriteria,
-			CheckUseCase,
-			CheckBusinessValue,
-			CheckStoryPoints,
-			CheckAssignee,
-			CheckPriority,
-			CheckAttachments,
-			CheckParentEpic,
-			CheckComponent,
-		}
-	case t == "task":
-		return []CheckFunc{
-			CheckDescription,
-			CheckAcceptanceCriteria,
-			CheckStoryPoints,
-			CheckAssignee,
-			CheckPriority,
-			CheckParentEpic,
-			CheckComponent,
-		}
-	case t == "epic":
-		return []CheckFunc{
-			CheckDescription,
-			CheckAcceptanceCriteria,
-			CheckBusinessValue,
-			CheckComponent,
-		}
+	case role && means:
+		return Result{Name: name, Level: Pass}
+	case role || means:
+		return Result{Name: name, Level: Warn, Message: "Only part of the 'As a <role>, I want <means>' form is present"}
 	default:
-		// Fallback: basic checks for unknown types
-		return []CheckFunc{
-			CheckDescription,
-			CheckStoryPoints,
-			CheckAssignee,
-			CheckPriority,
-			CheckComponent,
+		return Result{Name: name, Level: Warn, Message: "No 'As a <role>, I want <means>' user-story form found"}
+	}
+}
+
+// CheckAtomic applies the QUS "atomic" criterion: a story should describe one
+// feature. A coordinating conjunction in the story text often signals two
+// features bundled together (AQUSA flags this heuristically). Advisory only —
+// conjunctions are frequently innocent ("log in and out"), so it warns, never
+// fails. Noisy by nature, so it is opt-in via DoR config, not a default check.
+func CheckAtomic(wp *api.WorkPackage, _ int) Result {
+	name := "Atomic — one feature per story"
+	raw := storyText(wp)
+	if containsAny(raw, " and ", " & ", " and/or ", " or ") {
+		return Result{Name: name, Level: Warn, Message: "Story text contains a conjunction — confirm it is not two features in one"}
+	}
+	return Result{Name: name, Level: Pass}
+}
+
+// RulesForType returns the check functions for a work package type per the
+// baked-in default Definition of Ready. Callers wanting a tuned rule set load a
+// DoRConfig (see LoadDoR) and call its Rules method instead.
+func RulesForType(typeName string) []CheckFunc {
+	return defaultDoR.Rules(typeName)
+}
+
+// storyText joins the User Story field and the description (lowercased) — the
+// text QUS criteria inspect.
+func storyText(wp *api.WorkPackage) string {
+	var parts []string
+	if wp.UserStory != nil {
+		parts = append(parts, wp.UserStory.Raw)
+	}
+	if wp.Description != nil {
+		parts = append(parts, wp.Description.Raw)
+	}
+	return strings.ToLower(strings.Join(parts, "\n"))
+}
+
+// containsAny reports whether s contains any of the given substrings.
+func containsAny(s string, subs ...string) bool {
+	for _, sub := range subs {
+		if strings.Contains(s, sub) {
+			return true
 		}
 	}
+	return false
 }
 
 // countNonEmptyLines counts lines that have non-whitespace content.

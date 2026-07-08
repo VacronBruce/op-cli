@@ -15,6 +15,9 @@ type attachmentCollection struct {
 // Runner executes checks against work packages.
 type Runner struct {
 	Client api.APIClient
+	// Config is the Definition of Ready to apply. When nil, the baked-in
+	// default (defaultDoR) is used.
+	Config *DoRConfig
 }
 
 // Run fetches a work package and runs type-appropriate checks against it.
@@ -40,7 +43,11 @@ func (r *Runner) Run(id int) (*Report, error) {
 	}
 
 	typeName := wp.Links.Type.Title
-	checks := RulesForType(typeName)
+	cfg := r.Config
+	if cfg == nil {
+		cfg = defaultDoR
+	}
+	checks := cfg.Rules(typeName)
 
 	report := &Report{
 		WPID:    wp.ID,

@@ -253,6 +253,14 @@ op check --sprint                  # Check all tickets in current sprint
 op check --sprint --component=android  # Check android tickets only
 ```
 
+`op check` is the **Definition-of-Ready gate**. It prints a deterministic score —
+`Score: 5/8 (63%) — NEEDS WORK` — where the percent is `Pass=100, Warn=50, Fail=0`
+averaged (reproducible, not a model guess) and the gate reads `READY` unless a
+check FAILs (a WARN is advisory). Tune which checks apply per work-package type
+with a JSON file pointed to by `OP_DOR_CONFIG` — including the opt-in QUS checks
+`well_formed` and `atomic`. See `skills/openproject/references/commands.md` for the
+check IDs and config format.
+
 ### Project & CLI info
 
 ```bash
@@ -369,6 +377,14 @@ Checks: completeness, clarity, business justification, acceptance criteria quali
 ```
 
 Checks: implementability, technical gaps, ambiguities, dependencies, risk assessment, and estimation sanity. Detects team context (android/ios/web) for team-specific checks.
+
+**`/op:ticket-dod`** — Definition of Done exit gate before closing a ticket:
+
+```
+/op:ticket-dod 12345
+```
+
+Mirror of the `op check` Definition-of-Ready gate. Checks acceptance criteria met, code merged, tests passing, reviewed, and no known regressions, then reports `DONE / NOT DONE`. Most DoD facts live outside OpenProject, so it is a guided review (marks unprovable items `UNKNOWN — confirm`) and never changes ticket status itself.
 
 **`/op:standup`** — Lead's daily digest for the current sprint:
 

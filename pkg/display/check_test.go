@@ -29,8 +29,9 @@ func TestCheckReport_ShowsLevelsAndMessages(t *testing.T) {
 	if !strings.Contains(out, "#81321 Crash on save") {
 		t.Errorf("expected header, got: %s", out)
 	}
-	if !strings.Contains(out, "Score: 1/3") {
-		t.Errorf("expected score 1/3, got: %s", out)
+	// 1 Pass + 1 Warn + 1 Fail → (100 + 50) / 3 = 50%; a Fail blocks the gate.
+	if !strings.Contains(out, "Score: 1/3 (50%) — NEEDS WORK") {
+		t.Errorf("expected weighted score and DoR gate, got: %s", out)
 	}
 	for _, want := range []string{"PASS", "WARN", "FAIL", "(Priority not set)", "(No attachments)"} {
 		if !strings.Contains(out, want) {
@@ -75,8 +76,8 @@ func TestCheckReportMarkdown_TableWithIcons(t *testing.T) {
 	// valid table with consistent lowercase icons and the rule messages inline.
 	md := CheckReportMarkdown(sampleReport())
 
-	if !strings.Contains(md, "## Readiness Check — 1/3 passed") {
-		t.Errorf("expected score headline, got: %s", md)
+	if !strings.Contains(md, "## Readiness Check — 1/3 passed (50% — NEEDS WORK)") {
+		t.Errorf("expected score headline with percent and gate, got: %s", md)
 	}
 	if !strings.Contains(md, "| Status | Check |") {
 		t.Errorf("expected table header, got: %s", md)

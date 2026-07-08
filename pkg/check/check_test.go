@@ -326,9 +326,9 @@ func TestRulesForType(t *testing.T) {
 		count    int
 	}{
 		{"Bug", 8},
-		{"Feature", 10},
-		{"User Story", 10},
-		{"Story", 10},
+		{"Feature", 11}, // + QUS well_formed (advisory)
+		{"User Story", 11},
+		{"Story", 11},
 		{"Task", 7},
 		{"Epic", 4},
 		{"Unknown", 5},
@@ -364,6 +364,40 @@ func TestReportScore(t *testing.T) {
 	}
 	if !r.HasFailures() {
 		t.Error("HasFailures() = false, want true")
+	}
+	// Deterministic Definition-of-Ready percent: Pass=100, Warn=50, Fail=0,
+	// averaged. 3 Pass + 1 Warn + 1 Fail over 5 → (300 + 50) / 5 = 70.
+	if r.ScorePercent() != 70 {
+		t.Errorf("ScorePercent() = %d, want 70", r.ScorePercent())
+	}
+	// A Fail is a blocker: the DoR gate is NEEDS WORK.
+	if r.Readiness() != "NEEDS WORK" {
+		t.Errorf("Readiness() = %q, want NEEDS WORK", r.Readiness())
+	}
+}
+
+func TestReportScorePercentAndReadiness(t *testing.T) {
+	cases := []struct {
+		name    string
+		results []Result
+		percent int
+		ready   string
+	}{
+		{"all pass", []Result{{Level: Pass}, {Level: Pass}}, 100, "READY"},
+		{"warn-only does not block gate", []Result{{Level: Pass}, {Level: Warn}}, 75, "READY"},
+		{"any fail blocks gate", []Result{{Level: Pass}, {Level: Fail}}, 50, "NEEDS WORK"},
+		{"empty report is ready at 0", nil, 0, "READY"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := &Report{Results: tc.results}
+			if got := r.ScorePercent(); got != tc.percent {
+				t.Errorf("ScorePercent() = %d, want %d", got, tc.percent)
+			}
+			if got := r.Readiness(); got != tc.ready {
+				t.Errorf("Readiness() = %q, want %q", got, tc.ready)
+			}
+		})
 	}
 }
 

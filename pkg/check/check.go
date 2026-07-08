@@ -56,9 +56,40 @@ func (r *Report) Total() int {
 	return len(r.Results)
 }
 
+// Warned returns the number of checks that raised an advisory warning.
+func (r *Report) Warned() int {
+	n := 0
+	for _, res := range r.Results {
+		if res.Level == Warn {
+			n++
+		}
+	}
+	return n
+}
+
 // Score returns a human-readable score like "5/8".
 func (r *Report) Score() string {
 	return fmt.Sprintf("%d/%d", r.Passed(), r.Total())
+}
+
+// ScorePercent returns a deterministic 0–100 Definition-of-Ready completeness
+// score: each Pass is worth 100, each Warn (advisory gap) 50, each Fail 0,
+// averaged over all checks. Unlike a model-guessed score it is reproducible —
+// the same ticket always yields the same number. An empty report scores 0.
+func (r *Report) ScorePercent() int {
+	if r.Total() == 0 {
+		return 0
+	}
+	return (r.Passed()*100 + r.Warned()*50) / r.Total()
+}
+
+// Readiness returns the binary Definition-of-Ready gate: "READY" when no check
+// failed (warnings are advisory and do not block), otherwise "NEEDS WORK".
+func (r *Report) Readiness() string {
+	if r.HasFailures() {
+		return "NEEDS WORK"
+	}
+	return "READY"
 }
 
 // HasFailures returns true if any check resulted in Fail.

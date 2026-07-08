@@ -41,7 +41,11 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	strict, _ := cmd.Flags().GetBool("strict")
 	comment, _ := cmd.Flags().GetBool("comment")
 
-	runner := &check.Runner{Client: client}
+	dor, err := check.LoadDoR()
+	if err != nil {
+		return fmt.Errorf("loading Definition of Ready: %w", err)
+	}
+	runner := &check.Runner{Client: client, Config: dor}
 
 	if sprint {
 		return runCheckSprint(cmd, runner, strict, comment)

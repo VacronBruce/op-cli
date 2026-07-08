@@ -12,7 +12,8 @@ import (
 // CheckReport prints a single work package check report to stdout.
 func CheckReport(report *check.Report) {
 	fmt.Printf("#%d %s\n", report.WPID, report.Subject)
-	fmt.Printf("  Type: %s | Score: %s\n\n", report.Type, report.Score())
+	fmt.Printf("  Type: %s | Score: %s (%d%%) — %s\n\n",
+		report.Type, report.Score(), report.ScorePercent(), report.Readiness())
 
 	for _, r := range report.Results {
 		label := levelLabel(r.Level)
@@ -71,7 +72,8 @@ func CheckSummary(reports []check.Report, sprintName string) {
 func CheckReportMarkdown(report *check.Report) string {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "## Readiness Check — %s passed\n\n", report.Score())
+	fmt.Fprintf(&b, "## Readiness Check — %s passed (%d%% — %s)\n\n",
+		report.Score(), report.ScorePercent(), report.Readiness())
 	fmt.Fprintln(&b, "| Status | Check |")
 	fmt.Fprintln(&b, "|--------|-------|")
 

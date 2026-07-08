@@ -33,7 +33,10 @@ Override via a config file if present at `$OP_REVIEWER_CONFIG` or
 
 1. `op show <id>` — capture subject, **author (the creator to notify)**, type, component,
    label, and description.
-2. `op check <id>` — mechanical readiness checklist.
+2. `op check <id>` — the **Definition-of-Ready gate**. It prints a deterministic
+   completeness percent and a `READY | NEEDS WORK` gate (a FAIL is a blocker; a
+   WARN is advisory and does not block). Use its `NN%` figure verbatim as the
+   `score` in the RESULT line — do NOT invent your own number.
 3. `op comment <id>` — read existing comments and apply the **idempotency guard**:
    - Find the most recent comment containing the marker (the bot's own last review).
    - If none → proceed (first review).
@@ -78,9 +81,11 @@ Token vocabularies (underscore forms; map 1:1 to the spaced verdicts in the comm
 - `overall` : `READY` | `NEEDS_WORK`
 - `pm`      : `READY_FOR_REVIEW` | `NEEDS_REFINEMENT` | `NEEDS_REWRITE`
 - `dev`     : `READY_TO_BUILD` | `BLOCKED` | `NEEDS_CLARIFICATION`
-- `score`   : integer 0–100 — holistic readiness. Anchors: `READY` ⇒ 85–100;
-  `NEEDS_WORK` with only minor gaps ⇒ 60–84; significant gaps ⇒ 30–59;
-  `NEEDS_REWRITE` or `BLOCKED` ⇒ 0–29.
+- `score`   : integer 0–100 — the **deterministic Definition-of-Ready completeness
+  percent** reported by `op check` (its `NN%` figure). Copy it verbatim; it is
+  reproducible (Pass=100, Warn=50, Fail=0, averaged), so it is objective ticket
+  completeness, NOT a judgment. The qualitative call lives in the `pm`/`dev`
+  verdicts and the `overall` gate, not in this number.
 
 ## Output Format (the posted comment)
 

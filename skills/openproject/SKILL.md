@@ -42,7 +42,7 @@ Consult these before constructing a command — don't guess flags or values:
 10. **"close sprint / end of sprint"** → `op sprint close` for carryover report; for closing ready tickets → invoke /op:sprint-close skill (`-p`, `--sprint`, `--release`, `--status`, `--auto`)
 10a. **"check/assign missing components"** → invoke /op:assign-components skill (`-p`, `--sprint`, `--dry-run`, `--auto`)
 11. **"generate report"** → `op sprint progress -v`
-12. **"is this ticket ready?"** → `op check <id>`
+12. **"is this ticket ready?"** → `op check <id>` (Definition-of-Ready gate: prints a deterministic completeness percent and READY / NEEDS WORK; a FAIL blocks, a WARN is advisory). Teams can tune which checks apply per type via a DoR config file pointed to by `OP_DOR_CONFIG` (see `references/commands.md`).
 13. **"check sprint quality"** → `op check --sprint`
 14. **"what's the discussion on X?"** → `op comment <id>`
 15. **"leave a comment"** → `op comment <id> "message"`
@@ -67,6 +67,7 @@ Consult these before constructing a command — don't guess flags or values:
 24. **"review as PM"** → invoke /op:ticket-prep skill
 25. **"verify as developer"** → invoke /op:ticket-verify skill
 26. **"fully review / bot-review a ticket"** → invoke /op:ticket-review skill (combined PM + Dev, posts one comment)
+26a. **"is this done / definition of done / can I close this"** → invoke /op:ticket-dod skill (Definition of Done exit gate; reports DONE / NOT DONE, does not change status)
 27. **"what components/products/labels are valid?"** → `op fields` (overview) or `op fields component` (values)
 28. **"remove an attachment"** → `op attach <id> --list` to find the attachment ID, then `op attach <id> --remove=<attachment-id>`
 29. **"op isn't working / check my config"** → `op setup` (health checklist with fixes); **"new sprint started"** → `op setup --sprint="<name>"`

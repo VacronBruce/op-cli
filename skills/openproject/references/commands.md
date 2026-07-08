@@ -127,12 +127,34 @@ op upgrade                            # Self-update to latest release
 
 ## Quality Checks
 ```bash
-op check <id>                         # Check ticket readiness
+op check <id>                         # Definition-of-Ready gate for one ticket
 op check <id> --strict                # Treat warnings as failures
 op check <id> --comment               # Post results to ticket
 op check --sprint                     # Check all sprint tickets
 op check --sprint --component=android # Filter + check
 ```
+
+`op check` is the **Definition-of-Ready gate**. It prints a deterministic
+completeness score — `Score: 5/8 (63%) — NEEDS WORK` — where the percent is
+`Pass=100, Warn=50, Fail=0` averaged (reproducible, not a guess), and the gate is
+`READY` unless any check FAILs (a WARN is advisory and never blocks).
+
+**Tuning the checks (`OP_DOR_CONFIG`).** By default each work-package type uses a
+baked-in check set. Point `OP_DOR_CONFIG` at a JSON file to add/drop checks per
+type without a code change. Check IDs: `description`, `acceptance_criteria`,
+`use_case`, `business_value`, `reproduction_steps`, `story_points`, `assignee`,
+`priority`, `attachments`, `parent_epic`, `component`, `well_formed` (QUS role+means),
+`atomic` (QUS one-feature-per-story; opt-in, advisory). Story/User Story fold onto
+`feature`; the `""` key is the fallback for unknown types. An unknown ID, missing
+file, or bad JSON fails loudly rather than silently dropping a check.
+```json
+{ "types": { "bug": ["description", "reproduction_steps", "story_points"],
+             "feature": ["description", "acceptance_criteria", "well_formed", "atomic"] } }
+```
+
+> **Definition of Done** is the exit gate mirror of this: invoke the /op:ticket-dod
+> skill before closing a ticket. Most DoD items (tests, review, deploy) live
+> outside OpenProject, so it is a guided review, not an `op` subcommand.
 
 ## Setup & Config
 ```bash
