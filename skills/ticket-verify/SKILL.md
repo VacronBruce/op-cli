@@ -44,6 +44,7 @@ Where would two developers interpret this differently?
 - Vague requirements ("make it fast", "improve UX")
 - Missing error/failure handling specs
 - Unclear interaction with existing features
+- Acceptance criteria not in Given/When/Then form — flag which scenarios (trigger, action, expected result) are left undefined
 
 ### 4. Dependencies
 What's needed before or during implementation?

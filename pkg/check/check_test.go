@@ -58,17 +58,24 @@ func TestCheckDescription(t *testing.T) {
 	}
 }
 
+// Acceptance criteria are the shared BDD artifact every role reads, so the check
+// rewards the full Given/When/Then form (Pass), only nudges when criteria exist in
+// some other shape (Warn), and fails when there are none at all (Fail). A partial
+// G/W/T (missing "then") must Warn, not Pass — an incomplete scenario is exactly
+// the ambiguity BDD is meant to remove.
 func TestCheckAcceptanceCriteria(t *testing.T) {
 	tests := []struct {
-		name  string
-		desc  string
-		level Level
+		name    string
+		desc    string
+		level   Level
+		message string
 	}{
-		{"no description", "", Fail},
-		{"no criteria", "Just some text here", Fail},
-		{"has AC keyword", "## Acceptance Criteria\n- item", Pass},
-		{"has checkbox", "## Done when\n- [ ] thing works", Pass},
-		{"has given/when/then", "Given a user\nWhen they click\nThen it works", Pass},
+		{"no description", "", Fail, "No description to check"},
+		{"no criteria", "Just some text here", Fail, "No acceptance criteria section found"},
+		{"AC heading only, no GWT", "## Acceptance Criteria\n- item", Warn, "Acceptance criteria present but not in Given/When/Then form"},
+		{"checkbox only, no GWT", "## Done when\n- [ ] thing works", Warn, "Acceptance criteria present but not in Given/When/Then form"},
+		{"partial given/when, no then", "Given a user\nWhen they click", Warn, "Acceptance criteria present but not in Given/When/Then form"},
+		{"full given/when/then", "Given a user\nWhen they click\nThen it works", Pass, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -79,6 +86,41 @@ func TestCheckAcceptanceCriteria(t *testing.T) {
 			r := CheckAcceptanceCriteria(wp, 0)
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s", r.Level, tt.level)
+			}
+			if r.Message != tt.message {
+				t.Errorf("got message %q, want %q", r.Message, tt.message)
+			}
+		})
+	}
+}
+
+// The business "why/who" (Impact Map) must be legible to non-technical readers, so
+// the check passes when the ticket names a beneficiary or the outcome they gain
+// ("so that", "in order to", "as a"), whether that lives in the description or the
+// User Story field, and warns (advisory, never blocks) when neither is present.
+func TestCheckBusinessValue(t *testing.T) {
+	tests := []struct {
+		name      string
+		desc      string
+		userStory *api.Formattable
+		level     Level
+	}{
+		{"nil description, no field", "", nil, Warn},
+		{"plain text, no value", "Fix the login page", nil, Warn},
+		{"has 'so that'", "As a user I want X so that Y", nil, Pass},
+		{"has 'in order to'", "In order to reduce churn, add X", nil, Pass},
+		{"value in user story field", "Fix login", &api.Formattable{Raw: "As a visitor so that checkout is faster"}, Pass},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wp := makeWP("Feature", tt.desc)
+			if tt.desc == "" {
+				wp.Description = nil
+			}
+			wp.UserStory = tt.userStory
+			r := CheckBusinessValue(wp, 0)
+			if r.Level != tt.level {
+				t.Errorf("got %s, want %s (msg: %s)", r.Level, tt.level, r.Message)
 			}
 		})
 	}
@@ -284,11 +326,11 @@ func TestRulesForType(t *testing.T) {
 		count    int
 	}{
 		{"Bug", 8},
-		{"Feature", 9},
-		{"User Story", 9},
-		{"Story", 9},
+		{"Feature", 10},
+		{"User Story", 10},
+		{"Story", 10},
 		{"Task", 7},
-		{"Epic", 3},
+		{"Epic", 4},
 		{"Unknown", 5},
 	}
 	for _, tt := range tests {

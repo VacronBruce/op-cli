@@ -84,34 +84,55 @@ Token vocabularies (underscore forms; map 1:1 to the spaced verdicts in the comm
 
 ## Output Format (the posted comment)
 
+The comment is **role-layered** so business, product, and dev each find their part fast.
+The plain-terms block comes **first** (after the title) so a non-technical reader gets the
+whole picture without scrolling into jargon.
+
 ```markdown
 <!-- op-ticket-reviewer:v1 -->
-## 🤖 Ticket Review: #<id> <subject>
+## 🤖 Review: #<id> <subject>
 
 Hi @<creator> — automated readiness review below. Please address the items, then comment
 **"@bot review ticket again"** and I'll re-review.
 
-**Overall: <READY / NEEDS WORK>**  (PM: <verdict> · Dev: <verdict>)
+**Status: <🟢 Ready to build | 🟡 Needs work before build | 🔴 Not ready>**  (PM: <verdict> · Dev: <verdict>)
+
+### 📋 In plain terms — Business / Product Owner
+- **Why (goal):** <one plain sentence: the business outcome this ticket serves>
+- **Who (users):** <who benefits>
+- **What's the call:** <"Ready to build", or in non-technical words what's missing and why it matters>
+
+### ✅ Product / PM (ticket-prep rubric)
+- Verdict: <READY FOR REVIEW / NEEDS REFINEMENT / NEEDS REWRITE>
+- <top fixes; for vague acceptance criteria or missing justification, provide a
+  copy-pasteable rewrite in Given/When/Then form>
+
+### 👩‍💻 Developers (ticket-verify rubric)
+- Verdict: <READY TO BUILD / BLOCKED / NEEDS CLARIFICATION>
+- <technical gaps and specific questions the PM must answer before coding>
 
 ### Mechanical check
 <one-line op check summary: PASS / WARN / FAIL counts>
-
-### PM quality (ticket-prep rubric)
-- Verdict: <READY FOR REVIEW / NEEDS REFINEMENT / NEEDS REWRITE>
-- <top fixes; for vague acceptance criteria or missing justification, provide a
-  copy-pasteable rewrite>
-
-### Developer readiness (ticket-verify rubric)
-- Verdict: <READY TO BUILD / BLOCKED / NEEDS CLARIFICATION>
-- <technical gaps and specific questions the PM must answer before coding>
 
 ### What to do next
 1. <actionable item>
 2. <actionable item>
 ```
 
-Keep the comment concise — list only items that matter. The hidden marker MUST be the
-first line so the daemon and future runs recognize the bot's own comment.
+Rules:
+- The hidden marker MUST be the **first line** so the daemon and future runs recognize the
+  bot's own comment.
+- The **📋 In plain terms** block is mandatory and must stay first after the title — it is
+  the shared, jargon-free view (Impact-Map *Why / Who / What*) that lets any role read the
+  outcome. Keep each line to one plain sentence.
+- Use **plain headed sections** (as above). Do NOT rely on collapsible `<details>`:
+  OpenProject sanitizes comment HTML, so `<details>` may render as raw text rather than
+  collapse.
+- **Status line ↔ overall:** 🟢 = overall `READY`; 🟡/🔴 = overall `NEEDS WORK` (use 🔴 when
+  PM = NEEDS REWRITE or Dev = BLOCKED, 🟡 otherwise). The machine-readable `RESULT` line
+  below still uses the binary `READY|NEEDS_WORK` token — the traffic light is presentation
+  only.
+- Keep it concise — list only items that matter.
 
 ## Prefix Detection (`--detect`)
 

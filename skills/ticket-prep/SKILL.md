@@ -37,17 +37,23 @@ Would someone outside your team understand the need?
 - Is the scope obvious?
 - Could two people read this and agree on what to build?
 
-### 3. Business Justification
-Is the WHY clear?
-- Who benefits from this change?
+### 3. Business Justification (Impact Map: Why / Who)
+Is the WHY clear, in language a business reader understands?
+- **Why (goal):** what business outcome does this serve? Prefer a "so that <outcome>" clause.
+- **Who (users):** who benefits from this change?
 - Why now? (data, user feedback, competitor pressure, compliance)
 - What happens if we don't do this?
 
-### 4. Acceptance Criteria Quality
-Are criteria specific and testable?
+### 4. Acceptance Criteria Quality (prefer Given/When/Then)
+Are criteria specific, testable, and readable by business, PM, and dev alike?
+Prefer the BDD **Given/When/Then** form — it is the one shared artifact all roles read.
 - BAD: "Dark mode works"
-- GOOD: "User can toggle dark mode from Settings > Display"
-- Can a QA engineer write test cases from these criteria?
+- OK: "User can toggle dark mode from Settings > Display"
+- GOOD (Given/When/Then):
+  - Given the app is in light mode
+  - When the user enables Dark Mode in Settings > Display
+  - Then all screens switch to the dark palette and the choice persists across restarts
+- Can a QA engineer write test cases directly from these criteria?
 
 ### 5. Visual Assets
 For UI changes:
@@ -63,6 +69,10 @@ For UI changes:
 
 ```markdown
 ## Ticket Prep Review: #<id> <subject>
+
+### In plain terms
+- **Why (goal):** <one plain sentence — the business outcome>
+- **Who (users):** <who benefits>
 
 ### Checklist (op check): <score>
 <paste op check output>
@@ -83,7 +93,7 @@ For UI changes:
 
 ### Acceptance Criteria Quality: <TESTABLE / NEEDS REWRITE / MISSING>
 <current criteria assessment>
-<if needs rewrite, provide specific suggested criteria>
+<if needs rewrite, provide specific suggested criteria in Given/When/Then form>
 
 ### Missing Attachments
 <list what should be attached>

@@ -33,20 +33,49 @@ func CheckDescription(wp *api.WorkPackage, _ int) Result {
 	}
 }
 
-// CheckAcceptanceCriteria looks for acceptance criteria in the description.
+// CheckAcceptanceCriteria checks acceptance criteria and rewards the BDD
+// Given/When/Then form — the shared artifact business, PM, and dev all read.
+// Pass when all three of given/when/then are present; Warn when criteria exist in
+// some other shape (nudge toward G/W/T without blocking); Fail when there are none.
 func CheckAcceptanceCriteria(wp *api.WorkPackage, _ int) Result {
-	name := "Acceptance criteria present"
+	name := "Acceptance criteria (Given/When/Then)"
 	if wp.Description == nil {
 		return Result{Name: name, Level: Fail, Message: "No description to check"}
 	}
 	raw := strings.ToLower(wp.Description.Raw)
-	keywords := []string{"acceptance criteria", "ac:", "- [ ]", "- [x]", "given", "when", "then"}
+	if strings.Contains(raw, "given") && strings.Contains(raw, "when") && strings.Contains(raw, "then") {
+		return Result{Name: name, Level: Pass}
+	}
+	keywords := []string{"acceptance criteria", "ac:", "- [ ]", "- [x]", "given", "when", "then", "scenario"}
+	for _, kw := range keywords {
+		if strings.Contains(raw, kw) {
+			return Result{Name: name, Level: Warn, Message: "Acceptance criteria present but not in Given/When/Then form"}
+		}
+	}
+	return Result{Name: name, Level: Fail, Message: "No acceptance criteria section found"}
+}
+
+// CheckBusinessValue looks for the Impact Map "why/who" — a beneficiary and the
+// outcome they gain — so the ticket reads meaningfully to business and product
+// owners, not just engineers. Checks the User Story field and the description.
+// Advisory only (Warn), never a hard failure.
+func CheckBusinessValue(wp *api.WorkPackage, _ int) Result {
+	name := "Business value stated (who benefits / why)"
+	var texts []string
+	if wp.UserStory != nil {
+		texts = append(texts, wp.UserStory.Raw)
+	}
+	if wp.Description != nil {
+		texts = append(texts, wp.Description.Raw)
+	}
+	raw := strings.ToLower(strings.Join(texts, "\n"))
+	keywords := []string{"so that", "in order to", "as a ", "why:", "impact", "benefit"}
 	for _, kw := range keywords {
 		if strings.Contains(raw, kw) {
 			return Result{Name: name, Level: Pass}
 		}
 	}
-	return Result{Name: name, Level: Fail, Message: "No acceptance criteria section found"}
+	return Result{Name: name, Level: Warn, Message: "No business value / 'so that' clause found"}
 }
 
 // CheckUseCase looks for a user story, either in the dedicated User Story
@@ -163,6 +192,7 @@ func RulesForType(typeName string) []CheckFunc {
 			CheckDescription,
 			CheckAcceptanceCriteria,
 			CheckUseCase,
+			CheckBusinessValue,
 			CheckStoryPoints,
 			CheckAssignee,
 			CheckPriority,
@@ -184,6 +214,7 @@ func RulesForType(typeName string) []CheckFunc {
 		return []CheckFunc{
 			CheckDescription,
 			CheckAcceptanceCriteria,
+			CheckBusinessValue,
 			CheckComponent,
 		}
 	default:
