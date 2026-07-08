@@ -15,16 +15,17 @@ type DoRConfig struct {
 	Types map[string][]string `json:"types"`
 }
 
-// defaultDoR is the Definition of Ready that ships with op. Types bug and task
-// match the historical rule sets exactly; feature/story additionally carry the
-// advisory QUS "well_formed" check. The "" entry is the fallback for unknown
-// types. The noisier QUS "atomic" check is registered but intentionally left out
-// of the defaults — enable it per team via a config file.
+// defaultDoR is the Definition of Ready that ships with op. bug, feature/story,
+// and task carry the advisory INVEST "no_blockers" (Independent) check; feature/
+// story additionally carry the advisory QUS "well_formed" check. epic omits
+// no_blockers — epics aggregate dependent work by design. The "" entry is the
+// fallback for unknown types. The noisier QUS "atomic" check is registered but
+// intentionally left out of the defaults — enable it per team via a config file.
 var defaultDoR = &DoRConfig{
 	Types: map[string][]string{
-		"bug":     {"description", "reproduction_steps", "story_points", "assignee", "priority", "attachments", "parent_epic", "component"},
-		"feature": {"description", "acceptance_criteria", "use_case", "business_value", "well_formed", "story_points", "assignee", "priority", "attachments", "parent_epic", "component"},
-		"task":    {"description", "acceptance_criteria", "story_points", "assignee", "priority", "parent_epic", "component"},
+		"bug":     {"description", "reproduction_steps", "story_points", "assignee", "priority", "attachments", "parent_epic", "component", "no_blockers"},
+		"feature": {"description", "acceptance_criteria", "use_case", "business_value", "well_formed", "story_points", "assignee", "priority", "attachments", "parent_epic", "component", "no_blockers"},
+		"task":    {"description", "acceptance_criteria", "story_points", "assignee", "priority", "parent_epic", "component", "no_blockers"},
 		"epic":    {"description", "acceptance_criteria", "business_value", "component"},
 		"":        {"description", "story_points", "assignee", "priority", "component"},
 	},

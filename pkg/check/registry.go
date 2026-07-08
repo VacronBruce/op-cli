@@ -16,8 +16,9 @@ var registry = map[string]CheckFunc{
 	"attachments":         CheckAttachments,
 	"parent_epic":         CheckParentEpic,
 	"component":           CheckComponent,
-	"well_formed":         CheckWellFormed, // QUS: role + means
-	"atomic":              CheckAtomic,     // QUS: one feature per story (opt-in)
+	"well_formed":         CheckWellFormed,  // QUS: role + means
+	"atomic":              CheckAtomic,      // QUS: one feature per story (opt-in)
+	"no_blockers":         CheckIndependent, // INVEST: no blocking dependencies
 }
 
 // CheckByID returns the check function registered under id, and whether it exists.

@@ -50,7 +50,7 @@ func TestCheckDescription(t *testing.T) {
 			if tt.desc == "" {
 				wp.Description = nil
 			}
-			r := CheckDescription(wp, 0)
+			r := CheckDescription(wp, CheckInput{})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s (msg: %s)", r.Level, tt.level, r.Message)
 			}
@@ -83,7 +83,7 @@ func TestCheckAcceptanceCriteria(t *testing.T) {
 			if tt.desc == "" {
 				wp.Description = nil
 			}
-			r := CheckAcceptanceCriteria(wp, 0)
+			r := CheckAcceptanceCriteria(wp, CheckInput{})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s", r.Level, tt.level)
 			}
@@ -118,7 +118,7 @@ func TestCheckBusinessValue(t *testing.T) {
 				wp.Description = nil
 			}
 			wp.UserStory = tt.userStory
-			r := CheckBusinessValue(wp, 0)
+			r := CheckBusinessValue(wp, CheckInput{})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s (msg: %s)", r.Level, tt.level, r.Message)
 			}
@@ -144,7 +144,7 @@ func TestCheckUseCase(t *testing.T) {
 			if tt.desc == "" {
 				wp.Description = nil
 			}
-			r := CheckUseCase(wp, 0)
+			r := CheckUseCase(wp, CheckInput{})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s", r.Level, tt.level)
 			}
@@ -173,7 +173,7 @@ func TestCheckUseCaseField(t *testing.T) {
 				wp.Description = nil
 			}
 			wp.UserStory = tt.userStory
-			r := CheckUseCase(wp, 0)
+			r := CheckUseCase(wp, CheckInput{})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s", r.Level, tt.level)
 			}
@@ -198,7 +198,7 @@ func TestCheckReproductionSteps(t *testing.T) {
 			if tt.desc == "" {
 				wp.Description = nil
 			}
-			r := CheckReproductionSteps(wp, 0)
+			r := CheckReproductionSteps(wp, CheckInput{})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s", r.Level, tt.level)
 			}
@@ -220,7 +220,7 @@ func TestCheckStoryPoints(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			wp := makeWP("Task", "desc\nline2\nline3")
 			wp.StoryPoints = tt.points
-			r := CheckStoryPoints(wp, 0)
+			r := CheckStoryPoints(wp, CheckInput{})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s", r.Level, tt.level)
 			}
@@ -241,7 +241,7 @@ func TestCheckAssignee(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			wp := makeWP("Task", "desc\nline2\nline3")
 			wp.Links.Assignee = api.Link{Href: tt.href}
-			r := CheckAssignee(wp, 0)
+			r := CheckAssignee(wp, CheckInput{})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s", r.Level, tt.level)
 			}
@@ -268,7 +268,7 @@ func TestCheckPriority(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			wp := makeWP("Task", "desc\nline2\nline3")
 			wp.Links.Priority = api.Link{Title: tt.title}
-			r := CheckPriority(wp, 0)
+			r := CheckPriority(wp, CheckInput{})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s", r.Level, tt.level)
 			}
@@ -291,7 +291,7 @@ func TestCheckAttachments(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			wp := makeWP("Bug", "desc\nline2\nline3")
-			r := CheckAttachments(wp, tt.count)
+			r := CheckAttachments(wp, CheckInput{AttachmentCount: tt.count})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s", r.Level, tt.level)
 			}
@@ -312,11 +312,101 @@ func TestCheckParentEpic(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			wp := makeWP("Task", "desc\nline2\nline3")
 			wp.Links.Parent = api.Link{Href: tt.href}
-			r := CheckParentEpic(wp, 0)
+			r := CheckParentEpic(wp, CheckInput{})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s", r.Level, tt.level)
 			}
 		})
+	}
+}
+
+// CheckIndependent implements INVEST "Independent": a ticket blocked by other
+// work is advisory-Warn (never Fail — a dependency is a scheduling fact, not a
+// malformed ticket). Zero blockers passes.
+func TestCheckIndependent(t *testing.T) {
+	tests := []struct {
+		name    string
+		blocked int
+		level   Level
+	}{
+		{"no blockers", 0, Pass},
+		{"one blocker", 1, Warn},
+		{"several blockers", 3, Warn},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := CheckIndependent(makeWP("Task", "l1\nl2\nl3"), CheckInput{BlockedByCount: tt.blocked})
+			if r.Level != tt.level {
+				t.Errorf("got %s, want %s (msg: %s)", r.Level, tt.level, r.Message)
+			}
+		})
+	}
+}
+
+// blockedByCount must count only dependencies OF the queried ticket: the "to" end
+// of a "blocks" relation, or the "from" end of a "blocked" one. A relation where
+// the ticket is the blocker (it blocks others) must NOT count — that does not
+// make the ticket itself un-ready — and unrelated relation types are ignored.
+func TestBlockedByCount(t *testing.T) {
+	const self = 42
+	mkRel := func(typ string, from, to int) api.Relation {
+		var rel api.Relation
+		rel.Type = typ
+		rel.Links.From.Href = fmt.Sprintf("/api/v3/work_packages/%d", from)
+		rel.Links.To.Href = fmt.Sprintf("/api/v3/work_packages/%d", to)
+		return rel
+	}
+	rc := &api.RelationCollection{}
+	rc.Embedded.Elements = []api.Relation{
+		mkRel("blocks", 7, self),   // 7 blocks self -> self is blocked (count)
+		mkRel("blocks", self, 9),   // self blocks 9 -> does NOT count
+		mkRel("blocked", self, 11), // self blocked by 11 -> count
+		mkRel("relates", 3, self),  // unrelated type -> does NOT count
+	}
+	if got := blockedByCount(self, rc); got != 2 {
+		t.Errorf("blockedByCount = %d, want 2", got)
+	}
+	if got := blockedByCount(self, nil); got != 0 {
+		t.Errorf("blockedByCount(nil) = %d, want 0", got)
+	}
+}
+
+// The runner must thread the blocked-by count from relations into the checks, so
+// a ticket blocked by another surfaces the INVEST independence Warn.
+func TestRunner_FlagsBlockedDependency(t *testing.T) {
+	mock := &testutil.MockClient{
+		GetWorkPackageFn: func(id int) (*api.WorkPackage, error) {
+			return makeWP("Task", "l1\nl2\nl3"), nil
+		},
+		GetFn: func(path string, result interface{}) error { return nil },
+		ListActivitiesFn: func(wpID int) (*api.ActivityCollection, error) {
+			return &api.ActivityCollection{}, nil
+		},
+		ListRelationsFn: func(wpID int) (*api.RelationCollection, error) {
+			rc := &api.RelationCollection{}
+			rel := api.Relation{Type: "blocks"}
+			rel.Links.From.Href = "/api/v3/work_packages/999"
+			rel.Links.To.Href = fmt.Sprintf("/api/v3/work_packages/%d", wpID)
+			rc.Embedded.Elements = []api.Relation{rel}
+			return rc, nil
+		},
+	}
+	runner := &Runner{Client: mock}
+	report, err := runner.Run(100)
+	if err != nil {
+		t.Fatalf("Run() error: %v", err)
+	}
+	var found bool
+	for _, res := range report.Results {
+		if res.Name == "Independent (no blocking dependencies)" {
+			found = true
+			if res.Level != Warn {
+				t.Errorf("independence check = %v (%s), want Warn — ticket is blocked", res.Level, res.Message)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("independence check not present in task report")
 	}
 }
 
@@ -325,11 +415,11 @@ func TestRulesForType(t *testing.T) {
 		typeName string
 		count    int
 	}{
-		{"Bug", 8},
-		{"Feature", 11}, // + QUS well_formed (advisory)
-		{"User Story", 11},
-		{"Story", 11},
-		{"Task", 7},
+		{"Bug", 9},      // + INVEST no_blockers (advisory)
+		{"Feature", 12}, // + QUS well_formed + INVEST no_blockers (advisory)
+		{"User Story", 12},
+		{"Story", 12},
+		{"Task", 8}, // + INVEST no_blockers (advisory)
 		{"Epic", 4},
 		{"Unknown", 5},
 	}

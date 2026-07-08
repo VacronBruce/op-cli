@@ -23,7 +23,7 @@ func TestCheckWellFormed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := CheckWellFormed(makeWP("Feature", tt.desc), 0)
+			r := CheckWellFormed(makeWP("Feature", tt.desc), CheckInput{})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s (msg: %s)", r.Level, tt.level, r.Message)
 			}
@@ -35,7 +35,7 @@ func TestCheckWellFormed(t *testing.T) {
 func TestCheckWellFormed_UsesUserStoryField(t *testing.T) {
 	wp := makeWP("Feature", "Terse description line")
 	wp.UserStory = &api.Formattable{Raw: "As a visitor I want to browse offline"}
-	if r := CheckWellFormed(wp, 0); r.Level != Pass {
+	if r := CheckWellFormed(wp, CheckInput{}); r.Level != Pass {
 		t.Errorf("got %s, want Pass (msg: %s)", r.Level, r.Message)
 	}
 }
@@ -52,7 +52,7 @@ func TestCheckAtomic(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := CheckAtomic(makeWP("Feature", tt.desc), 0)
+			r := CheckAtomic(makeWP("Feature", tt.desc), CheckInput{})
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s (msg: %s)", r.Level, tt.level, r.Message)
 			}
@@ -60,15 +60,15 @@ func TestCheckAtomic(t *testing.T) {
 	}
 }
 
-// The default DoR must preserve the historical rule sets for bug and task
-// exactly (parity), guarding against accidental drift when the config layer
-// changed how rules are resolved.
+// The default DoR for bug and task is the historical rule set plus the advisory
+// INVEST no_blockers check (bug 8→9, task 7→8), guarding against accidental
+// drift when the config layer changed how rules are resolved.
 func TestDefaultDoR_ParityForBugAndTask(t *testing.T) {
-	if got := len(defaultDoR.Rules("bug")); got != 8 {
-		t.Errorf("bug default has %d checks, want 8", got)
+	if got := len(defaultDoR.Rules("bug")); got != 9 {
+		t.Errorf("bug default has %d checks, want 9", got)
 	}
-	if got := len(defaultDoR.Rules("task")); got != 7 {
-		t.Errorf("task default has %d checks, want 7", got)
+	if got := len(defaultDoR.Rules("task")); got != 8 {
+		t.Errorf("task default has %d checks, want 8", got)
 	}
 	// Unknown types fall back to the "" entry.
 	if got := len(defaultDoR.Rules("Milestone")); got != len(defaultDoR.Types[""]) {

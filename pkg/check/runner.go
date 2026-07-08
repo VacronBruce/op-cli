@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
@@ -42,6 +43,14 @@ func (r *Runner) Run(id int) (*Report, error) {
 		attachmentCount += len(api.CommentInlineAttachmentIDs(ac))
 	}
 
+	// INVEST "Independent": count the work packages this ticket is blocked by.
+	// Non-fatal — a relations fetch failure leaves the count at zero rather than
+	// failing the whole check run.
+	blockedBy := 0
+	if rc, err := r.Client.ListRelations(id); err == nil {
+		blockedBy = blockedByCount(id, rc)
+	}
+
 	typeName := wp.Links.Type.Title
 	cfg := r.Config
 	if cfg == nil {
@@ -55,11 +64,40 @@ func (r *Runner) Run(id int) (*Report, error) {
 		Type:    typeName,
 	}
 
+	in := CheckInput{AttachmentCount: attachmentCount, BlockedByCount: blockedBy}
 	for _, rule := range checks {
-		report.Results = append(report.Results, rule(wp, attachmentCount))
+		report.Results = append(report.Results, rule(wp, in))
 	}
 
 	return report, nil
+}
+
+// blockedByCount reports how many relations make wpID depend on another work
+// package: it is the "to" end of a "blocks" relation (something blocks it) or the
+// "from" end of a "blocked" relation. This is the INVEST "Independent" signal.
+func blockedByCount(wpID int, rc *api.RelationCollection) int {
+	if rc == nil {
+		return 0
+	}
+	n := 0
+	for _, rel := range rc.Embedded.Elements {
+		switch strings.ToLower(rel.Type) {
+		case "blocks":
+			if hrefIsWP(rel.Links.To.Href, wpID) {
+				n++
+			}
+		case "blocked":
+			if hrefIsWP(rel.Links.From.Href, wpID) {
+				n++
+			}
+		}
+	}
+	return n
+}
+
+// hrefIsWP reports whether an API href points at the given work-package id.
+func hrefIsWP(href string, wpID int) bool {
+	return strings.HasSuffix(href, fmt.Sprintf("/work_packages/%d", wpID))
 }
 
 // batchConcurrency bounds parallel checks so a 40-ticket sprint doesn't open

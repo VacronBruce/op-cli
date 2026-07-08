@@ -144,7 +144,9 @@ baked-in check set. Point `OP_DOR_CONFIG` at a JSON file to add/drop checks per
 type without a code change. Check IDs: `description`, `acceptance_criteria`,
 `use_case`, `business_value`, `reproduction_steps`, `story_points`, `assignee`,
 `priority`, `attachments`, `parent_epic`, `component`, `well_formed` (QUS role+means),
-`atomic` (QUS one-feature-per-story; opt-in, advisory). Story/User Story fold onto
+`atomic` (QUS one-feature-per-story; opt-in, advisory), `no_blockers` (INVEST
+Independent — advisory Warn when the ticket is blocked by other work; default for
+bug/feature/task, not epic). Story/User Story fold onto
 `feature`; the `""` key is the fallback for unknown types. An unknown ID, missing
 file, or bad JSON fails loudly rather than silently dropping a check.
 ```json
