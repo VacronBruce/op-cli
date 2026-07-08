@@ -52,6 +52,7 @@ Consult these before constructing a command — don't guess flags or values:
 16b. **"create a release / version"** → `op release create "<name>"` (`--status=open|locked|closed`, `--start`, `--end`)
 16c. **"set a ticket's release / assign to a version"** → `op update <id> --release="<name>"`
 16d. **"change epic/parent/dates/product/label after creation"** → `op update <id> --epic="<name>"`, `--parent=<id>`, `--start`/`--due` (YYYY-MM-DD), `--product=<p>`, `--label=<l>` (same values as create)
+16d-i. **"edit the description / user story"** → `op update <id> --description="<markdown>"` (replaces the whole description), `op update <id> --user-story="<markdown>"` (User Story field, customField36)
 16e. **"bulk update / move several tickets at once"** → `op update <id> <id> <id> --<flag>=...` (same change per ID; continues past failures and summarizes)
 17. **"what version?"** → `op version`
 18. **"update op"** → `op upgrade`
@@ -68,6 +69,7 @@ Consult these before constructing a command — don't guess flags or values:
 25. **"verify as developer"** → invoke /op:ticket-verify skill
 26. **"fully review / bot-review a ticket"** → invoke /op:ticket-review skill (combined PM + Dev, posts one comment)
 26a. **"is this done / definition of done / can I close this"** → invoke /op:ticket-dod skill (Definition of Done exit gate; reports DONE / NOT DONE, does not change status)
+26b. **"refine ticket / fix the AC / improve the user story"** → invoke /op:ticket-refine skill (interactive: talks through weak acceptance criteria and user story one question at a time, then writes the corrected fields back after you confirm)
 27. **"what components/products/labels are valid?"** → `op fields` (overview) or `op fields component` (values)
 28. **"remove an attachment"** → `op attach <id> --list` to find the attachment ID, then `op attach <id> --remove=<attachment-id>`
 29. **"op isn't working / check my config"** → `op setup` (health checklist with fixes); **"new sprint started"** → `op setup --sprint="<name>"`

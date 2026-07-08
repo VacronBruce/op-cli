@@ -151,6 +151,7 @@ type UpdateWPRequest struct {
 	LockVersion    int                  `json:"lockVersion"`
 	Subject        string               `json:"subject,omitempty"`
 	Description    *Formattable         `json:"description,omitempty"`
+	UserStory      *Formattable         `json:"customField36,omitempty"`
 	StoryPoints    *int                 `json:"storyPoints,omitempty"`
 	EstimatedTime  string               `json:"estimatedTime,omitempty"`
 	PercentageDone *int                 `json:"percentageDone,omitempty"`

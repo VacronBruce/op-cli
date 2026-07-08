@@ -163,6 +163,7 @@ op update 12345 --status=in-progress
 op update 12345 --assignee="Bruce Chen" --points=3
 op update 12345 --estimate="2d 4h"             # set Work estimate (days at 8h/day)
 op update 12345 --description="Updated description here"
+op update 12345 --user-story="As a reader, I want X so that Y"  # edit the User Story field
 op update 12345 --subject="New title" --done=50
 op update 12345 --assignee="Ken Peng"
 op update 12345 --release="[iOS][ETV] 1.0.9"   # assign to a release (see Releases below)
@@ -385,6 +386,14 @@ Checks: implementability, technical gaps, ambiguities, dependencies, risk assess
 ```
 
 Mirror of the `op check` Definition-of-Ready gate. Checks acceptance criteria met, code merged, tests passing, reviewed, and no known regressions, then reports `DONE / NOT DONE`. Most DoD facts live outside OpenProject, so it is a guided review (marks unprovable items `UNKNOWN — confirm`) and never changes ticket status itself.
+
+**`/op:ticket-refine`** — Interactive refinement that writes the improved fields back:
+
+```
+/op:ticket-refine 12345
+```
+
+Unlike the review skills (which only comment), this one *fixes* the ticket. It finds weak or missing acceptance criteria and user story, talks through each gap one question at a time, shows a before/after, and — only after you confirm — writes the corrected description (AC) and User Story field back via `op update`. Posts no comment; the field history records the change.
 
 **`/op:standup`** — Lead's daily digest for the current sprint:
 

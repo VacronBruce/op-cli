@@ -40,6 +40,7 @@ func init() {
 	updateCmd.Flags().Int("done", -1, "Percentage done (0-100)")
 	updateCmd.Flags().String("subject", "", "New subject/title")
 	updateCmd.Flags().StringP("description", "d", "", "New description (markdown)")
+	updateCmd.Flags().String("user-story", "", "New user story (markdown)")
 	updateCmd.Flags().String("sprint", "", "Move to sprint/version")
 	updateCmd.Flags().String("to-project", "", "Move work package to another project (identifier)")
 	updateCmd.Flags().String("release", "", "Set release (e.g. \"[iOS][ETV] 1.0.9\")")
@@ -136,6 +137,12 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	// Description
 	if desc, _ := cmd.Flags().GetString("description"); desc != "" {
 		req.Description = &api.Formattable{Format: "markdown", Raw: desc}
+		hasChanges = true
+	}
+
+	// User story (customField36 — a formattable custom field, like description)
+	if story, _ := cmd.Flags().GetString("user-story"); story != "" {
+		req.UserStory = &api.Formattable{Format: "markdown", Raw: story}
 		hasChanges = true
 	}
 

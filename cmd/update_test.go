@@ -23,6 +23,7 @@ func newUpdateCmd() *cobra.Command {
 	c.Flags().Int("done", -1, "")
 	c.Flags().String("subject", "", "")
 	c.Flags().StringP("description", "d", "", "")
+	c.Flags().String("user-story", "", "")
 	c.Flags().String("sprint", "", "")
 	c.Flags().String("to-project", "", "")
 	c.Flags().String("release", "", "")
@@ -116,6 +117,33 @@ func TestUpdate_FieldsOnlySentWhenFlagged(t *testing.T) {
 	}
 	if got.PercentageDone != nil || got.Subject != "" || got.Description != nil {
 		t.Errorf("unflagged fields must stay unset, got %+v", got)
+	}
+}
+
+func TestUpdate_UserStoryUsesCustomField36(t *testing.T) {
+	// The User Story field is a formattable custom field (customField36), sent as
+	// a top-level property like description — NOT a link. The refine skill relies
+	// on this to write back a corrected story, so the raw markdown must land there.
+	var got *api.UpdateWPRequest
+	SetClient(updateMock(&got))
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("user-story", "As a reader, I want offline mode so that I can read on the subway")
+	testutil.CaptureStdout(func() {
+		if err := runUpdate(cmd, []string{"123"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	if got.UserStory == nil {
+		t.Fatalf("expected UserStory set on the request, got %+v", got)
+	}
+	if got.UserStory.Format != "markdown" || !strings.Contains(got.UserStory.Raw, "offline mode") {
+		t.Errorf("unexpected user story payload: %+v", got.UserStory)
+	}
+	// It must not leak into the description field.
+	if got.Description != nil {
+		t.Errorf("user-story must not touch description, got %+v", got.Description)
 	}
 }
 
