@@ -33,14 +33,35 @@ Examples:
 	RunE: runReleaseCreate,
 }
 
+var releaseUpdateCmd = &cobra.Command{
+	Use:   "update <id-or-name>",
+	Short: "Update an existing release (rename, reschedule, or change status)",
+	Long: `Update an existing release version in OpenProject. Identify the release by
+its numeric ID (from 'op release list') or its exact name. Only the fields you
+pass are changed; the rest are left as-is.
+
+Examples:
+  op release update 1821 --name="[iOS][EET] 3.2.1" --end=2026-06-25
+  op release update "[iOS][EET] 3.2.1" --status=locked
+  op release update 1821 --start=2026-06-10 --end=2026-06-25`,
+	Args: cobra.ExactArgs(1),
+	RunE: runReleaseUpdate,
+}
+
 func init() {
 	rootCmd.AddCommand(releaseCmd)
 	releaseCmd.AddCommand(releaseListCmd)
 	releaseCmd.AddCommand(releaseCreateCmd)
+	releaseCmd.AddCommand(releaseUpdateCmd)
 
 	releaseCreateCmd.Flags().String("status", "open", "Release status: open, locked, or closed")
 	releaseCreateCmd.Flags().String("start", "", "Start date (YYYY-MM-DD)")
 	releaseCreateCmd.Flags().String("end", "", "End date (YYYY-MM-DD)")
+
+	releaseUpdateCmd.Flags().String("name", "", "New release name")
+	releaseUpdateCmd.Flags().String("status", "", "Release status: open, locked, or closed")
+	releaseUpdateCmd.Flags().String("start", "", "Start date (YYYY-MM-DD)")
+	releaseUpdateCmd.Flags().String("end", "", "End date (YYYY-MM-DD)")
 }
 
 func runReleaseList(cmd *cobra.Command, args []string) error {
@@ -108,5 +129,71 @@ func runReleaseCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("Created release #%d %q\n", v.ID, v.Name)
+	return nil
+}
+
+func runReleaseUpdate(cmd *cobra.Command, args []string) error {
+	project, err := client.RequireProject()
+	if err != nil {
+		return err
+	}
+
+	req := &api.UpdateVersionRequest{}
+	changed := false
+
+	if cmd.Flags().Changed("name") {
+		name, _ := cmd.Flags().GetString("name")
+		if name == "" {
+			return fmt.Errorf("--name cannot be empty")
+		}
+		req.Name = name
+		changed = true
+	}
+
+	if cmd.Flags().Changed("status") {
+		status, _ := cmd.Flags().GetString("status")
+		switch status {
+		case "open", "locked", "closed":
+		default:
+			return fmt.Errorf("invalid status %q: must be open, locked, or closed", status)
+		}
+		req.Status = status
+		changed = true
+	}
+
+	if cmd.Flags().Changed("start") {
+		start, _ := cmd.Flags().GetString("start")
+		if _, err := time.Parse("2006-01-02", start); err != nil {
+			return fmt.Errorf("invalid start date %q: use YYYY-MM-DD", start)
+		}
+		req.StartDate = start
+		changed = true
+	}
+
+	if cmd.Flags().Changed("end") {
+		end, _ := cmd.Flags().GetString("end")
+		if _, err := time.Parse("2006-01-02", end); err != nil {
+			return fmt.Errorf("invalid end date %q: use YYYY-MM-DD", end)
+		}
+		req.EndDate = end
+		changed = true
+	}
+
+	if !changed {
+		return fmt.Errorf("nothing to update: pass at least one of --name, --status, --start, --end")
+	}
+
+	// Resolve the release by ID or name so we know which version to PATCH.
+	rel, err := client.ResolveRelease(project, args[0])
+	if err != nil {
+		return err
+	}
+
+	v, err := client.UpdateVersion(rel.ID, req)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Updated release #%d %q\n", v.ID, v.Name)
 	return nil
 }

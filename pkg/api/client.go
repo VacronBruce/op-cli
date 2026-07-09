@@ -37,6 +37,7 @@ type APIClient interface {
 	// Versions/sprints
 	ListVersions(project string) (*VersionCollection, error)
 	CreateVersion(req *CreateVersionRequest) (*Version, error)
+	UpdateVersion(id int, req *UpdateVersionRequest) (*Version, error)
 	FindActiveSprint(project string) (*Version, error)
 	ResolveVersion(project, name string) (*Version, error)
 	ResolveRelease(project, name string) (*Version, error)

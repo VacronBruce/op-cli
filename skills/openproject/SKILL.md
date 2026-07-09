@@ -50,6 +50,7 @@ Consult these before constructing a command — don't guess flags or values:
 16. **"list sprints"** → `op sprint list`
 16a. **"list releases / versions"** → `op release list`
 16b. **"create a release / version"** → `op release create "<name>"` (`--status=open|locked|closed`, `--start`, `--end`)
+16b-i. **"rename a release / change its dates / reschedule a release"** → `op release update <id-or-name>` (`--name`, `--status`, `--start`, `--end`; identify by numeric ID from `op release list` or exact name; only passed fields change)
 16c. **"set a ticket's release / assign to a version"** → `op update <id> --release="<name>"`
 16d. **"change epic/parent/dates/product/label after creation"** → `op update <id> --epic="<name>"`, `--parent=<id>`, `--start`/`--due` (YYYY-MM-DD), `--product=<p>`, `--label=<l>` (same values as create)
 16e. **"bulk update / move several tickets at once"** → `op update <id> <id> <id> --<flag>=...` (same change per ID; continues past failures and summarizes)

@@ -32,6 +32,143 @@ func runReleaseCreateWith(t *testing.T, mock *testutil.MockClient, flagMap map[s
 	return out, err
 }
 
+func runReleaseUpdateWith(t *testing.T, mock *testutil.MockClient, flagMap map[string]string, args []string) (string, error) {
+	t.Helper()
+	SetClient(mock)
+
+	c := &cobra.Command{}
+	c.Flags().String("name", "", "")
+	c.Flags().String("status", "", "")
+	c.Flags().String("start", "", "")
+	c.Flags().String("end", "", "")
+
+	// Only flags present in flagMap are marked Changed, matching how the CLI
+	// distinguishes "leave as-is" from "set to this value".
+	for k, v := range flagMap {
+		if err := c.Flags().Set(k, v); err != nil {
+			t.Fatalf("setting flag --%s=%s: %v", k, v, err)
+		}
+	}
+
+	var err error
+	out := testutil.CaptureStdout(func() {
+		err = runReleaseUpdate(c, args)
+	})
+	return out, err
+}
+
+// Renaming + rescheduling a release must PATCH only the fields the user passed,
+// against the version ID resolved from the ID-or-name argument.
+func TestReleaseUpdate_RenameAndEndDate(t *testing.T) {
+	var capturedID int
+	var captured *api.UpdateVersionRequest
+
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		ResolveReleaseFn: func(project, name string) (*api.Version, error) {
+			if name != "1821" {
+				t.Errorf("expected release arg 1821, got %q", name)
+			}
+			return &api.Version{ID: 1821, Name: "[iOS][EET] 3.1.27"}, nil
+		},
+		UpdateVersionFn: func(id int, req *api.UpdateVersionRequest) (*api.Version, error) {
+			capturedID = id
+			captured = req
+			return &api.Version{ID: id, Name: req.Name}, nil
+		},
+	}
+
+	flags := map[string]string{"name": "[iOS][EET] 3.2.1", "end": "2026-06-25"}
+	out, err := runReleaseUpdateWith(t, mock, flags, []string{"1821"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if capturedID != 1821 {
+		t.Errorf("expected PATCH against version 1821, got %d", capturedID)
+	}
+	if captured.Name != "[iOS][EET] 3.2.1" {
+		t.Errorf("expected name '[iOS][EET] 3.2.1', got %q", captured.Name)
+	}
+	if captured.EndDate != "2026-06-25" {
+		t.Errorf("expected endDate 2026-06-25, got %q", captured.EndDate)
+	}
+	// Untouched fields must stay empty so they're omitted from the PATCH body.
+	if captured.Status != "" || captured.StartDate != "" {
+		t.Errorf("expected status/start untouched, got status=%q start=%q", captured.Status, captured.StartDate)
+	}
+	if !strings.Contains(out, "#1821") || !strings.Contains(out, "[iOS][EET] 3.2.1") {
+		t.Errorf("expected updated ID and name in output, got: %s", out)
+	}
+}
+
+// No flags means there's nothing to change; the CLI must refuse rather than
+// send an empty PATCH that silently does nothing.
+func TestReleaseUpdate_NoFlags(t *testing.T) {
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		UpdateVersionFn: func(int, *api.UpdateVersionRequest) (*api.Version, error) {
+			t.Error("UpdateVersion should not be called when no fields change")
+			return nil, nil
+		},
+	}
+
+	_, err := runReleaseUpdateWith(t, mock, nil, []string{"1821"})
+	if err == nil || !strings.Contains(err.Error(), "nothing to update") {
+		t.Errorf("expected 'nothing to update' error, got: %v", err)
+	}
+}
+
+func TestReleaseUpdate_InvalidStatus(t *testing.T) {
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		UpdateVersionFn: func(int, *api.UpdateVersionRequest) (*api.Version, error) {
+			t.Error("UpdateVersion should not be called for invalid status")
+			return nil, nil
+		},
+	}
+
+	_, err := runReleaseUpdateWith(t, mock, map[string]string{"status": "draft"}, []string{"1821"})
+	if err == nil || !strings.Contains(err.Error(), "invalid status") {
+		t.Errorf("expected 'invalid status' error, got: %v", err)
+	}
+}
+
+func TestReleaseUpdate_InvalidEndDate(t *testing.T) {
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		UpdateVersionFn: func(int, *api.UpdateVersionRequest) (*api.Version, error) {
+			t.Error("UpdateVersion should not be called for invalid date")
+			return nil, nil
+		},
+	}
+
+	_, err := runReleaseUpdateWith(t, mock, map[string]string{"end": "6/25"}, []string{"1821"})
+	if err == nil || !strings.Contains(err.Error(), "invalid end date") {
+		t.Errorf("expected 'invalid end date' error, got: %v", err)
+	}
+}
+
+// An unknown release must surface ResolveRelease's error (which lists valid
+// names) instead of attempting a PATCH against a bogus ID.
+func TestReleaseUpdate_UnknownRelease(t *testing.T) {
+	mock := &testutil.MockClient{
+		ProjectValue: "app",
+		ResolveReleaseFn: func(project, name string) (*api.Version, error) {
+			return nil, errors.New("release \"nope\" not found; available: [iOS][EET] 3.1.27")
+		},
+		UpdateVersionFn: func(int, *api.UpdateVersionRequest) (*api.Version, error) {
+			t.Error("UpdateVersion should not be called when release cannot be resolved")
+			return nil, nil
+		},
+	}
+
+	_, err := runReleaseUpdateWith(t, mock, map[string]string{"name": "x"}, []string{"nope"})
+	if err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected 'not found' error, got: %v", err)
+	}
+}
+
 func TestReleaseCreate_Success_DefaultsStatusOpen(t *testing.T) {
 	var captured *api.CreateVersionRequest
 

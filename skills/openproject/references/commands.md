@@ -103,6 +103,8 @@ op release list                       # List all releases (versions) for the pro
 op release create "<name>"            # Create a release, e.g. "[iOS][ETV] 1.0.9" (status open)
 op release create "<name>" --status=locked      # open (default) | locked | closed
 op release create "<name>" --start=2026-06-10 --end=2026-06-30  # optional date range
+op release update <id-or-name> --name="<new>"   # Rename a release (id from `op release list`, or exact name)
+op release update <id-or-name> --end=2026-06-25 # Reschedule; also --start, --status=open|locked|closed
 op update <id> --release="<name>"     # Assign a work package to a release (resolved by name)
 ```
 
