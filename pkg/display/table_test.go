@@ -106,6 +106,51 @@ func TestGroupByAssignee_Empty(t *testing.T) {
 	}
 }
 
+func TestWorkPackageDetail_ShowsRelease(t *testing.T) {
+	// Release lives on customField50 (a version link array). It is distinct from
+	// the sprint version, so `op show` must surface it in the detail view.
+	wp := &api.WorkPackage{
+		ID:      81321,
+		Subject: "Offline reading",
+		Links: api.WPLinks{
+			Type:     api.Link{Title: "Feature"},
+			Status:   api.Link{Title: "New"},
+			Priority: api.Link{Title: "Normal"},
+			Version:  api.Link{Title: "Sprint 42"},
+			Release:  []api.Link{{Title: "[iOS][ETV] 1.0.9"}},
+		},
+	}
+
+	out := captureOutput(func() {
+		WorkPackageDetail(wp)
+	})
+
+	if !strings.Contains(out, "Release:") || !strings.Contains(out, "[iOS][ETV] 1.0.9") {
+		t.Errorf("expected Release line with the release name, got: %s", out)
+	}
+}
+
+func TestWorkPackageDetail_NoReleaseWhenAbsent(t *testing.T) {
+	// Tickets without a release must not print an empty Release line.
+	wp := &api.WorkPackage{
+		ID:      81322,
+		Subject: "No release yet",
+		Links: api.WPLinks{
+			Type:     api.Link{Title: "Task"},
+			Status:   api.Link{Title: "New"},
+			Priority: api.Link{Title: "Normal"},
+		},
+	}
+
+	out := captureOutput(func() {
+		WorkPackageDetail(wp)
+	})
+
+	if strings.Contains(out, "Release:") {
+		t.Errorf("expected no Release line when unset, got: %s", out)
+	}
+}
+
 func TestTruncate(t *testing.T) {
 	tests := []struct {
 		input    string

@@ -137,7 +137,7 @@ op my team                         # Team items grouped by person
 op overview                        # Cross-project dashboard of my open work
 op overview --projects=8 --sprints=5  # Widen the dashboard
 op blocked                         # Blocked items in sprint
-op show 12345                      # View ticket details (includes JIRA ID + User Story + inline comment images)
+op show 12345                      # View ticket details (includes JIRA ID + User Story + Release + inline comment images)
 op show 12345 --url                # Print only the browser URL (no API call)
 op show 12345 --download           # Download attachments and inline comment images
 op search WP-23                    # Map a JIRA ID to its OpenProject number
@@ -162,7 +162,7 @@ op create feature "Dark mode" --points=3 --estimate="2d" --sprint="App_06/02/202
 op update 12345 --status=in-progress
 op update 12345 --assignee="Bruce Chen" --points=3
 op update 12345 --estimate="2d 4h"             # set Work estimate (days at 8h/day)
-op update 12345 --description="Updated description here"
+op update 12345 --description="Updated description here"  # refuses to drop inline images; --force to override
 op update 12345 --user-story="As a reader, I want X so that Y"  # edit the User Story field
 op update 12345 --subject="New title" --done=50
 op update 12345 --assignee="Ken Peng"

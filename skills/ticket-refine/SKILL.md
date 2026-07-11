@@ -23,7 +23,12 @@ say so.
 
 - **Acceptance criteria** live *inside the description* — there is no separate AC
   field. Refining AC means rewriting the description via `op update --description`,
-  preserving every other section untouched.
+  preserving every other section untouched — **including inline images**. Screenshots
+  are embedded in the description as markdown like `![](/api/v3/attachments/N/content)`;
+  copy every such reference verbatim into the new description or the image is lost.
+  As a safety net, `op update --description` refuses a rewrite that drops an inline
+  image the ticket currently shows (override with `--force` only if the removal is
+  intentional).
 - **User story** is a dedicated field — write it via `op update --user-story`.
 
 ## Process
@@ -71,7 +76,9 @@ say so.
 - **Never write without explicit confirmation.** Always show the before/after first.
 - **Preserve the description.** Only the section you refined may change; if you are
   unsure you can rebuild it without dropping content, stop and show the user the
-  full new description for approval rather than guessing.
+  full new description for approval rather than guessing. **Never drop inline image
+  markdown** (`![](/api/v3/attachments/N/content)`) — reproduce it exactly. `op show`
+  prints the raw markdown including these references; carry them across intact.
 - **Do not invent facts.** If the user cannot answer a question, leave a clearly
   marked `TODO:` in the field rather than fabricating a plausible-but-wrong AC —
   fail loud, don't paper over the gap.

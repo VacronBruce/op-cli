@@ -65,6 +65,10 @@ func WorkPackageDetail(wp *api.WorkPackage) {
 	if wp.Links.Version.Title != "" {
 		fmt.Printf("  Sprint:     %s\n", wp.Links.Version.Title)
 	}
+	// Release lives on customField50 as an array holding at most one release.
+	if len(wp.Links.Release) > 0 && wp.Links.Release[0].Title != "" {
+		fmt.Printf("  Release:    %s\n", wp.Links.Release[0].Title)
+	}
 	if wp.UserStory != nil && wp.UserStory.Raw != "" {
 		fmt.Printf("  User Story:\n    %s\n", wp.UserStory.Raw)
 	}

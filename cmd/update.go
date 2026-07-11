@@ -40,6 +40,7 @@ func init() {
 	updateCmd.Flags().Int("done", -1, "Percentage done (0-100)")
 	updateCmd.Flags().String("subject", "", "New subject/title")
 	updateCmd.Flags().StringP("description", "d", "", "New description (markdown)")
+	updateCmd.Flags().Bool("force", false, "Allow a description update that drops inline images the ticket currently shows")
 	updateCmd.Flags().String("user-story", "", "New user story (markdown)")
 	updateCmd.Flags().String("sprint", "", "Move to sprint/version")
 	updateCmd.Flags().String("to-project", "", "Move work package to another project (identifier)")
@@ -241,6 +242,9 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	// render the full detail view.
 	if len(args) == 1 {
 		wpID, _ := parseWorkPackageID(args[0]) // validated above
+		if err := guardDroppedImages(cmd, wpID, req); err != nil {
+			return err
+		}
 		wp, err := client.UpdateWorkPackage(wpID, req)
 		if err != nil {
 			return fmt.Errorf("updating work package: %w", err)
@@ -294,4 +298,53 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%d of %d update(s) failed", failures, len(args))
 	}
 	return nil
+}
+
+// guardDroppedImages refuses a description rewrite that would orphan inline
+// images the ticket already shows. OpenProject embeds screenshots in the
+// description as ![](/api/v3/attachments/N/content); a refine that rewrites the
+// description without copying those references silently drops the images from
+// the rendered ticket. This is a deterministic check (fail loud, no model
+// judgment), skipped when --description is absent or --force is given.
+func guardDroppedImages(cmd *cobra.Command, wpID int, req *api.UpdateWPRequest) error {
+	if req.Description == nil {
+		return nil
+	}
+	if force, _ := cmd.Flags().GetBool("force"); force {
+		return nil
+	}
+
+	current, err := client.GetWorkPackage(wpID)
+	if err != nil {
+		return fmt.Errorf("checking current description for inline images: %w", err)
+	}
+	var oldRaw string
+	if current.Description != nil {
+		oldRaw = current.Description.Raw
+	}
+
+	dropped := droppedInlineImages(oldRaw, req.Description.Raw)
+	if len(dropped) == 0 {
+		return nil
+	}
+	return fmt.Errorf(
+		"refusing to update: the new description drops %d inline image(s) the ticket currently shows (attachment ID(s) %v).\n"+
+			"Copy the image markdown into the new description (e.g. ![](/api/v3/attachments/%d/content)), or pass --force to overwrite anyway",
+		len(dropped), dropped, dropped[0])
+}
+
+// droppedInlineImages returns the inline attachment IDs present in oldDesc but
+// missing from newDesc — images a description rewrite would silently orphan.
+func droppedInlineImages(oldDesc, newDesc string) []int {
+	kept := make(map[int]bool)
+	for _, id := range api.InlineAttachmentIDs(newDesc) {
+		kept[id] = true
+	}
+	var dropped []int
+	for _, id := range api.InlineAttachmentIDs(oldDesc) {
+		if !kept[id] {
+			dropped = append(dropped, id)
+		}
+	}
+	return dropped
 }

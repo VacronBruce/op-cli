@@ -23,6 +23,7 @@ func newUpdateCmd() *cobra.Command {
 	c.Flags().Int("done", -1, "")
 	c.Flags().String("subject", "", "")
 	c.Flags().StringP("description", "d", "", "")
+	c.Flags().Bool("force", false, "")
 	c.Flags().String("user-story", "", "")
 	c.Flags().String("sprint", "", "")
 	c.Flags().String("to-project", "", "")
@@ -200,6 +201,73 @@ func TestUpdate_ReleaseUsesCustomField50(t *testing.T) {
 	}
 	if _, hasVersion := got.Links["version"]; hasVersion {
 		t.Error("release must not touch the sprint version link")
+	}
+}
+
+// --- description image preservation (inline attachment guard) ---
+
+// descMock serves an existing description containing an inline screenshot, so
+// the guard can compare it against the incoming --description.
+func descMock(captured **api.UpdateWPRequest, oldDesc string) *testutil.MockClient {
+	mock := updateMock(captured)
+	mock.GetWorkPackageFn = func(id int) (*api.WorkPackage, error) {
+		return &api.WorkPackage{
+			ID:          id,
+			Description: &api.Formattable{Format: "markdown", Raw: oldDesc},
+		}, nil
+	}
+	return mock
+}
+
+func TestUpdate_DescriptionDroppingInlineImageIsRefused(t *testing.T) {
+	// A refine that rewrites the description without carrying over an embedded
+	// screenshot silently orphans it in the rendered ticket. Fail loud, no PATCH.
+	var got *api.UpdateWPRequest
+	SetClient(descMock(&got, "Repro steps\n\n![](/api/v3/attachments/999/content)"))
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("description", "Rewritten steps with no image")
+	err := runUpdate(cmd, []string{"123"})
+	if err == nil || !strings.Contains(err.Error(), "999") {
+		t.Fatalf("expected refusal naming attachment 999, got: %v", err)
+	}
+	if got != nil {
+		t.Error("PATCH must not happen when an inline image would be dropped")
+	}
+}
+
+func TestUpdate_DescriptionKeepingInlineImageSucceeds(t *testing.T) {
+	// Preserving the image markdown is the correct refine: the update proceeds.
+	var got *api.UpdateWPRequest
+	SetClient(descMock(&got, "old\n\n![](/api/v3/attachments/999/content)"))
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("description", "New AC\n\n![](/api/v3/attachments/999/content)")
+	testutil.CaptureStdout(func() {
+		if err := runUpdate(cmd, []string{"123"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+	if got == nil || got.Description == nil || !strings.Contains(got.Description.Raw, "999") {
+		t.Errorf("expected description PATCH preserving the image, got %+v", got)
+	}
+}
+
+func TestUpdate_ForceAllowsDroppingInlineImage(t *testing.T) {
+	// --force is the explicit escape hatch: the user accepts losing the image.
+	var got *api.UpdateWPRequest
+	SetClient(descMock(&got, "old\n\n![](/api/v3/attachments/999/content)"))
+
+	cmd := newUpdateCmd()
+	_ = cmd.Flags().Set("description", "Deliberately image-free")
+	_ = cmd.Flags().Set("force", "true")
+	testutil.CaptureStdout(func() {
+		if err := runUpdate(cmd, []string{"123"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+	if got == nil || got.Description == nil {
+		t.Errorf("expected description PATCH under --force, got %+v", got)
 	}
 }
 
