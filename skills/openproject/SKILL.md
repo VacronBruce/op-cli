@@ -41,7 +41,9 @@ Consult these before constructing a command — don't guess flags or values:
 9d. **"show backlog bugs"** → `op backlog --type bug` (combine with `--priority` to filter further)
 10. **"close sprint / end of sprint"** → `op sprint close` for carryover report; for closing ready tickets → invoke /op:sprint-close skill (`-p`, `--sprint`, `--release`, `--status`, `--auto`)
 10a. **"check/assign missing components"** → invoke /op:assign-components skill (`-p`, `--sprint`, `--dry-run`, `--auto`)
+10b. **"dispatch / assign android work / hand out tickets / distribute the sprint"** → invoke /op:android-dispatch skill (`-p`, `--sprint`, `--dry-run`, `--auto`) — finds unassigned Android tickets, balances them across the team by current load, bulk-assigns on confirm
 11. **"generate report"** → `op sprint progress -v`
+11a. **"weekly report / status report / what shipped this week"** → invoke /op:weekly-report skill (`-p`... repeatable, `--sprint`) — copy-paste weekly block per project (shipped / in progress / blocked / at risk / next)
 12. **"is this ticket ready?"** → `op check <id>` (Definition-of-Ready gate: prints a deterministic completeness percent and READY / NEEDS WORK; a FAIL blocks, a WARN is advisory). Teams can tune which checks apply per type via a DoR config file pointed to by `OP_DOR_CONFIG` (see `references/commands.md`).
 13. **"check sprint quality"** → `op check --sprint`
 14. **"what's the discussion on X?"** → `op comment <id>`

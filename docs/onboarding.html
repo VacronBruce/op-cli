@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setup Guide — Claude Code · Figma MCP · op-cli</title>
+<style>
+  :root {
+    --ground: #eef1f4;
+    --surface: #ffffff;
+    --ink: #181b20;
+    --muted: #5a6472;
+    --faint: #8b95a1;
+    --line: #dce1e7;
+    --accent: #d2694a;
+    --accent-deep: #b8502f;
+    --console: #15171c;
+    --console-ink: #e7ebf0;
+    --console-muted: #8791a0;
+    --good: #2f7d5b;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    --maxw: 760px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  a { color: var(--accent-deep); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  /* ---- masthead ---- */
+  header.mast {
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #fff, var(--ground));
+  }
+  .mast-inner { padding: 56px 0 40px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(30px, 6vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  .lede { font-size: 18px; color: var(--muted); margin: 0; max-width: 62ch; }
+
+  /* ---- OS toggle ---- */
+  .os-bar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(238,241,244,0.86);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .os-bar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 24px;
+    max-width: var(--maxw);
+    margin: 0 auto;
+    flex-wrap: wrap;
+  }
+  .os-label {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .seg {
+    display: inline-flex;
+    background: #e0e5ea;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 3px;
+  }
+  .seg button {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    padding: 6px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  }
+  .seg button[aria-pressed="true"] {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+  }
+  .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---- section nav ---- */
+  nav.jump {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 22px 0 4px;
+  }
+  nav.jump a {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    text-decoration: none;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 7px 13px;
+    border-radius: 999px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  nav.jump a:hover { border-color: var(--accent); color: var(--accent-deep); }
+
+  /* ---- step sections ---- */
+  section.step { padding: 46px 0 8px; scroll-margin-top: 64px; }
+  .step-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 6px; }
+  .step-num {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--surface);
+    background: var(--accent);
+    width: 34px; height: 34px;
+    flex: 0 0 34px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    letter-spacing: -0.02em;
+    transform: translateY(4px);
+  }
+  h2 {
+    font-size: clamp(23px, 4.5vw, 30px);
+    letter-spacing: -0.015em;
+    font-weight: 800;
+    margin: 0;
+    line-height: 1.15;
+  }
+  .step-sub { color: var(--muted); margin: 6px 0 0 50px; font-size: 16px; }
+  .step-body { margin-left: 50px; }
+  @media (max-width: 560px) {
+    .step-sub, .step-body { margin-left: 0; }
+  }
+  .step-num.role { background: #2f7d5b; font-size: 12px; }
+  .step-num.opt { background: #7a8290; }
+  .opt-tag {
+    align-self: center;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 999px;
+    padding: 3px 10px;
+  }
+
+  /* usage command lists */
+  .cmds {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    overflow: hidden;
+    margin: 12px 0 22px;
+  }
+  .cmds .row { padding: 12px 16px; border-top: 1px solid var(--line); }
+  .cmds .row:first-child { border-top: 0; }
+  .cmds .cmd {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent-deep);
+    display: block;
+    word-break: break-word;
+  }
+  .cmds .desc { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  .step-num.tip { background: var(--ink); font-size: 15px; }
+
+  /* ---- part divider ---- */
+  .part {
+    margin: 64px 0 8px;
+    padding-top: 30px;
+    border-top: 2px solid var(--ink);
+  }
+  .part-kicker {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    margin: 0 0 6px;
+  }
+  .part h2.part-title {
+    font-size: clamp(24px, 5vw, 34px);
+    margin: 0 0 6px;
+  }
+  .part-lede { color: var(--muted); margin: 0; max-width: 60ch; }
+
+  /* nav grouping */
+  .jump-label {
+    flex-basis: 100%;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0;
+  }
+  .jump-label:not(:first-child) { margin-top: 12px; }
+
+  /* ---- 4-phase loop cards ---- */
+  .loop {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+  @media (max-width: 620px) { .loop { grid-template-columns: repeat(2, 1fr); } }
+  .loop .card {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    overflow: hidden;
+    text-align: center;
+    padding-bottom: 18px;
+  }
+  .loop .bar { height: 6px; }
+  .loop .dot {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    color: #fff;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 18px;
+    margin: 20px auto 12px;
+  }
+  .loop .name {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .loop .what { color: var(--muted); font-size: 13px; margin: 7px 14px 0; line-height: 1.45; }
+
+  h3 {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 30px 0 12px;
+    font-weight: 600;
+  }
+  p { margin: 12px 0; }
+
+  /* ---- code blocks ---- */
+  .code {
+    position: relative;
+    background: var(--console);
+    border-radius: 10px;
+    margin: 14px 0;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 8px 24px -18px rgba(0,0,0,0.5);
+  }
+  .code-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px 8px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .code-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--console-muted);
+  }
+  .copy {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--console-muted);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+  }
+  .copy:hover { color: var(--console-ink); background: rgba(255,255,255,0.12); }
+  .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .copy.done { color: #7fd8a8; }
+  pre {
+    margin: 0;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--console-ink);
+    tab-size: 2;
+  }
+  pre .cm { color: var(--console-muted); }
+  pre .pr { color: #f0a58a; user-select: none; }
+
+  /* OS conditional visibility */
+  body[data-os="mac"] .win-only { display: none; }
+  body[data-os="win"] .mac-only { display: none; }
+
+  /* ---- callouts ---- */
+  .note {
+    border-left: 3px solid var(--accent);
+    background: #fbf1ec;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+    font-size: 15.5px;
+  }
+  .note strong { color: var(--accent-deep); }
+  .note.plain { border-left-color: var(--faint); background: #f2f5f8; }
+  .note.plain strong { color: var(--ink); }
+
+  ul.clean { padding-left: 0; list-style: none; margin: 12px 0; }
+  ul.clean li {
+    position: relative;
+    padding-left: 26px;
+    margin: 8px 0;
+    font-size: 16px;
+  }
+  ul.clean li::before {
+    content: "→";
+    position: absolute; left: 0;
+    color: var(--accent);
+    font-family: var(--mono);
+  }
+
+  code.inl {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: #e2e7ec;
+    padding: 1px 6px;
+    border-radius: 5px;
+    color: var(--ink);
+  }
+
+  /* ---- prereq chip ---- */
+  .prereq {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 6px 12px;
+    border-radius: 7px;
+    margin: 4px 8px 4px 0;
+  }
+  .prereq b { color: var(--ink); font-weight: 600; }
+
+  /* ---- verify checklist ---- */
+  .verify {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin: 18px 0;
+  }
+  .verify h3 { margin-top: 0; color: var(--good); }
+  .verify ul { margin: 0; padding-left: 0; list-style: none; }
+  .verify li {
+    padding: 9px 0 9px 30px;
+    position: relative;
+    border-top: 1px solid var(--line);
+    font-size: 15.5px;
+  }
+  .verify li:first-of-type { border-top: 0; }
+  .verify li::before {
+    content: "✓";
+    position: absolute; left: 0; top: 9px;
+    color: var(--good);
+    font-weight: 700;
+  }
+  .verify code.inl { background: #eaf3ee; }
+
+  /* ---- footer ---- */
+  footer {
+    margin-top: 56px;
+    border-top: 1px solid var(--line);
+    padding: 30px 0 60px;
+    color: var(--faint);
+    font-family: var(--mono);
+    font-size: 12.5px;
+  }
+  footer a { color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { scroll-behavior: auto !important; transition: none !important; }
+  }
+  html { scroll-behavior: smooth; }
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap mast-inner">
+    <p class="eyebrow">Team Onboarding · Dev Environment</p>
+    <h1>Claude Code: set it up, then work well with it</h1>
+    <p class="lede">Two parts. <b>Part 1</b> installs the agent and wires in your designs, docs, and OpenProject tickets — macOS and Windows, pick your platform once. <b>Part 2</b> is how to actually work with it: the loop, the prompts, the guardrails.</p>
+  </div>
+</header>
+
+<div class="os-bar">
+  <div class="os-bar-inner">
+    <span class="os-label">Your platform</span>
+    <div class="seg" role="group" aria-label="Choose your operating system">
+      <button id="btn-mac" aria-pressed="true" onclick="setOS('mac')">macOS</button>
+      <button id="btn-win" aria-pressed="false" onclick="setOS('win')">Windows</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <nav class="jump">
+    <span class="jump-label">Set up</span>
+    <a href="#claude">01 Claude Code</a>
+    <a href="#figma">02 Figma MCP</a>
+    <a href="#gdrive">03 Google Drive</a>
+    <a href="#op">04 op-cli</a>
+    <a href="#pm">PMs</a>
+    <a href="#uspec">05 uSpec</a>
+    <a href="#done">Verify</a>
+    <span class="jump-label">Work well</span>
+    <a href="#loop">The loop</a>
+    <a href="#prompting">Prompting</a>
+    <a href="#model">Model</a>
+    <a href="#guardrails">Guardrails</a>
+    <a href="#demos">Demos</a>
+  </nav>
+
+  <div class="part">
+    <p class="part-kicker">Part 1</p>
+    <h2 class="part-title">Set up your tools</h2>
+    <p class="part-lede">Install once and everything downstream — designs, docs, tickets — plugs into the same agent.</p>
+  </div>
+
+  <!-- ===================== STEP 1 ===================== -->
+  <section class="step" id="claude">
+    <div class="step-head">
+      <span class="step-num">01</span>
+      <h2>Install Claude Code</h2>
+    </div>
+    <p class="step-sub">The terminal-native coding agent. This is the foundation — Figma and op-cli both plug into it.</p>
+
+    <div class="step-body">
+      <div>
+        <span class="prereq"><b>Need</b> · a terminal</span>
+        <span class="prereq"><b>Need</b> · a Claude account (Pro/Max) or Anthropic API key</span>
+        <span class="prereq win-only"><b>Windows</b> · Git installed</span>
+        <span class="prereq"><b>~2 min</b></span>
+      </div>
+
+      <div class="note win-only"><strong>Windows: install Git first.</strong> Claude Code's plugin installs (the Figma and op plugins clone Git repos) and its diff/commit features rely on Git. If you don't have it, install it, then reopen PowerShell:
+        <div class="code" style="margin-top:10px">
+          <div class="code-top"><span class="code-tag">PowerShell · Windows</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+<pre><code>winget install --id Git.Git -e</code></pre>
+        </div>
+        Or download it from <a href="https://git-scm.com/download/win">git-scm.com</a>. macOS ships Git with the Xcode Command Line Tools — you'll be prompted the first time it's needed.</div>
+
+      <h3>Install (native — no Node.js required)</h3>
+
+      <div class="code mac-only">
+        <div class="code-top"><span class="code-tag">Terminal · macOS</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><code>curl -fsSL https://claude.ai/install.sh | bash</code></pre>
+      </div>
+
+      <div class="code win-only">
+        <div class="code-top"><span class="code-tag">PowerShell · Windows</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><code>irm https://claude.ai/install.ps1 | iex</code></pre>
+      </div>
+
+      <p>The native installer downloads the right binary, adds it to your <code class="inl">PATH</code>, and keeps itself updated in the background — no Node.js needed.</p>
+
+      <div class="note plain mac-only"><strong>On a corporate Mac?</strong> If <code class="inl">curl</code> is blocked, the npm fallback still works: <code class="inl">npm install -g @anthropic-ai/claude-code</code> (needs Node 18+).</div>
+      <div class="note plain win-only"><strong>Tip:</strong> Run this in a normal PowerShell window — no admin rights needed. Open a <em>new</em> terminal afterward so <code class="inl">claude</code> is on your PATH.</div>
+
+      <h3>First launch &amp; sign in</h3>
+      <p>Move into any project folder and start the agent. On first run it opens your browser to authenticate.</p>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">Start it</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+<pre><code><span class="cm"># open a NEW terminal first, then:</span>
+cd path/to/your/project
+claude</code></pre>
+      </div>
+      <p>Follow the browser prompt to log in with your Claude subscription (or paste an API key). That's it — you're in an interactive session.</p>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 2 ===================== -->
+  <section class="step" id="figma">
+    <div class="step-head">
+      <span class="step-num">02</span>
+      <h2>Connect the Figma MCP</h2>
+    </div>
+    <p class="step-sub">Lets Claude Code read your Figma designs — components, variables, layout — and turn frames into code.</p>
+
+    <div class="step-body">
+      <div>
+        <span class="prereq"><b>Need</b> · Claude Code (step 01)</span>
+        <span class="prereq"><b>Need</b> · a Figma account, signed in</span>
+        <span class="prereq"><b>~3 min</b></span>
+      </div>
+
+      <h3>Recommended · Official Figma plugin (remote server)</h3>
+      <p>The remote server is hosted by Figma and has the fullest feature set. Install the plugin from inside — or before launching — Claude Code:</p>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">Terminal</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><code>claude plugin install figma@claude-plugins-official</code></pre>
+      </div>
+
+      <p>Then authorize the connection:</p>
+      <ul class="clean">
+        <li>Restart Claude Code so it picks up the plugin.</li>
+        <li>Run <code class="inl">/plugin</code>, open the <b>Installed</b> tab, select <b>figma</b>.</li>
+        <li>Complete authorization — click <b>Allow access</b> in the browser that opens. Make sure you're signed into the <em>right</em> Figma account.</li>
+        <li>Run <code class="inl">/plugin</code> once more and confirm the status shows <b>connected</b>.</li>
+      </ul>
+
+      <h3>What comes with it · Figma skills</h3>
+      <p>Installing the plugin bundles <a href="https://help.figma.com/hc/en-us/articles/39166810751895-Figma-skills-for-MCP">Figma's MCP skills</a> automatically — pre-built instructions that teach Claude how to handle common Figma tasks, so you can just say &ldquo;implement this design&rdquo; instead of spelling out every step. You get, among others:</p>
+      <ul class="clean">
+        <li><code class="inl">figma-generate-design</code> — assemble full-page screens from your design system.</li>
+        <li><code class="inl">figma-use</code> — create/edit frames, components, and variables on the canvas.</li>
+        <li><code class="inl">figma-code-connect</code> — link Figma components to their code counterparts.</li>
+        <li><code class="inl">figma-generate-diagram</code> / <code class="inl">figma-create-new-file</code> — spin up FigJam diagrams or blank files.</li>
+      </ul>
+      <div class="note plain"><strong>No plugin?</strong> You can <a href="https://github.com/figma/mcp-server-guide/archive/refs/heads/main.zip">download the skills manually</a> from Figma's repo and ask Claude to unzip and install them — but the plugin route above is the easiest and keeps them updated.</div>
+
+      <h3>Alternative · Add the remote server by hand</h3>
+      <p>If you'd rather skip the plugin, register the hosted endpoint directly, then authenticate with <code class="inl">/mcp</code>:</p>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">Terminal</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+<pre><code>claude mcp add --transport http figma https://mcp.figma.com/mcp
+<span class="cm"># then, inside Claude Code:</span>
+<span class="pr">&gt;</span> /mcp</code></pre>
+      </div>
+
+      <h3>Alternative · Local Dev Mode server (Figma desktop app)</h3>
+      <p>For the on-device endpoint: open a design file in the Figma <b>desktop app</b>, switch to <b>Dev Mode</b>, enable the MCP server in the right sidebar, then register the local address:</p>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">Terminal</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><code>claude mcp add --transport http figma-desktop http://127.0.0.1:3845/mcp</code></pre>
+      </div>
+
+      <div class="note"><strong>Sanity check:</strong> in a Claude Code session, run <code class="inl">/mcp</code> — <code class="inl">figma</code> should be listed and connected. Paste a <code class="inl">figma.com</code> frame URL and ask Claude to read it.</div>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 3 (Google Drive) ===================== -->
+  <section class="step" id="gdrive">
+    <div class="step-head">
+      <span class="step-num">03</span>
+      <h2>Connect Google Drive</h2>
+    </div>
+    <p class="step-sub">Give Claude Code read/search access to your Drive files — specs, PRDs, sheets — so it can pull context straight from your docs.</p>
+
+    <div class="step-body">
+      <div>
+        <span class="prereq"><b>Need</b> · a paid Claude plan (Pro / Max / Team / Enterprise)</span>
+        <span class="prereq"><b>~2 min</b></span>
+      </div>
+
+      <div class="note"><strong>Different from Figma:</strong> Google Drive is an Anthropic-hosted connector you switch on <em>in your browser</em> — not a CLI plugin. Don't try to authenticate from inside Claude Code; the hosted Google connector doesn't support local OAuth.</div>
+
+      <h3>Turn on the connector</h3>
+      <ul class="clean">
+        <li>In your browser, open <a href="https://claude.ai/settings/connectors">claude.ai → Settings → Connectors</a>.</li>
+        <li>Find <b>Google Drive</b> and click <b>Connect</b>.</li>
+        <li>Complete the Google sign-in and <b>Allow access</b> — make sure it's the right Google account.</li>
+      </ul>
+
+      <h3>Pick it up in Claude Code</h3>
+      <p>The connector loads automatically the next time Claude Code launches — no command to run. Restart any open session, then confirm:</p>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">Inside Claude Code</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+<pre><code><span class="pr">&gt;</span> /mcp</code></pre>
+      </div>
+      <p>Google Drive should appear in the list. Try asking Claude to <em>&ldquo;search my Drive for the sprint PRD.&rdquo;</em></p>
+
+      <div class="note plain"><strong>No paid plan?</strong> The hosted connector needs Pro or above. Self-hosted community MCP servers exist as a workaround, but the official connector is the supported path.</div>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 4 ===================== -->
+  <section class="step" id="op">
+    <div class="step-head">
+      <span class="step-num">04</span>
+      <h2>Install op-cli</h2>
+    </div>
+    <p class="step-sub">The <code class="inl">op</code> CLI for OpenProject sprints, boards, and tickets — plus its Claude Code plugin (<code class="inl">/op:openproject</code>, <code class="inl">/op:standup</code>, …).</p>
+
+    <div class="step-body">
+      <div>
+        <span class="prereq"><b>Need</b> · an OpenProject API key</span>
+        <span class="prereq"><b>On VPN</b> · openpr.epochbase.com must be reachable</span>
+        <span class="prereq"><b>~3 min</b></span>
+      </div>
+
+      <h3>Get your API key first</h3>
+      <p>The installer will ask for an OpenProject API token. Create one in the web UI:</p>
+      <ul class="clean">
+        <li>Log in to <a href="https://openpr.epochbase.com">openpr.epochbase.com</a>, then click your <b>avatar</b> (top-right) → <b>Account settings</b>.</li>
+        <li>In the left sidebar, open <b>Access tokens</b>.</li>
+        <li>On the <b>Provider tokens</b> tab, under <b>API</b>, click <b>+ API token</b>.</li>
+        <li>Give it a name you'll recognize (e.g. <code class="inl">op-cli</code>) and click <b>Create</b>.</li>
+        <li><b>Copy the token immediately</b> — OpenProject shows it only once. Paste it when the installer prompts.</li>
+      </ul>
+      <div class="note"><strong>Treat it like a password.</strong> Anyone with the token can act as you in OpenProject. op-cli stores it in <code class="inl">~/.oprc</code> (chmod 600). To rotate later: create a new token, then <code class="inl">op setup --api-key=&lt;new-key&gt;</code>.</div>
+
+      <h3>Run the one-line installer</h3>
+
+      <div class="code mac-only">
+        <div class="code-top"><span class="code-tag">Terminal · macOS</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><code>bash &lt;(curl -fsSL https://github.com/VacronBruce/op-cli/releases/latest/download/install.sh)</code></pre>
+      </div>
+
+      <div class="code win-only">
+        <div class="code-top"><span class="code-tag">PowerShell · Windows</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><code>irm https://github.com/VacronBruce/op-cli/releases/latest/download/install.ps1 | iex</code></pre>
+      </div>
+
+      <p>The repo is public, so this needs no GitHub login. The installer will:</p>
+      <ul class="clean">
+        <li>Detect your platform and download the right <code class="inl">op</code> binary.</li>
+        <li>Prompt for your API key and write <code class="inl">~/.oprc</code> (optionally a default project + sprint).</li>
+        <li>Add <code class="inl">op</code> to your PATH and enable shell completion.</li>
+        <li>Install the <code class="inl">op</code> Claude Code plugin if <code class="inl">claude</code> is present.</li>
+      </ul>
+
+      <div class="note win-only"><strong>Windows note:</strong> no Git Bash or WSL required — the PowerShell line above handles everything. Git Bash / WSL users can run the macOS <code class="inl">curl</code> line instead.</div>
+      <div class="note"><strong>Rotate the sprint each cycle:</strong> <code class="inl">op setup --sprint="App_06/15/2026"</code>. Re-run the installer one-liner anytime to refresh both the binary and the plugin.</div>
+    </div>
+  </section>
+
+  <!-- ===================== FOR PMs ===================== -->
+  <section class="step" id="pm">
+    <div class="step-head">
+      <span class="step-num role">PM</span>
+      <h2>For project managers · op-cli in practice</h2>
+    </div>
+    <p class="step-sub">You rarely need to memorize flags — the <code class="inl">/op:</code> slash commands take plain English inside Claude Code. Here's what to reach for, by moment in the sprint.</p>
+
+    <div class="step-body">
+      <div class="note plain"><strong>Two ways to drive it.</strong> Type a <code class="inl">/op:</code> command in Claude Code and describe what you want, or run the raw <code class="inl">op</code> command in your terminal. Both hit the same OpenProject. Start with the slash commands.</div>
+
+      <h3>Every morning · standup &amp; status</h3>
+      <div class="cmds">
+        <div class="row"><span class="cmd">/op:standup</span><div class="desc">Your daily digest — sprint progress, blockers, team work by person, and risks in one briefing.</div></div>
+        <div class="row"><span class="cmd">op board</span><div class="desc">The current sprint board (kanban). Add <code class="inl">--status=blocked</code> or <code class="inl">--component=android</code> to filter.</div></div>
+        <div class="row"><span class="cmd">op my team</span><div class="desc">All team items grouped by person — who's carrying what.</div></div>
+        <div class="row"><span class="cmd">op blocked</span><div class="desc">Just the blocked items in the sprint.</div></div>
+      </div>
+
+      <h3>Planning the next sprint</h3>
+      <div class="cmds">
+        <div class="row"><span class="cmd">/op:sprint-prepare --project app --prd ./prd.md</span><div class="desc">Creates the next sprint, intakes tickets from IDs / a PRD / a Figma link, and auto-moves high-priority backlog + bugs. Pauses for your confirmation between phases.</div></div>
+        <div class="row"><span class="cmd">op backlog --unestimated</span><div class="desc">Backlog items still missing estimates — your grooming list.</div></div>
+        <div class="row"><span class="cmd">op backlog --priority p0,p1</span><div class="desc">The highest-priority backlog, so nothing urgent slips.</div></div>
+        <div class="row"><span class="cmd">/op:assign-components</span><div class="desc">Finds sprint tickets with no component and infers the right one from labels/keywords. Add <code class="inl">--dry-run</code> to preview.</div></div>
+      </div>
+
+      <h3>Filing &amp; grooming tickets</h3>
+      <div class="cmds">
+        <div class="row"><span class="cmd">/op:file-bug CC button crashes when publishing on Android</span><div class="desc">Guided bug filing — collects repro / expected / actual / acceptance criteria and the right component &amp; label, then creates it well-formed.</div></div>
+        <div class="row"><span class="cmd">op create task "Fix login page" --assignee="Ken Peng" --priority=P1</span><div class="desc">Create a ticket directly. Bugs: <code class="inl">op create bug "Crash on save" --priority=SEV1</code>.</div></div>
+        <div class="row"><span class="cmd">/op:ticket-prep 12345</span><div class="desc">PM self-review before business review — checks completeness, clarity, business justification, and acceptance-criteria quality, with rewrite suggestions.</div></div>
+        <div class="row"><span class="cmd">op check --sprint</span><div class="desc">Readiness check across every ticket in the sprint (warns on missing components, estimates, criteria).</div></div>
+      </div>
+
+      <h3>Reporting &amp; closing the sprint</h3>
+      <div class="cmds">
+        <div class="row"><span class="cmd">op sprint progress -v</span><div class="desc">Full sprint report for stakeholders. Drop <code class="inl">-v</code> for a compact summary.</div></div>
+        <div class="row"><span class="cmd">/op:sprint-close --release "[iOS][ETV] 1.2.0"</span><div class="desc">End-of-sprint: assign a release version to every "Ready for Release" ticket and move them to Done.</div></div>
+        <div class="row"><span class="cmd">op overview</span><div class="desc">Cross-project dashboard of your open work — widen with <code class="inl">--projects=8 --sprints=5</code>.</div></div>
+      </div>
+
+      <h3>Just ask in plain English</h3>
+      <p>When you don't know the command, describe the outcome:</p>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">Inside Claude Code</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+<pre><code><span class="pr">&gt;</span> /op:openproject what's blocked in the current sprint?
+<span class="pr">&gt;</span> /op:openproject show my team's work for this sprint
+<span class="pr">&gt;</span> /op:openproject create a SEV1 bug "Crash on save" for NTD+, assign Bruce, android
+<span class="pr">&gt;</span> /op:openproject add tickets 101 102 103 to the current sprint</code></pre>
+      </div>
+
+      <div class="note"><strong>New sprint each cycle?</strong> Point op-cli at it once: <code class="inl">op setup --sprint="App_06/15/2026"</code>. Everything above then scopes to that sprint automatically.</div>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 5 · uSpec (optional) ===================== -->
+  <section class="step" id="uspec">
+    <div class="step-head">
+      <span class="step-num opt">05</span>
+      <h2>Auto-generate design specs with uSpec</h2>
+      <span class="opt-tag">Optional</span>
+    </div>
+    <p class="step-sub">Uber's open-source agentic system that writes design-system component specs into Figma in minutes. Skip this unless you maintain a reusable component library.</p>
+
+    <div class="step-body">
+      <div class="note plain"><strong>Who this is for.</strong> Design-systems teams documenting many components (anatomy, API, tokens, accessibility) at scale. For one-off screens, the Figma MCP + design skills in step 02 already cover you — you don't need uSpec.</div>
+
+      <div>
+        <span class="prereq"><b>Have already</b> · Claude Code + Figma MCP (steps 01–02)</span>
+        <span class="prereq"><b>Need</b> · a top-tier model (Opus / GPT high tier)</span>
+      </div>
+
+      <p>You're two of the four pieces in already. uSpec adds its <b>skills</b>, a Figma <b>Extract plugin</b>, and a <b>template library</b> on top of the Claude Code + Figma MCP you set up above.</p>
+
+      <h3>Install the skills</h3>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">Terminal · in your project</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+<pre><code>npx uspec-skills init      <span class="cm"># installs skills, writes uspecs.config.json</span>
+npx uspec-skills doctor    <span class="cm"># verify the setup</span></code></pre>
+      </div>
+
+      <h3>Then, one-time setup</h3>
+      <ul class="clean">
+        <li>Add the <b>uSpec Extract</b> plugin from the Figma Community (captures component data to JSON).</li>
+        <li>Point uSpec at a Figma MCP + a Figma personal access token — the native Figma MCP from step 02 works.</li>
+        <li>Duplicate the <b>uSpec template library</b> from Community, move it to your team, and publish it.</li>
+        <li>Run the <code class="inl">firstrun</code> skill so uSpec learns your template component keys.</li>
+      </ul>
+
+      <h3>Everyday use</h3>
+      <p>Generate the Markdown spec, then render sections onto the canvas:</p>
+      <ul class="clean">
+        <li><code class="inl">create-component-md</code> — builds the source-of-truth <code class="inl">.md</code> from the Extract JSON.</li>
+        <li><code class="inl">create-anatomy</code> · <code class="inl">create-api</code> · <code class="inl">create-property</code> · <code class="inl">create-color</code> · <code class="inl">create-structure</code> · <code class="inl">create-voice</code> — render each spec section (the last maps a control to VoiceOver / TalkBack / ARIA at once).</li>
+      </ul>
+
+      <div class="note"><strong>Run it clean:</strong> one agent per Figma file, a fresh session per skill, and don't touch the canvas mid-run. Everything executes locally — no design data leaves your network. Full docs: <a href="https://docs.uspec.design/getting-started">docs.uspec.design</a>.</div>
+    </div>
+  </section>
+
+  <!-- ===================== VERIFY ===================== -->
+  <section class="step" id="done">
+    <div class="step-head">
+      <span class="step-num">✓</span>
+      <h2>Verify everything works</h2>
+    </div>
+    <p class="step-sub">Open a <em>new</em> terminal so all PATH changes are live, then run these.</p>
+
+    <div class="step-body">
+      <div class="verify">
+        <h3>Claude Code</h3>
+        <ul>
+          <li><code class="inl">claude --version</code> prints a version, and <code class="inl">claude doctor</code> reports healthy.</li>
+        </ul>
+      </div>
+
+      <div class="verify">
+        <h3>Figma MCP</h3>
+        <ul>
+          <li>Inside a session, <code class="inl">/mcp</code> lists <code class="inl">figma</code> as <b>connected</b>.</li>
+          <li>Claude can read a Figma frame you paste a link to.</li>
+        </ul>
+      </div>
+
+      <div class="verify">
+        <h3>Google Drive</h3>
+        <ul>
+          <li><code class="inl">/mcp</code> lists <b>Google Drive</b> after a session restart.</li>
+          <li>Claude can search or read a Drive file when you ask.</li>
+        </ul>
+      </div>
+
+      <div class="verify">
+        <h3>op-cli</h3>
+        <ul>
+          <li><code class="inl">op setup</code> shows an all-<code class="inl">[ok]</code> checklist.</li>
+          <li><code class="inl">op board</code> renders the current sprint; <code class="inl">op my</code> lists your items.</li>
+          <li>In Claude Code, <code class="inl">/op:openproject what's blocked this sprint?</code> responds.</li>
+        </ul>
+      </div>
+
+      <div class="note plain"><strong>Something red?</strong> Each failing <code class="inl">[--]</code> line from <code class="inl">op setup</code> prints its own fix. For Figma, re-run <code class="inl">/plugin</code> and re-authorize. For Claude Code, <code class="inl">claude doctor</code> pinpoints PATH or auth issues.</div>
+    </div>
+  </section>
+
+  <!-- ===================== PART 2 ===================== -->
+  <div class="part">
+    <p class="part-kicker">Part 2</p>
+    <h2 class="part-title">Work effectively with Claude Code</h2>
+    <p class="part-lede">The tools are installed. This is how to actually get good results — the loop to follow, how to prompt, which model, and where to keep a human in charge.</p>
+  </div>
+
+  <div class="step-body" style="margin-left:0">
+    <div class="note plain"><strong>TL;DR.</strong> Plan first, code second (use Opus to plan). Keep a <code class="inl">CLAUDE.md</code> of team conventions. Prompt = <b>stage + task + rules</b>, with examples. Sonnet for coding, Opus for thinking. Sandbox Claude when it runs commands. Humans verify anything irreversible.</div>
+  </div>
+
+  <!-- The 4-phase loop -->
+  <section class="step" id="loop">
+    <div class="step-head">
+      <span class="step-num tip">↻</span>
+      <h2>The 4-phase loop</h2>
+    </div>
+    <p class="step-sub">Every non-trivial task should pass through all four. Skip a phase, pay the price.</p>
+
+    <div class="step-body">
+      <div class="loop">
+        <div class="card">
+          <div class="bar" style="background:#3f9e7c"></div>
+          <div class="dot" style="background:#3f9e7c">1</div>
+          <div class="name">Context</div>
+          <div class="what">Tell it about your code.</div>
+        </div>
+        <div class="card">
+          <div class="bar" style="background:#34718f"></div>
+          <div class="dot" style="background:#34718f">2</div>
+          <div class="name">Plan</div>
+          <div class="what">Use plan mode for non-trivial tasks.</div>
+        </div>
+        <div class="card">
+          <div class="bar" style="background:#e0a24a"></div>
+          <div class="dot" style="background:#e0a24a">3</div>
+          <div class="name">Execute</div>
+          <div class="what">Let it work, with guardrails.</div>
+        </div>
+        <div class="card">
+          <div class="bar" style="background:#d2694a"></div>
+          <div class="dot" style="background:#d2694a">4</div>
+          <div class="name">Verify</div>
+          <div class="what">Read the diff. Run the tests.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plan first -->
+  <section class="step" id="planfirst">
+    <div class="step-head">
+      <span class="step-num tip">1</span>
+      <h2>Plan first, code second</h2>
+    </div>
+    <p class="step-sub">Start in plan mode (<code class="inl">Shift + Tab</code> to switch). Plan with a strong model like Opus.</p>
+
+    <div class="step-body">
+      <h3>Why it matters</h3>
+      <ul class="clean">
+        <li>Catches wrong assumptions <b>before</b> code is written.</li>
+        <li>Forces Claude to read the relevant files first — use <code class="inl">@</code> to tag which ones.</li>
+        <li>Gives you a checkpoint to redirect or refine scope.</li>
+        <li>Makes the diff smaller and far more reviewable.</li>
+      </ul>
+
+      <h3>Examples</h3>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">Prompt</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+<pre><code>Read @lib/auth.ts and propose a plan to migrate from JWT to session cookies.</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">Prompt</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+<pre><code>Add rate limiting to @/api/auth.ts.
+
+Ask one question at a time. When you have enough, summarize back
+what you'll build and wait for my confirmation before writing code.</code></pre>
+      </div>
+
+      <div class="note"><strong>Rule of thumb:</strong> for non-trivial tasks (more than one file), always plan first. For trivial edits — rename a variable, fix a typo — skip it.</div>
+    </div>
+  </section>
+
+  <!-- CLAUDE.md -->
+  <section class="step" id="claudemd">
+    <div class="step-head">
+      <span class="step-num tip">2</span>
+      <h2>Give it context with CLAUDE.md</h2>
+    </div>
+    <p class="step-sub">A good <code class="inl">CLAUDE.md</code> is a one-time investment that fixes context for every future session.</p>
+
+    <div class="step-body">
+      <p>No more repeating &ldquo;don't add useless comments&rdquo; or &ldquo;match the existing style&rdquo; in every prompt — write your team's conventions once and Claude reads them automatically. A solid starting point is the <a href="https://github.com/forrestchang/andrej-karpathy-skills">Andrej Karpathy skills</a>.</p>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">CLAUDE.md · skeleton</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+<pre><code># CLAUDE.md
+
+## 1. Think Before Coding
+State assumptions. Surface tradeoffs. Ask when unclear.
+
+## 2. Simplicity First
+Minimum code that solves the problem. Nothing speculative.
+
+## 3. Surgical Changes
+Touch only what you must. Match existing style.
+
+## 4. Goal-Driven Execution
+Define success criteria. Loop until verified.</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Prompting -->
+  <section class="step" id="prompting">
+    <div class="step-head">
+      <span class="step-num tip">3</span>
+      <h2>The three-part prompt</h2>
+    </div>
+    <p class="step-sub">Stage + task + rules — with examples when you can. (Source: Anthropic Claude 101.)</p>
+
+    <div class="step-body">
+      <div class="cmds">
+        <div class="row"><span class="cmd">1 · Set the stage</span><div class="desc">Your role, objectives, and the context Claude needs. &ldquo;You're on a FastAPI backend using SQLAlchemy 2.0 async + Pydantic v2.&rdquo;</div></div>
+        <div class="row"><span class="cmd">2 · Define the task</span><div class="desc">The action — write, analyze, build, refactor, debug. &ldquo;Add a <code class="inl">GET /users/{id}/preferences</code> endpoint.&rdquo;</div></div>
+        <div class="row"><span class="cmd">3 · Specify the rules</span><div class="desc">Style, constraints, examples. &ldquo;Match @routes/users.py. Use DI for the DB session. No new dependencies.&rdquo;</div></div>
+      </div>
+
+      <h3>All together</h3>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">Prompt</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+<pre><code>You're helping me on a Python FastAPI backend that serves a mobile app.
+We use SQLAlchemy 2.0 with async sessions and Pydantic v2.
+
+Add a `GET /users/{id}/preferences` endpoint that returns the user's
+notification settings (email, push, sms — all booleans).
+
+Match the existing endpoint style in @routes/users.py. Use dependency
+injection for the DB session. Return a Pydantic response model. No new
+dependencies. Add a test in @tests/test_users.py following test_get_user.</code></pre>
+      </div>
+
+      <h3>Show, don't just tell (k-shot)</h3>
+      <p>One or more worked examples beat a description. Claude matches naming, return types, and error handling from your samples far more reliably:</p>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">Prompt · 1-shot</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+<pre><code>Validate phone. Match this style:
+
+validatePhone("+1-555-123-4567")
+  → { ok: true, normalized: "+15551234567" }</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Model -->
+  <section class="step" id="model">
+    <div class="step-head">
+      <span class="step-num tip">4</span>
+      <h2>Choosing a model</h2>
+    </div>
+    <p class="step-sub">Sonnet for coding, Opus for thinking.</p>
+
+    <div class="step-body">
+      <ul class="clean">
+        <li><b>Sonnet</b> — your default for day-to-day coding.</li>
+        <li><b>Switch to Opus</b> when: you're stuck on a bug Sonnet can't crack, you need architectural reasoning across many files, or you're planning a large change before implementing.</li>
+        <li><b>Effort levels</b> — <code class="inl">medium</code> for routine work; <code class="inl">high</code> when the task is genuinely complex or a first attempt already failed.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Guardrails -->
+  <section class="step" id="guardrails">
+    <div class="step-head">
+      <span class="step-num tip">5</span>
+      <h2>Guardrails: sandbox &amp; humans</h2>
+    </div>
+    <p class="step-sub">Convenience is not worth an <code class="inl">rm -rf</code> of your home directory.</p>
+
+    <div class="step-body">
+      <h3>Sandbox Claude when it runs commands</h3>
+      <p>Letting Claude run shell commands on your laptop is convenient but risky. Isolate it from your host filesystem, credentials, and network so a bad prompt — or a prompt injection — can't delete files or exfiltrate <code class="inl">~/.aws/credentials</code>.</p>
+      <div class="code">
+        <div class="code-top"><span class="code-tag">Terminal</span><button class="copy" onclick="copyCode(this)">Copy</button></div>
+<pre><code>cd ~/work/payments-svc
+docker sandbox run claude .</code></pre>
+      </div>
+
+      <h3>Keep a human in the loop</h3>
+      <ul class="clean">
+        <li>A human verifies before any merge to main.</li>
+        <li>A human verifies before any production deploy.</li>
+        <li>A human verifies any irreversible action — DB migration, data deletion, side-effecting API call.</li>
+        <li>Humans communicate with each other — avoid unattended agent-to-agent chains.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Demos & references -->
+  <section class="step" id="demos">
+    <div class="step-head">
+      <span class="step-num tip">☞</span>
+      <h2>Demos &amp; references</h2>
+    </div>
+    <p class="step-sub">Working examples from our team, plus the sources behind Part 2.</p>
+
+    <div class="step-body">
+      <h3>Our demos</h3>
+      <ul class="clean">
+        <li><a href="https://gitlab-tw.ddns.net/gmedtn/cc-demo">cc-demo</a> — Claude Code demo repo (plan mode, Karpathy skill, the <a href="https://gitlab-tw.ddns.net/gmedtn/emg-app-ai/-/blob/main/skills/gitlab-mr/skill.md">/gitlab-mr</a> custom skill, and an <a href="https://gitlab-tw.ddns.net/gmedtn/cc-demo/-/merge_requests/1">MR</a> with AI code review).</li>
+        <li><a href="https://gitlab-tw.ddns.net/gmedtn/emg-app-ai">emg-app-ai</a> — our custom Claude Code plugins.</li>
+        <li><a href="https://gitlab-tw.ddns.net/sdk/sdk-agent">sx-agent</a> — the SX AI assistant bot.</li>
+      </ul>
+
+      <h3>References</h3>
+      <ul class="clean">
+        <li><a href="https://themodernsoftware.dev/">The Modern Software Dev</a> — Stanford AI coding course.</li>
+        <li><a href="https://github.com/affaan-m/everything-claude-code">Everything Claude Code</a> — agent-harness optimization system.</li>
+        <li><a href="https://github.com/forrestchang/andrej-karpathy-skills">Andrej Karpathy Skills</a> and <a href="https://anthropic.skilljar.com/claude-101/383390">Anthropic Claude 101</a>.</li>
+        <li><a href="https://github.com/matt1398/claude-devtools">Claude DevTools</a>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    Internal onboarding guide · Set up + work with Claude Code, Figma MCP, Google Drive &amp; op-cli · macOS &amp; Windows<br>
+    op-cli source: <a href="https://github.com/VacronBruce/op-cli">github.com/VacronBruce/op-cli</a>
+  </footer>
+</div>
+
+<script>
+  function setOS(os) {
+    document.body.dataset.os = os;
+    document.getElementById('btn-mac').setAttribute('aria-pressed', os === 'mac');
+    document.getElementById('btn-win').setAttribute('aria-pressed', os === 'win');
+    try { localStorage.setItem('setup-os', os); } catch (e) {}
+  }
+
+  // Restore prior choice; otherwise guess from platform.
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('setup-os'); } catch (e) {}
+    if (!saved) {
+      var p = (navigator.platform || navigator.userAgent || '').toLowerCase();
+      saved = p.indexOf('win') !== -1 ? 'win' : 'mac';
+    }
+    setOS(saved);
+  })();
+
+  function copyCode(btn) {
+    var code = btn.closest('.code').querySelector('pre code');
+    // strip the leading "> " prompt marker from copied text
+    var text = code.innerText.replace(/^>\s?/gm, '');
+    navigator.clipboard.writeText(text).then(function () {
+      var prev = btn.textContent;
+      btn.textContent = 'Copied';
+      btn.classList.add('done');
+      setTimeout(function () { btn.textContent = prev; btn.classList.remove('done'); }, 1600);
+    });
+  }
+</script>
+</body>
+</html>
