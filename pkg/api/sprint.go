@@ -50,6 +50,21 @@ func (c *Client) CreateVersion(req *CreateVersionRequest) (*Version, error) {
 	return &v, nil
 }
 
+// UpdateVersion patches a version (sprint or release). Versions carry no
+// lockVersion, so unlike UpdateWorkPackage there is nothing to fetch first.
+func (c *Client) UpdateVersion(id int, req *UpdateVersionRequest) (*Version, error) {
+	var v Version
+	if err := c.Patch(fmt.Sprintf("/versions/%d", id), req, &v); err != nil {
+		return nil, err
+	}
+	return &v, nil
+}
+
+// UpdateVersionRequest is the request body for patching a version.
+type UpdateVersionRequest struct {
+	Description *Formattable `json:"description,omitempty"`
+}
+
 // CreateVersionRequest is the request body for creating a version.
 type CreateVersionRequest struct {
 	Name        string          `json:"name"`

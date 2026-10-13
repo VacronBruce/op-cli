@@ -103,8 +103,17 @@ op release list                       # List all releases (versions) for the pro
 op release create "<name>"            # Create a release, e.g. "[iOS][ETV] 1.0.9" (status open)
 op release create "<name>" --status=locked      # open (default) | locked | closed
 op release create "<name>" --start=2026-06-10 --end=2026-06-30  # optional date range
+op release show "<name>"              # The release + every ticket in it (any status), with status counts
+op release show 2054                  # ...or by release ID
+op release update "<name>" --description="..."  # Replace the release description (release notes)
+op release update 2054 -d "$(cat whats-new.txt)" # Long notes from a file
 op update <id> --release="<name>"     # Assign a work package to a release (resolved by name)
 ```
+
+> A ticket's release is custom field 50, not the built-in version field (that one is
+> the sprint), which is why `op board`/`op my` filters can't list a release; use
+> `op release show`. Release descriptions are **plain text** in OpenProject: Markdown
+> such as `## Heading` or `**bold**` shows literally.
 
 > `--release` resolves the name against the project's existing releases (kind
 > `release`); an unknown name fails with the list of available releases, and the

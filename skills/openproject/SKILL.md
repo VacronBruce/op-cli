@@ -52,6 +52,8 @@ Consult these before constructing a command — don't guess flags or values:
 16. **"list sprints"** → `op sprint list`
 16a. **"list releases / versions"** → `op release list`
 16b. **"create a release / version"** → `op release create "<name>"` (`--status=open|locked|closed`, `--start`, `--end`)
+16b-i. **"what's in this release / list a release's tickets / draft release notes"** → `op release show "<name>"` (or the release ID; lists every ticket in any status, Done included, plus the current description and a per-status count)
+16b-ii. **"write the release notes / set the release description"** → `op release update "<name>" --description="<plain text>"` (replaces the whole description; OpenProject shows release descriptions as **plain text**, so don't use Markdown headings or bold). Show the user the draft before writing it.
 16c. **"set a ticket's release / assign to a version"** → `op update <id> --release="<name>"`
 16d. **"change epic/parent/dates/product/label after creation"** → `op update <id> --epic="<name>"`, `--parent=<id>`, `--start`/`--due` (YYYY-MM-DD), `--product=<p>`, `--label=<l>` (same values as create)
 16d-i. **"edit the description / user story"** → `op update <id> --description="<markdown>"` (replaces the whole description), `op update <id> --user-story="<markdown>"` (User Story field, customField36)

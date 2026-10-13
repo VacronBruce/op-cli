@@ -359,6 +359,35 @@ func TestCreateVersion(t *testing.T) {
 	}
 }
 
+func TestUpdateVersion(t *testing.T) {
+	// `op release update` writes release notes with a PATCH to the version
+	// itself. Versions have no lockVersion, so this must be a single request:
+	// a GET-then-PATCH (as work packages need) would be an extra round trip
+	// that can only fail.
+	var calls []string
+	var gotBody map[string]interface{}
+	ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		calls = append(calls, r.Method+" "+r.URL.Path)
+		json.NewDecoder(r.Body).Decode(&gotBody)
+		json.NewEncoder(w).Encode(Version{ID: 2054, Name: "[Android][EET] 3.3.1"})
+	})
+	defer ts.Close()
+
+	_, err := c.UpdateVersion(2054, &UpdateVersionRequest{
+		Description: &Formattable{Format: "plain", Raw: "Faster category pages."},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(calls) != 1 || calls[0] != "PATCH /api/v3/versions/2054" {
+		t.Errorf("expected exactly PATCH /api/v3/versions/2054, got %v", calls)
+	}
+	desc, _ := gotBody["description"].(map[string]interface{})
+	if desc["raw"] != "Faster category pages." {
+		t.Errorf("expected description.raw in body, got %v", gotBody)
+	}
+}
+
 func newReleaseServer(t *testing.T) (*httptest.Server, *Client) {
 	t.Helper()
 	return newTestServer(func(w http.ResponseWriter, r *http.Request) {

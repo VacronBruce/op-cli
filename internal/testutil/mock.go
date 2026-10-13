@@ -25,6 +25,7 @@ type MockClient struct {
 	UpdateWorkPackageFn   func(id int, req *api.UpdateWPRequest) (*api.WorkPackage, error)
 	ListVersionsFn        func(project string) (*api.VersionCollection, error)
 	CreateVersionFn       func(req *api.CreateVersionRequest) (*api.Version, error)
+	UpdateVersionFn       func(id int, req *api.UpdateVersionRequest) (*api.Version, error)
 	FindActiveSprintFn    func(project string) (*api.Version, error)
 	ResolveVersionFn      func(project, name string) (*api.Version, error)
 	ResolveReleaseFn      func(project, name string) (*api.Version, error)
@@ -142,6 +143,13 @@ func (m *MockClient) CreateVersion(req *api.CreateVersionRequest) (*api.Version,
 		return m.CreateVersionFn(req)
 	}
 	return nil, fmt.Errorf("CreateVersion not mocked")
+}
+
+func (m *MockClient) UpdateVersion(id int, req *api.UpdateVersionRequest) (*api.Version, error) {
+	if m.UpdateVersionFn != nil {
+		return m.UpdateVersionFn(id, req)
+	}
+	return nil, fmt.Errorf("UpdateVersion not mocked")
 }
 
 func (m *MockClient) FindActiveSprint(project string) (*api.Version, error) {
