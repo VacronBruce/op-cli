@@ -50,21 +50,6 @@ func (c *Client) CreateVersion(req *CreateVersionRequest) (*Version, error) {
 	return &v, nil
 }
 
-// UpdateVersion patches a version (sprint or release). Versions carry no
-// lockVersion, so unlike UpdateWorkPackage there is nothing to fetch first.
-func (c *Client) UpdateVersion(id int, req *UpdateVersionRequest) (*Version, error) {
-	var v Version
-	if err := c.Patch(fmt.Sprintf("/versions/%d", id), req, &v); err != nil {
-		return nil, err
-	}
-	return &v, nil
-}
-
-// UpdateVersionRequest is the request body for patching a version.
-type UpdateVersionRequest struct {
-	Description *Formattable `json:"description,omitempty"`
-}
-
 // CreateVersionRequest is the request body for creating a version.
 type CreateVersionRequest struct {
 	Name        string          `json:"name"`
@@ -74,6 +59,29 @@ type CreateVersionRequest struct {
 	Status      string          `json:"status,omitempty"`
 	Kind        string          `json:"kind,omitempty"`
 	Links       map[string]Link `json:"_links"`
+}
+
+// UpdateVersion patches an existing version (release/sprint) by ID. Only the
+// fields set in req are sent, so an empty field leaves the current value intact.
+// Versions carry no lockVersion, so unlike UpdateWorkPackage there is nothing
+// to fetch first.
+func (c *Client) UpdateVersion(id int, req *UpdateVersionRequest) (*Version, error) {
+	var v Version
+	if err := c.Patch(fmt.Sprintf("/versions/%d", id), req, &v); err != nil {
+		return nil, err
+	}
+	return &v, nil
+}
+
+// UpdateVersionRequest is the partial PATCH body for updating a version.
+// omitempty on every field means a zero value is dropped from the payload
+// rather than clearing the server-side value.
+type UpdateVersionRequest struct {
+	Name        string       `json:"name,omitempty"`
+	Status      string       `json:"status,omitempty"`
+	StartDate   string       `json:"startDate,omitempty"`
+	EndDate     string       `json:"endDate,omitempty"`
+	Description *Formattable `json:"description,omitempty"`
 }
 
 // FindActiveSprint finds the currently active (open) version for a project.

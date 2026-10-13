@@ -52,15 +52,20 @@ Examples:
 
 var releaseUpdateCmd = &cobra.Command{
 	Use:   "update <name|id>",
-	Short: "Set a release's description (release notes)",
-	Long: `Replace a release's description, e.g. with its "What's New" notes.
+	Short: "Update a release: rename, reschedule, change status, or set its notes",
+	Long: `Update an existing release version in OpenProject. Identify the release by
+its numeric ID (from 'op release list') or its exact name. Only the fields you
+pass are changed; the rest are left as-is.
 
-OpenProject stores release descriptions as plain text: Markdown such as
-"## Heading" or "**bold**" shows literally, so write plain lines.
+--description replaces the whole description, e.g. with the release's
+"What's New" notes. OpenProject stores release descriptions as plain text:
+Markdown such as "## Heading" or "**bold**" shows literally, so write plain lines.
 
 Examples:
-  op release update "[Android][EET] 3.3.1" --description="Category pages load faster."
-  op release update 2054 --description="$(cat whats-new.txt)"`,
+  op release update 1821 --name="[iOS][EET] 3.2.1" --end=2026-06-25
+  op release update "[iOS][EET] 3.2.1" --status=locked
+  op release update 1821 --start=2026-06-10 --end=2026-06-25
+  op release update "[Android][EET] 3.3.1" --description="$(cat whats-new.txt)"`,
 	Args:              cobra.ExactArgs(1),
 	RunE:              runReleaseUpdate,
 	ValidArgsFunction: completeRelease(),
@@ -81,6 +86,10 @@ func init() {
 	releaseCreateCmd.Flags().String("start", "", "Start date (YYYY-MM-DD)")
 	releaseCreateCmd.Flags().String("end", "", "End date (YYYY-MM-DD)")
 
+	releaseUpdateCmd.Flags().String("name", "", "New release name")
+	releaseUpdateCmd.Flags().String("status", "", "Release status: open, locked, or closed")
+	releaseUpdateCmd.Flags().String("start", "", "Start date (YYYY-MM-DD)")
+	releaseUpdateCmd.Flags().String("end", "", "End date (YYYY-MM-DD)")
 	releaseUpdateCmd.Flags().StringP("description", "d", "", "New description (plain text; replaces the current one)")
 }
 
@@ -130,30 +139,79 @@ func runReleaseShow(cmd *cobra.Command, args []string) error {
 }
 
 func runReleaseUpdate(cmd *cobra.Command, args []string) error {
-	desc, _ := cmd.Flags().GetString("description")
-	if strings.TrimSpace(desc) == "" {
-		return fmt.Errorf("nothing to update: pass --description")
-	}
-
 	project, err := client.RequireProject()
 	if err != nil {
 		return err
 	}
 
-	release, err := client.ResolveRelease(project, args[0])
+	req := &api.UpdateVersionRequest{}
+	changed := false
+
+	if cmd.Flags().Changed("name") {
+		name, _ := cmd.Flags().GetString("name")
+		if name == "" {
+			return fmt.Errorf("--name cannot be empty")
+		}
+		req.Name = name
+		changed = true
+	}
+
+	if cmd.Flags().Changed("status") {
+		status, _ := cmd.Flags().GetString("status")
+		switch status {
+		case "open", "locked", "closed":
+		default:
+			return fmt.Errorf("invalid status %q: must be open, locked, or closed", status)
+		}
+		req.Status = status
+		changed = true
+	}
+
+	if cmd.Flags().Changed("start") {
+		start, _ := cmd.Flags().GetString("start")
+		if _, err := time.Parse("2006-01-02", start); err != nil {
+			return fmt.Errorf("invalid start date %q: use YYYY-MM-DD", start)
+		}
+		req.StartDate = start
+		changed = true
+	}
+
+	if cmd.Flags().Changed("end") {
+		end, _ := cmd.Flags().GetString("end")
+		if _, err := time.Parse("2006-01-02", end); err != nil {
+			return fmt.Errorf("invalid end date %q: use YYYY-MM-DD", end)
+		}
+		req.EndDate = end
+		changed = true
+	}
+
+	if cmd.Flags().Changed("description") {
+		desc, _ := cmd.Flags().GetString("description")
+		// A blank value would wipe the existing notes; clearing is not a use case.
+		if strings.TrimSpace(desc) == "" {
+			return fmt.Errorf("--description cannot be empty")
+		}
+		req.Description = &api.Formattable{Format: "plain", Raw: desc}
+		changed = true
+	}
+
+	if !changed {
+		return fmt.Errorf("nothing to update: pass at least one of --name, --status, --start, --end, --description")
+	}
+
+	// Resolve the release by ID or name so we know which version to PATCH.
+	rel, err := client.ResolveRelease(project, args[0])
 	if err != nil {
 		return err
 	}
 
-	req := &api.UpdateVersionRequest{
-		Description: &api.Formattable{Format: "plain", Raw: desc},
-	}
-	if _, err := client.UpdateVersion(release.ID, req); err != nil {
-		return fmt.Errorf("updating release %q: %w", release.Name, err)
+	v, err := client.UpdateVersion(rel.ID, req)
+	if err != nil {
+		return err
 	}
 
-	fmt.Printf("Updated release #%d %q description\n", release.ID, release.Name)
-	if release.Description != nil && strings.TrimSpace(release.Description.Raw) != "" {
+	fmt.Printf("Updated release #%d %q\n", v.ID, v.Name)
+	if req.Description != nil && rel.Description != nil && strings.TrimSpace(rel.Description.Raw) != "" {
 		fmt.Println("(replaced the previous description)")
 	}
 	return nil

@@ -23,3 +23,6 @@ dist/
 .op-bridge/status.txt
 /.agents
 /.codegraph
+
+# local secrets (GITLAB_TOKEN etc.)
+.env

@@ -228,6 +228,7 @@ op release list                    # List all releases (versions) for the projec
 op release create "[iOS][ETV] 1.0.9"             # Create a release (status open)
 op release create "[iOS][EET] 3.2.0" --status=locked   # open (default) | locked | closed
 op release create "v2.0" --start=2026-06-10 --end=2026-06-30  # optional date range
+op release update 1821 --name="[iOS][EET] 3.2.1" --end=2026-06-25  # rename / reschedule (id or exact name)
 op release show "[Android][EET] 3.3.1"           # Every ticket in the release (any status) + its notes
 op release update "[Android][EET] 3.3.1" --description="$(cat whats-new.txt)"  # Write the release notes
 op update 12345 --release="[iOS][ETV] 1.0.9"     # Assign a ticket to a release

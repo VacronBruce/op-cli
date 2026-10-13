@@ -88,15 +88,32 @@ if [ -z "$INSTALL_DIR" ]; then
 fi
 mkdir -p "$INSTALL_DIR"
 
-echo "    Installing to ${INSTALL_DIR}/op${EXT}..."
-if [ -w "$INSTALL_DIR" ]; then
-  mv /tmp/op-install "${INSTALL_DIR}/op${EXT}"
-else
-  sudo mv /tmp/op-install "${INSTALL_DIR}/op${EXT}"
-fi
+# Install to the chosen dir, then also refresh any OTHER op already on PATH.
+# Otherwise a stale copy earlier in PATH (e.g. an old /usr/local/bin/op) keeps
+# shadowing the freshly installed binary and `op` silently never updates.
+INSTALL_TARGETS="${INSTALL_DIR}/op${EXT}"
+for existing in $(which -a op 2>/dev/null); do
+  case " $INSTALL_TARGETS " in
+    *" $existing "*) ;;  # already queued (also dedups PATH duplicates)
+    *) INSTALL_TARGETS="$INSTALL_TARGETS $existing" ;;
+  esac
+done
+
+for dest in $INSTALL_TARGETS; do
+  echo "    Installing to ${dest}..."
+  if [ -w "$(dirname "$dest")" ]; then
+    cp /tmp/op-install "$dest" && chmod +x "$dest"
+  else
+    echo "    (${dest} needs elevated permissions)"
+    sudo cp /tmp/op-install "$dest" && sudo chmod +x "$dest"
+  fi
+done
+rm -f /tmp/op-install
+hash -r 2>/dev/null
+
 case ":$PATH:" in
   *":${INSTALL_DIR}:"*)
-    echo "    Done: $(which op)" ;;
+    echo "    Done: $(which op) ($(op version 2>/dev/null))" ;;
   *)
     echo "    Installed to ${INSTALL_DIR}/op"
     echo "    Warning: ${INSTALL_DIR} is not in PATH. Add this to your shell profile:"
@@ -202,9 +219,10 @@ fi
 
 echo ""
 
-# Verify — op setup prints an [ok]/[--] checklist with a fix for each gap
+# Verify — op setup prints an [ok]/[--] checklist with a fix for each gap.
+# Call by full path: INSTALL_DIR may not be on this shell's PATH yet (warned above).
 echo "--- Verifying ---"
-if op setup; then
+if "${INSTALL_DIR}/op" setup; then
   echo ""
   echo "================================"
   echo "  Setup complete!"

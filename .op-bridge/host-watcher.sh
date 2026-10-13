@@ -24,7 +24,11 @@ while true; do
     done
 
     echo "op-bridge: running: op $resolved_cmd"
-    eval op $resolved_cmd > "$BRIDGE/result.txt" 2>&1
+    # Quote the expansion: op.sh encodes args with printf '%q', so $resolved_cmd is
+    # already a valid shell word list. Leaving it unquoted lets word splitting run
+    # first, which collapses runs of spaces inside arguments (ASCII diagrams, code
+    # blocks, indented markdown) before eval ever sees them.
+    eval "op $resolved_cmd" > "$BRIDGE/result.txt" 2>&1
 
     # Clean up transferred files
     for f in "${bridge_files[@]}"; do
