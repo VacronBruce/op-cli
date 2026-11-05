@@ -143,6 +143,7 @@ op check <id> --strict                # Treat warnings as failures
 op check <id> --comment               # Post results to ticket
 op check --sprint                     # Check all sprint tickets
 op check --sprint --component=android # Filter + check
+op check --sprint --sprint-name="App_11/03/2026"  # A named sprint instead of the auto-detected one
 ```
 
 `op check` is the **Definition-of-Ready gate**. It prints a deterministic
@@ -165,8 +166,8 @@ file, or bad JSON fails loudly rather than silently dropping a check.
              "feature": ["description", "acceptance_criteria", "well_formed", "atomic"] } }
 ```
 
-> **Definition of Done** is the exit gate mirror of this: invoke the /op:ticket-dod
-> skill before closing a ticket. Most DoD items (tests, review, deploy) live
+> **Definition of Done** is the exit gate mirror of this: invoke /op:ticket-review
+> --done before closing a ticket. Most DoD items (tests, review, deploy) live
 > outside OpenProject, so it is a guided review, not an `op` subcommand.
 
 ## Setup & Config
@@ -187,4 +188,7 @@ URL/API-key config.
 
 ## Global Flags
 - `-p, --project <id>` — Override default project
-- `--sprint <name>` — Override default sprint
+- `--sprint <name>` is not global: `board`, `my`, `my team`, `sprint add`, `create` and
+  `update` take it (`check --sprint` uses `--sprint-name`). `sprint progress`, `blocked`
+  and `sprint close` have no sprint flag and always use the first open version whose
+  dates cover today.

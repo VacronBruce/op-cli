@@ -1,6 +1,6 @@
 ---
 name: openproject
-description: Manage OpenProject work packages, sprints, and backlogs via the `op` CLI
+description: Runs the `op` CLI for any OpenProject request: show, create, update, comment, link or attach tickets, and manage sprints, releases and backlog. Use when the user mentions a ticket number or OpenProject.
 user_invocable: true
 ---
 
@@ -11,6 +11,33 @@ Translate natural language requests into `op` CLI commands and execute them.
 ## Prerequisites
 - `op` CLI installed (see install script in repo)
 - Config at `~/.oprc` with `url`, `api_key`, `project`, and `sprint` fields
+- A `.op-bridge/` folder in the working directory means Claude Code runs in Docker and
+  `op` lives on the host: read `references/op-bridge.md` and call
+  `bash .op-bridge/op.sh <args>` instead of `op <args>`.
+
+## Writes that notify people
+
+- **Creating a ticket** (`op create`) needs two separate approvals: first the intent
+  (what you'll file, where, and why), then the exact final content (subject, type,
+  every field and the full description). A plan, "continue" or an earlier instruction
+  is not an approval. For bugs, use `/op:file-bug`.
+- **Posting or editing a comment**: show the exact text and the ticket, and wait for
+  approval before running it. A comment notifies watchers and can't be cleanly
+  retracted. Several comments → list them so each can be approved or dropped.
+- After `op create`, verify on the board it printed (`op my --author -p <board>`). An
+  empty result from another project is not a failed create; re-running it is how
+  duplicate tickets happened.
+
+Field updates, links, status moves and closing existing tickets are recoverable and
+notify no one new, so they don't need this.
+
+## Sprint gotcha
+
+`op sprint progress`, `op blocked`, `op sprint close` and `op check --sprint` (without
+`--sprint-name`) use the first open version whose dates cover today. In `app` that is
+the year-long `App_2026_Done_Story/Tasks`, not the two-week `App_MM/DD/YYYY` sprint.
+Check the `Sprint:` line they print; when it's wrong, use `op board --sprint="<name>"`,
+`op my team --sprint="<name>"` or `op check --sprint --sprint-name="<name>"`.
 
 ## Reference files
 
@@ -29,7 +56,7 @@ Consult these before constructing a command — don't guess flags or values:
 3. **"what am I working on?"** → `op my`
 3a. **"what did I create / file recently?"** → `op my --author --since=2w`
 3b. **"what's on my plate across all projects / everything I own?"** → `op overview` (cross-project dashboard; `--projects`/`--sprints` to resize)
-4. **"prep for standup"** → Run `op my team` then `op blocked`, summarize
+4. **"prep for standup / sprint health"** → invoke /op:sprint-report
 5. **"sprint progress"** → `op sprint progress`
 6. **"assign X to Y"** → `op update <id> --assignee="Person"`
 7. **"move to in progress"** → `op update <id> --status=in-progress`
@@ -40,14 +67,14 @@ Consult these before constructing a command — don't guess flags or values:
 9c. **"show high-priority backlog"** → `op backlog --priority p0,p1` (accepts P0–P3 and SEV0–SEV3 values)
 9d. **"show backlog bugs"** → `op backlog --type bug` (combine with `--priority` to filter further)
 10. **"close sprint / end of sprint"** → `op sprint close` for carryover report; for closing ready tickets → invoke /op:sprint-close skill (`-p`, `--sprint`, `--release`, `--status`, `--auto`)
-10a. **"check/assign missing components"** → invoke /op:assign-components skill (`-p`, `--sprint`, `--dry-run`, `--auto`)
-10b. **"dispatch / assign android work / hand out tickets / distribute the sprint"** → invoke /op:android-dispatch skill (`-p`, `--sprint`, `--dry-run`, `--auto`) — finds unassigned Android tickets, balances them across the team by current load, bulk-assigns on confirm
+10a. **"check/assign missing components"** → invoke /op:sprint-triage components (`-p`, `--sprint`, `--dry-run`, `--auto`)
+10b. **"dispatch / assign android work / hand out tickets / distribute the sprint"** → invoke /op:sprint-triage assignees (`--component`, `-p`, `--sprint`, `--dry-run`, `--auto`) — balances unassigned tickets across the team roster in `~/.oprc` by current load, bulk-assigns on confirm
 11. **"generate report"** → `op sprint progress -v`
-11a. **"weekly report / status report / what shipped this week"** → invoke /op:weekly-report skill (`-p`... repeatable, `--sprint`) — copy-paste weekly block per project (shipped / in progress / blocked / at risk / next)
+11a. **"weekly report / status report / what shipped this week"** → invoke /op:sprint-report --weekly (`-p`... repeatable, `--sprint`, `--component`) — copy-paste weekly block per project (shipped / in progress / blocked / at risk / next)
 12. **"is this ticket ready?"** → `op check <id>` (Definition-of-Ready gate: prints a deterministic completeness percent and READY / NEEDS WORK; a FAIL blocks, a WARN is advisory). Teams can tune which checks apply per type via a DoR config file pointed to by `OP_DOR_CONFIG` (see `references/commands.md`).
 13. **"check sprint quality"** → `op check --sprint`
 14. **"what's the discussion on X?"** → `op comment <id>`
-15. **"leave a comment"** → `op comment <id> "message"`
+15. **"leave a comment"** → show the exact text first (see Writes that notify people), then `op comment <id> "message"`
 15a. **"edit/fix my comment"** → `op comment <id>` to find the comment ID, then `op comment <id> "new text" --edit=<comment-id>`
 16. **"list sprints"** → `op sprint list`
 16a. **"list releases / versions"** → `op release list`
@@ -70,10 +97,10 @@ Consult these before constructing a command — don't guess flags or values:
 23a. **"start work on / start a ticket"** → `op start <id>` (creates branch `<project>-<id>-<slug>`, moves it to In Progress, assigns to you; run inside the git repo)
 23b. **"what's linked to this ticket / show relations"** → `op link <id> --list`
 23c. **"remove a relation / unlink tickets"** → `op unlink <id> --relates-to=X` or `--blocks=X` (the relation ID is resolved for you)
-24. **"review as PM"** → invoke /op:ticket-prep skill
-25. **"verify as developer"** → invoke /op:ticket-verify skill
-26. **"fully review / bot-review a ticket"** → invoke /op:ticket-review skill (combined PM + Dev, posts one comment)
-26a. **"is this done / definition of done / can I close this"** → invoke /op:ticket-dod skill (Definition of Done exit gate; reports DONE / NOT DONE, does not change status)
+24. **"review as PM"** → invoke /op:ticket-review --pm
+25. **"verify as developer"** → invoke /op:ticket-review --dev
+26. **"fully review / bot-review a ticket"** → invoke /op:ticket-review (combined PM + Dev, printed; `--post` adds one bot comment)
+26a. **"is this done / definition of done / can I close this"** → invoke /op:ticket-review --done (Definition of Done exit gate; reports DONE / NOT DONE, does not change status)
 26b. **"refine ticket / fix the AC / improve the user story"** → invoke /op:ticket-refine skill (interactive: talks through weak acceptance criteria and user story one question at a time, then writes the corrected fields back after you confirm)
 27. **"what components/products/labels are valid?"** → `op fields` (overview) or `op fields component` (values)
 28. **"remove an attachment"** → `op attach <id> --list` to find the attachment ID, then `op attach <id> --remove=<attachment-id>`
@@ -89,10 +116,8 @@ When the user provides an image (pasted or screenshot) to attach to a ticket:
 1. Save the image to a file first (use `/tmp/` or current directory)
 2. Then run `op attach <id> /path/to/saved-image.png`
 
-**Container mode (`.op-bridge/`):** The bridge automatically handles file transfer.
-When `op.sh attach` detects file arguments, it copies them to the shared `.op-bridge/`
-directory so the host watcher can access them. No special handling needed — just call
-`.op-bridge/op.sh attach <id> /path/to/file` and the bridge handles the rest.
+In container mode `op.sh attach` copies the file to the host for you; see
+`references/op-bridge.md`.
 
 ## Output
 Always show the raw CLI output to the user. Summarize if they asked a question rather than a command.
