@@ -1,7 +1,6 @@
 ---
 name: ticket-refine
-description: Interactive ticket refinement for PMs and developers. Finds weak or missing acceptance criteria and user story, talks through fixes one question at a time, then writes the corrected fields back to the ticket after you confirm.
-when_to_use: When user says "refine ticket", "fix the AC", "improve the user story", "help me rewrite acceptance criteria", "clean up this ticket", or wants to interactively improve a ticket's AC / user story and save the changes back (not just get a review comment).
+description: Rewrites a ticket's acceptance criteria and user story with the user one question at a time, shows before and after, and saves the fields after approval. Use when the user wants to fix a ticket's AC or user story, not just review it.
 user_invocable: true
 argument-hint: "[ticket-id]"
 allowed-tools: Bash(op *)
@@ -13,8 +12,8 @@ Interactively refine ticket #$ARGUMENTS and **write the improved fields back**.
 
 **Audience:** PMs and developers who want to *fix* a ticket, not just get a review.
 
-This is the write-capable counterpart to `/op:ticket-prep` and `/op:ticket-verify`
-(which only analyze and comment). It focuses on the two things that most often
+This is the write-capable counterpart to `/op:ticket-review` (which only analyzes,
+and comments only with `--post`). It focuses on the two things that most often
 block readiness: **acceptance criteria** and the **user story**. It talks through
 each gap one question at a time, shows a before/after, and only writes after you
 say so.
