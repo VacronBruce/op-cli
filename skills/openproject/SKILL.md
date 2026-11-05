@@ -1,6 +1,6 @@
 ---
 name: openproject
-description: Runs the `op` CLI for any OpenProject request: show, create, update, comment, link or attach tickets, and manage sprints, releases and backlog. Use when the user mentions a ticket number or OpenProject.
+description: "Runs the `op` CLI for any OpenProject request: show, create, update, comment, link or attach tickets, and manage sprints, releases and backlog. Use when the user mentions a ticket number or OpenProject."
 user_invocable: true
 ---
 
