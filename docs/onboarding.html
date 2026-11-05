@@ -628,7 +628,7 @@ claude</code></pre>
       <span class="step-num">04</span>
       <h2>Install op-cli</h2>
     </div>
-    <p class="step-sub">The <code class="inl">op</code> CLI for OpenProject sprints, boards, and tickets — plus its Claude Code plugin (<code class="inl">/op:openproject</code>, <code class="inl">/op:standup</code>, …).</p>
+    <p class="step-sub">The <code class="inl">op</code> CLI for OpenProject sprints, boards, and tickets — plus its Claude Code plugin (<code class="inl">/op:openproject</code>, <code class="inl">/op:sprint-report</code>, …).</p>
 
     <div class="step-body">
       <div>
@@ -686,7 +686,7 @@ claude</code></pre>
 
       <h3>Every morning · standup &amp; status</h3>
       <div class="cmds">
-        <div class="row"><span class="cmd">/op:standup</span><div class="desc">Your daily digest — sprint progress, blockers, team work by person, and risks in one briefing.</div></div>
+        <div class="row"><span class="cmd">/op:sprint-report</span><div class="desc">Your daily digest — sprint progress, blockers, team work by person, and risks in one briefing. Add <code class="inl">--weekly</code> for a stakeholder report.</div></div>
         <div class="row"><span class="cmd">op board</span><div class="desc">The current sprint board (kanban). Add <code class="inl">--status=blocked</code> or <code class="inl">--component=android</code> to filter.</div></div>
         <div class="row"><span class="cmd">op my team</span><div class="desc">All team items grouped by person — who's carrying what.</div></div>
         <div class="row"><span class="cmd">op blocked</span><div class="desc">Just the blocked items in the sprint.</div></div>
@@ -697,21 +697,21 @@ claude</code></pre>
         <div class="row"><span class="cmd">/op:sprint-prepare --project app --prd ./prd.md</span><div class="desc">Creates the next sprint, intakes tickets from IDs / a PRD / a Figma link, and auto-moves high-priority backlog + bugs. Pauses for your confirmation between phases.</div></div>
         <div class="row"><span class="cmd">op backlog --unestimated</span><div class="desc">Backlog items still missing estimates — your grooming list.</div></div>
         <div class="row"><span class="cmd">op backlog --priority p0,p1</span><div class="desc">The highest-priority backlog, so nothing urgent slips.</div></div>
-        <div class="row"><span class="cmd">/op:assign-components</span><div class="desc">Finds sprint tickets with no component and infers the right one from labels/keywords. Add <code class="inl">--dry-run</code> to preview.</div></div>
+        <div class="row"><span class="cmd">/op:sprint-triage components</span><div class="desc">Finds sprint tickets with no component and infers the right one from labels/keywords. Add <code class="inl">--dry-run</code> to preview; <code class="inl">assignees</code> mode spreads unassigned tickets across the team by load.</div></div>
       </div>
 
       <h3>Filing &amp; grooming tickets</h3>
       <div class="cmds">
-        <div class="row"><span class="cmd">/op:file-bug CC button crashes when publishing on Android</span><div class="desc">Guided bug filing — collects repro / expected / actual / acceptance criteria and the right component &amp; label, then creates it well-formed.</div></div>
+        <div class="row"><span class="cmd">/op:file-bug CC button crashes when publishing on Android</span><div class="desc">Guided bug filing — collects repro / expected / actual / acceptance criteria and the right component &amp; label, shows you the final ticket, and creates it after you approve.</div></div>
         <div class="row"><span class="cmd">op create task "Fix login page" --assignee="Ken Peng" --priority=P1</span><div class="desc">Create a ticket directly. Bugs: <code class="inl">op create bug "Crash on save" --priority=SEV1</code>.</div></div>
-        <div class="row"><span class="cmd">/op:ticket-prep 12345</span><div class="desc">PM self-review before business review — checks completeness, clarity, business justification, and acceptance-criteria quality, with rewrite suggestions.</div></div>
+        <div class="row"><span class="cmd">/op:ticket-review 12345 --pm</span><div class="desc">PM self-review before business review — checks completeness, clarity, business justification, and acceptance-criteria quality, with rewrite suggestions.</div></div>
         <div class="row"><span class="cmd">op check --sprint</span><div class="desc">Readiness check across every ticket in the sprint (warns on missing components, estimates, criteria).</div></div>
       </div>
 
       <h3>Reporting &amp; closing the sprint</h3>
       <div class="cmds">
         <div class="row"><span class="cmd">op sprint progress -v</span><div class="desc">Full sprint report for stakeholders. Drop <code class="inl">-v</code> for a compact summary.</div></div>
-        <div class="row"><span class="cmd">/op:sprint-close --release "[iOS][ETV] 1.2.0"</span><div class="desc">End-of-sprint: assign a release version to every "Ready for Release" ticket and move them to Done.</div></div>
+        <div class="row"><span class="cmd">/op:sprint-close</span><div class="desc">End-of-sprint: give every "Ready for Release" ticket its product's release and move them to Done.</div></div>
         <div class="row"><span class="cmd">op overview</span><div class="desc">Cross-project dashboard of your open work — widen with <code class="inl">--projects=8 --sprints=5</code>.</div></div>
       </div>
 

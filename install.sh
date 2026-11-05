@@ -203,7 +203,7 @@ if command -v claude &>/dev/null; then
       for s in openproject op-bridge ticket-prep ticket-verify ticket-review standup file-bug; do
         [ -d "${SKILLS_ROOT}/${s}" ] && rm -rf "${SKILLS_ROOT}/${s}"
       done
-      echo "    Installed the op plugin — use /op:openproject, /op:standup, /op:file-bug, /op:ticket-* ..."
+      echo "    Installed the op plugin — use /op:openproject, /op:sprint-report, /op:file-bug, /op:ticket-review ..."
       echo "    (Removed any old loose copies under ${SKILLS_ROOT}/ to avoid duplicates.)"
     else
       echo "    Marketplace added but plugin install failed. Run: claude plugin install op@op"

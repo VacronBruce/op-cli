@@ -104,7 +104,7 @@ Default to surfacing uncertainty, not hiding it.
 After any change to `op` behavior (new/renamed command, flag, output format, or field),
 check and update the docs that demonstrate it — they drift silently otherwise:
 - The skills under `skills/` (especially `skills/openproject/SKILL.md` command reference
-  and how-to list, plus `ticket-prep` / `ticket-verify` / `ticket-review`) and their
+  and how-to list, plus `ticket-review` and its `references/`) and their
   installed copies under `~/.claude/skills/` (loose) or via the `op:` plugin.
 - `README.md` examples.
 Every command/flag/output example shown in those files must still match real `op` output.

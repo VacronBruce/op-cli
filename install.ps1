@@ -93,7 +93,7 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
     claude plugin marketplace add $mpSrc 2>$null; if ($LASTEXITCODE -ne 0) { claude plugin marketplace update op 2>$null }
     claude plugin install op@op --scope user 2>$null
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "    Installed the op plugin - use /op:openproject, /op:standup, /op:file-bug, /op:ticket-* ..."
+        Write-Host "    Installed the op plugin - use /op:openproject, /op:sprint-report, /op:file-bug, /op:ticket-review ..."
     } else {
         Write-Host "    Plugin install failed. Run: claude plugin install op@op"
     }

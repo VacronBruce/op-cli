@@ -14,7 +14,7 @@ The repo is public, so this needs no login or token. The script will:
 1. Auto-detect your platform (macOS/Linux, ARM/Intel)
 2. Download the correct binary from the latest GitHub release
 3. Ask for your OpenProject API key
-4. Install the `op` Claude Code plugin (`/op:openproject`, `/op:standup`, `/op:file-bug`, `/op:ticket-*`)
+4. Install the `op` Claude Code plugin (`/op:openproject`, `/op:sprint-report`, `/op:file-bug`, `/op:ticket-review`, …)
 
 **Windows (PowerShell):** no Git Bash needed — run this in PowerShell:
 
@@ -345,7 +345,7 @@ binary, and writes the result to `.op-bridge/result.txt`.
 ### Claude Code skills
 
 The skills ship as the **`op` plugin** — namespaced under an `op:` prefix
-(`/op:openproject`, `/op:standup`, …) so they never collide with other skills.
+(`/op:openproject`, `/op:sprint-report`, …) so they never collide with other skills.
 `install.sh` registers the marketplace and installs the plugin for you; to do it
 by hand:
 
@@ -368,29 +368,17 @@ Slash commands available in Claude Code for natural language access:
 /op:openproject what's in the backlog that needs estimation?
 ```
 
-**`/op:ticket-prep`** — PM self-review for ticket quality before business review:
+**`/op:ticket-review`** — Review a ticket through one or more lenses and print the result:
 
 ```
-/op:ticket-prep 12345
+/op:ticket-review 12345            # PM + developer readiness (default)
+/op:ticket-review 12345 --pm       # PM self-review before business review
+/op:ticket-review 12345 --dev      # developer readiness before coding
+/op:ticket-review 12345 --done     # Definition of Done before closing
+/op:ticket-review WP-23            # a JIRA ID is resolved first
 ```
 
-Checks: completeness, clarity, business justification, acceptance criteria quality, visual assets, and scope definition. Outputs a structured review with rewrite suggestions.
-
-**`/op:ticket-verify`** — Developer readiness check before starting implementation:
-
-```
-/op:ticket-verify 12345
-```
-
-Checks: implementability, technical gaps, ambiguities, dependencies, risk assessment, and estimation sanity. Detects team context (android/ios/web) for team-specific checks.
-
-**`/op:ticket-dod`** — Definition of Done exit gate before closing a ticket:
-
-```
-/op:ticket-dod 12345
-```
-
-Mirror of the `op check` Definition-of-Ready gate. Checks acceptance criteria met, code merged, tests passing, reviewed, and no known regressions, then reports `DONE / NOT DONE`. Most DoD facts live outside OpenProject, so it is a guided review (marks unprovable items `UNKNOWN — confirm`) and never changes ticket status itself.
+The PM lens checks completeness, clarity, business justification, acceptance criteria, visual assets and scope, with rewrite suggestions. The developer lens checks implementability, technical gaps, ambiguities, dependencies, risk and estimation, plus team-specific checks (android/ios/web). The DoD lens mirrors the `op check` Definition-of-Ready gate and marks anything the ticket can't prove `UNKNOWN — confirm`; it never changes ticket status. The review is printed; `--post` posts the combined PM + Dev review as one bot comment (used by the op-agent reviewer daemon).
 
 **`/op:ticket-refine`** — Interactive refinement that writes the improved fields back:
 
@@ -398,16 +386,17 @@ Mirror of the `op check` Definition-of-Ready gate. Checks acceptance criteria me
 /op:ticket-refine 12345
 ```
 
-Unlike the review skills (which only comment), this one *fixes* the ticket. It finds weak or missing acceptance criteria and user story, talks through each gap one question at a time, shows a before/after, and — only after you confirm — writes the corrected description (AC) and User Story field back via `op update`. Posts no comment; the field history records the change.
+Unlike `/op:ticket-review`, this one *fixes* the ticket. It finds weak or missing acceptance criteria and user story, talks through each gap one question at a time, shows a before/after, and — only after you confirm — writes the corrected description (AC) and User Story field back via `op update`. Posts no comment; the field history records the change.
 
-**`/op:standup`** — Lead's daily digest for the current sprint:
+**`/op:sprint-report`** — Standup digest, or a weekly stakeholder report:
 
 ```
-/op:standup
-/op:standup -p web --sprint "Web_06/01"
+/op:sprint-report
+/op:sprint-report -p web --sprint "Web - 11/02/2026"
+/op:sprint-report --weekly -p app -p web --component android
 ```
 
-Combines sprint progress, blockers, team work by person, and risks into one skimmable briefing.
+The default is a 15-second standup briefing (progress, blockers, work by person, risks). `--weekly` prints one copy-paste block per project (shipped / in progress / blocked / at risk / next). `--component` narrows either to one component.
 
 **`/op:file-bug`** — Guided bug filing:
 
@@ -415,7 +404,7 @@ Combines sprint progress, blockers, team work by person, and risks into one skim
 /op:file-bug CC button crashes when publishing on Android
 ```
 
-Collects repro/expected/actual/acceptance criteria + the right component/product/label, then runs `op create bug` with a well-formed description.
+Collects repro/expected/actual/acceptance criteria + the right component/product/label, shows the complete final ticket, and creates it only after you approve that exact content.
 
 **`/op:sprint-prepare`** — Full next-sprint preparation for dev leads:
 
@@ -424,28 +413,45 @@ Collects repro/expected/actual/acceptance criteria + the right component/product
 /op:sprint-prepare --project app --figma https://figma.com/... --auto
 ```
 
-Creates the next sprint, intakes tickets from provided IDs / PRD / Figma, auto-moves P0/P1 and Sev1/Sev2 backlog items, and produces a full summary report. Pauses between phases for confirmation (use `--auto` to skip prompts).
+Finds or creates the next sprint under the project's naming convention (`App_MM/DD/YYYY`, `Web - MM/DD/YYYY`), auto-moves P0/P1 and Sev1/Sev2 backlog items, drafts tickets from IDs / PRD / Figma, and produces a summary. Pauses between phases (`--auto` skips the pauses); new tickets always need your approval of the intent and of the exact content.
 
-**`/op:assign-components`** — Find every ticket missing a component in the sprint, infer the right one from labels/keywords/type, and apply in bulk:
-
-```
-/op:assign-components
-/op:assign-components --dry-run
-/op:assign-components --sprint "App_06/02/2026" --auto
-```
-
-Reads labels (`team#appandroid` → android, `team#appios` → ios, `roku` → ott, `team#web` → engineering) then title keywords, then falls back to type. Shows a confirmation table before writing. Use `--dry-run` to see suggestions only. `op check --sprint` also now warns on tickets with no component set.
-
-**`/op:sprint-close`** — End-of-sprint workflow: assign a release version to all "Ready for Release" tickets and move them to Done:
+**`/op:sprint-triage`** — Tag or dispatch a sprint's tickets:
 
 ```
-/op:sprint-close --release "[iOS][ETV] 1.2.0"
-/op:sprint-close --sprint "App_06/02/2026" --release "[iOS][ETV] 1.2.0" --auto
+/op:sprint-triage components --dry-run
+/op:sprint-triage components --sprint "App_06/02/2026" --auto
+/op:sprint-triage assignees --component android
 ```
 
-Shows existing releases, validates or creates the target release, confirms before applying, then sets `--release` and `--status=done` on every matching ticket. Works on the active sprint or any named sprint via `--sprint`. Use `--status` to override the default "ready for release" filter.
+`components` infers a missing Component from labels (`team#appandroid` → android, `team#appall` → android + ios, `roku` → ott, `team#web` → engineering), then title keywords, then type. `assignees` spreads unassigned tickets across the `team:` roster in `~/.oprc` (see `.oprc.example`) by current load, including teammates with no tickets yet. Both show a plan before writing; `--dry-run` only shows it.
 
-> `/op:ticket-review` is also available — combined PM + Dev review that posts one comment on the ticket.
+**`/op:sprint-close`** — End-of-sprint workflow: give each "Ready for Release" ticket its product's release and move it to Done:
+
+```
+/op:sprint-close
+/op:sprint-close --sprint "App_10/20/2026"
+/op:sprint-close --release "[iOS][ETV] 1.2.0" --auto
+```
+
+Matches each ticket's `[Platform][Product]` tag to the open release with that prefix (e.g. `[Android][DJY] …`), confirms the grouped plan, then sets `--release` and `--status=done` in one update per release. `--release` forces one release for all; `--status` overrides the default "ready for release" filter.
+
+### Skill renames in plugin 0.26.0
+
+Fourteen skills became eight. Old commands map to:
+
+| Before | Now |
+|---|---|
+| `/op:ticket-prep <id>` | `/op:ticket-review <id> --pm` |
+| `/op:ticket-verify <id>` | `/op:ticket-review <id> --dev` |
+| `/op:ticket-dod <id>` | `/op:ticket-review <id> --done` |
+| `/op:ticket-review <id>` (posted) | `/op:ticket-review <id> --post` — without `--post` it now only prints |
+| `/op:standup` | `/op:sprint-report` |
+| `/op:weekly-report -p …` | `/op:sprint-report --weekly -p …` |
+| `/op:assign-components` | `/op:sprint-triage components` |
+| `/op:android-dispatch` | `/op:sprint-triage assignees` (needs a `team:` roster in `~/.oprc`) |
+| `/op:op-bridge` | read by `/op:openproject` automatically when `.op-bridge/` exists |
+
+`/op:openproject`, `/op:file-bug`, `/op:ticket-refine`, `/op:sprint-prepare` and `/op:sprint-close` keep their names. Re-run `install.sh` (or `claude plugin marketplace update op` then `claude plugin install op@op`) to pick them up.
 
 ## Troubleshooting
 

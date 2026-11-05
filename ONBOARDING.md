@@ -16,7 +16,7 @@ bash <(curl -fsSL https://github.com/VacronBruce/op-cli/releases/latest/download
 
 The script detects your platform, downloads the `op` binary from the latest GitHub
 release, asks for your API key, and installs the **`op` plugin** — all skills under
-the `op:` prefix (`/op:openproject`, `/op:standup`, `/op:file-bug`, `/op:ticket-*`).
+the `op:` prefix (`/op:openproject`, `/op:sprint-report`, `/op:file-bug`, `/op:ticket-review`, …).
 
 ---
 
@@ -68,11 +68,13 @@ You rarely need raw commands — invoke a skill or just describe what you want.
 | Map NL → `op` command | `/op:openproject add 101 102 to the current sprint` |
 | What's on my plate | "what am I working on?" → `op my` (auto-detects project/sprint if none set) |
 | Cross-project view | `op overview` |
-| Standup briefing | `/op:standup` |
+| Standup briefing | `/op:sprint-report` |
+| Weekly status report | `/op:sprint-report --weekly -p app` |
 | File a bug, guided | `/op:file-bug CC button crashes on publish (Android)` |
-| PM ticket self-review | `/op:ticket-prep 12345` |
-| Dev readiness check | `/op:ticket-verify 12345` |
-| Full bot review (posts a comment) | `/op:ticket-review 12345` |
+| PM ticket self-review | `/op:ticket-review 12345 --pm` |
+| Dev readiness check | `/op:ticket-review 12345 --dev` |
+| Full review, printed | `/op:ticket-review 12345` (add `--post` to post it as a comment) |
+| Is it done? | `/op:ticket-review 12345 --done` |
 
 ---
 
