@@ -1,182 +1,161 @@
 ---
 name: sprint-prepare
-description: Prepare the next sprint — create the sprint, intake tickets from provided IDs/PRD/Figma, auto-move high-priority backlog and bugs, and produce a full summary report.
-when_to_use: When dev lead says "prepare next sprint", "sprint prep", "set up next sprint", or wants to create a sprint and populate it from tickets, a PRD, Figma designs, or backlog.
+description: "Prepares the next sprint: finds or creates it under the project's naming convention, moves high-priority backlog and bugs in, and drafts tickets from IDs, a PRD or Figma for approval. Use when a lead asks to prepare or set up the next sprint."
 user_invocable: true
-argument-hint: "--project <id-or-name> [--tickets 123,456] [--figma <url>] [--prd ./prd.md] [--auto]"
+argument-hint: "--project <id> [--tickets 123,456] [--figma <url>] [--prd ./prd.md] [--auto]"
 allowed-tools: Bash(op *), Read
 ---
 
 # Sprint Prepare
 
-Prepare the next sprint for the given project. Run all phases in sequence; pause
-for confirmation between phases unless `--auto` is set.
+Prepare the next sprint for one project. Run the phases in order and pause between
+them unless `--auto` is set.
 
-## Parse arguments
+## Arguments
 
-From `$ARGUMENTS` extract:
-- `--project <val>` — required; the OpenProject project identifier
-- `--tickets <val>` — optional; comma-separated work package IDs
-- `--figma <val>` — optional; Figma file URL
-- `--prd <val>` — optional; local path to a Markdown PRD file
-- `--auto` — optional flag; skip all confirmation prompts
+- `--project <id>` — required; pass `-p <project>` to every `op` call. Missing → stop
+  with "--project is required."
+- `--tickets <ids>` — comma-separated work package IDs to bring in.
+- `--figma <url>` — a Figma file to turn into tickets.
+- `--prd <path>` — a local Markdown PRD to turn into tickets.
+- `--auto` — skip the pause points between phases and before moves. It never skips the
+  two approvals for creating tickets (see below): a ticket notifies people and lands on
+  a shared board, and a flag typed at the start is not approval of content nobody has
+  seen yet.
 
-If `--project` is missing, stop and tell the user: `--project is required.`
+Track across phases: `NEXT_SPRINT_NAME`, `MOVED_TICKETS`, `CREATED_TICKETS`,
+`CANDIDATES` (for manual follow-up).
 
-## Shared state
+## Creating tickets: two approvals, every time
 
-Track these across all phases (update as work proceeds):
+Phases 1 and 4 may create tickets. Collect the drafts first, then:
+1. **Intent** — list what you propose to create (title, source, why) and wait for a yes.
+   The user can drop items.
+2. **Exact content** — for each remaining draft show subject, type, every field
+   (including inferred `--points` / `--assignee`), the sprint, and the full description,
+   plus the `op create` command. Wait for an explicit yes; edits mean showing it again.
 
-```
-NEXT_SPRINT_NAME = ""
-NEXT_SPRINT_ID   = ""
-CREATED_TICKETS  = []   # {id, title, source}
-MOVED_TICKETS    = []   # {id, title}
-CANDIDATES       = []   # {id, title, reason} — for manual follow-up
-```
-
----
-
-## Pre-phase: Detect active sprint and create next sprint
-
-1. Run `op sprint list -p <project>` (pass `-p <project>` to all `op` calls if project is not the default).
-2. Identify the currently active sprint (status=open, date range contains today). If none, stop: "No active sprint found. Cannot infer next sprint dates."
-3. Compute suggested next sprint name: `Sprint <end+1day>` where `<end+1day>` is the active sprint's end date + 1 day in `YYYY-MM-DD` format.
-4. Check whether a sprint with that name already exists in the list.
-   - If it exists: set `NEXT_SPRINT_NAME` and `NEXT_SPRINT_ID` to the existing one, skip creation, and note "(already exists)".
-   - If it does not exist: show the user the suggested name and dates, then either confirm (non-auto) or proceed (auto).
-     After confirmation: `op sprint create "<name>" --start=<start> -p <project>`
-     This sets a 2-week end date automatically. Capture the returned sprint ID as `NEXT_SPRINT_ID`.
-
-**Pause point** (skip if `--auto`): "Sprint `<name>` created (#`<id>`). Proceed to Phase 1 — Ticket Intake? [y/N]"
-If user says no, stop cleanly and show the summary so far.
+Create only the approved drafts, each once. `op create` prints the new `#id` and the
+board it filed on; verify there, and don't re-run a create because a query in another
+project came back empty (that has produced duplicates).
 
 ---
 
-## Phase 1 — Ticket Intake
+## Pre-phase: find or create the next sprint
 
-Skip this phase entirely if neither `--tickets` nor `--prd` was provided.
+Sprint names follow a per-project convention; check `op sprint list -p <project>`
+rather than inventing one. Seen so far: `App_MM/DD/YYYY` in `app` (two weeks, start and
+end set) and `Web - MM/DD/YYYY` in `web` (start only). The date is the sprint's start.
 
-### 1a. Tickets from `--tickets`
+1. `op sprint list -p <project>`.
+2. The current sprint is the open one that follows the dated pattern with
+   start ≤ today ≤ end; with no end dates (web), the latest start ≤ today. Skip
+   catch-all versions such as `App_2026_Done_Story/Tasks`, which is open and spans the
+   whole year. None found → stop: "No active sprint found. Cannot infer next sprint dates."
+3. Next start = current end + 1 day, or current start + 14 days when there is no end.
+   Next name = the same pattern with that start date (e.g. `App_11/17/2026`).
+4. Already in the list → use it and note "(already exists)". `app` sprints are created
+   months ahead, so this is the usual case.
+5. Otherwise show the name and dates; after a yes (or with `--auto`):
+   `op sprint create "<name>" --start=<YYYY-MM-DD> -p <project>` (end defaults to
+   start + 13 days).
 
-For each ID in the comma-separated list:
-
-1. `op show <id> -p <project>` to fetch the ticket.
-   - On 403/404: log "Skipped #<id>: not accessible" and continue.
-2. Check the project in the response:
-   - **Same project**: run `op sprint add <id> --sprint="<NEXT_SPRINT_NAME>" -p <project>`. Add to `MOVED_TICKETS`.
-   - **Different project**: create a linked copy:
-     a. `op create task "<title>" --description "Linked from #<id> (<source project>)" -p <project>`
-     b. `op link <new-id> --relates-to=<id>` to link back to the source.
-     c. `op sprint add <new-id> --sprint="<NEXT_SPRINT_NAME>" -p <project>`
-     d. Apply inferred fields (see Field Inference below).
-     e. Add new ticket to `CREATED_TICKETS`.
-
-### 1b. PRD intake
-
-Read the file at `--prd`. Extract one user story per ticket using this heuristic:
-- Each `##` heading or numbered item that describes a user-facing capability is one ticket.
-- Title = the heading or first sentence of the item.
-- Description = the full body of that section.
-
-Print the extracted story list for the user to review. **Pause point** (skip if `--auto`): "Found <N> stories. Create all as tickets? [y/N]"
-
-For each approved story:
-1. `op create task "<title>" --description "<description>" -p <project>`
-2. Apply inferred fields (see Field Inference below).
-3. `op sprint add <new-id> --sprint="<NEXT_SPRINT_NAME>" -p <project>`
-4. Add to `CREATED_TICKETS`.
-
-**Pause point** (skip if `--auto`): "Phase 1 complete — <N> tickets created/moved. Proceed to Phase 2 — Backlog Review? [y/N]"
+Pause (unless `--auto`): "Sprint `<name>` ready. Proceed to Phase 1 — Ticket Intake? [y/N]"
 
 ---
 
-## Phase 2 — Backlog Review
+## Phase 1 — Ticket intake
 
-1. `op backlog --priority p0,p1,sev1,sev2 -p <project>`
-2. For each returned ticket: `op sprint add <id> --sprint="<NEXT_SPRINT_NAME>" -p <project>`. Add to `MOVED_TICKETS`.
-3. `op backlog -p <project>` (no filter) to get all remaining backlog items.
-4. Add remaining items (not already moved) to `CANDIDATES` with reason "backlog candidate".
-5. Print: "Auto-moved <N> high-priority backlog items. <M> remaining candidates."
+Skip when neither `--tickets` nor `--prd` was given.
 
-**Pause point** (skip if `--auto`): "Proceed to Phase 3 — Bug Review? [y/N]"
+### 1a. `--tickets`
+For each ID, `op show <id>` (403/404 → "Skipped #<id>: not accessible", continue).
+- **Same project** → collect for one move:
+  `op sprint add <id> <id> ... --sprint="<NEXT_SPRINT_NAME>" -p <project>`; add to `MOVED_TICKETS`.
+- **Other project** → draft a linked copy (title, "Linked from #<id> (<project>)",
+  inferred fields). After the two approvals:
+  `op create task "<title>" --description="<description>" -p <project>`, then
+  `op link <new-id> --relates-to=<id>` and `op sprint add <new-id> --sprint="<NEXT_SPRINT_NAME>" -p <project>`.
+  Add to `CREATED_TICKETS`.
 
----
+### 1b. `--prd`
+Read the file. One ticket per `##` heading or numbered item that describes a
+user-facing capability: title = the heading or first sentence, description = that
+section's body. These are drafts; run the two approvals, then for each approved one
+`op create task ...`, apply inferred fields, `op sprint add`, and add to `CREATED_TICKETS`.
 
-## Phase 3 — Bug Review (backlog only)
-
-1. `op backlog --type bug --priority sev1,sev2 -p <project>`
-2. For each returned ticket not already in `MOVED_TICKETS`: `op sprint add <id> --sprint="<NEXT_SPRINT_NAME>" -p <project>`. Add to `MOVED_TICKETS`.
-3. `op backlog --type bug -p <project>` (no priority filter) to get all backlog bugs.
-4. Add remaining bugs (not already moved) to `CANDIDATES` with reason "backlog bug candidate".
-5. Print: "Auto-moved <N> Sev1/Sev2 backlog bugs. <M> remaining bug candidates."
-
-**Pause point** (skip if `--auto`): "Proceed to Phase 4 — Figma Analysis? [y/N]"
-
----
-
-## Phase 4 — Figma Analysis
-
-Skip this phase if `--figma` was not provided.
-
-Check whether the Figma MCP tool is available. If not, print: "Figma MCP unavailable — skipping Phase 4. Attach Figma link manually." and continue to the summary.
-
-If available:
-1. Fetch the Figma file using the Figma MCP.
-2. For each top-level frame or component:
-   - Extract: frame name → ticket title; frame description / annotations → description; any "Acceptance Criteria" section in annotations → AC.
-3. For each extracted item:
-   - Search existing tickets in the project for a title match (`op search "<title>" -p <project>` or fuzzy check).
-   - **Match found**: update the description to include the Figma link. Add to `MOVED_TICKETS` (or note as already in sprint).
-   - **No match**: `op create task "<title>" --description "<description>\n\nFigma: <url>" -p <project>`, then `op sprint add <new-id> --sprint="<NEXT_SPRINT_NAME>"`. Add to `CREATED_TICKETS`.
-
-**Pause point** (skip if `--auto`): "Phase 4 complete — <N> Figma tickets created/linked. Proceed to summary? [y/N]"
+Pause (unless `--auto`): "Phase 1 complete — <N> moved, <M> created. Proceed to Phase 2 — Backlog Review? [y/N]"
 
 ---
 
-## Phase 5 — Codebase Refactor
+## Phase 2 — Backlog review
 
-Out of scope for this iteration. Skipping.
+1. `op backlog --priority p0,p1,sev1,sev2 -p <project>` → move them all in one
+   `op sprint add ... --sprint="<NEXT_SPRINT_NAME>" -p <project>`; add to `MOVED_TICKETS`.
+2. `op backlog -p <project>` → the rest go to `CANDIDATES` ("backlog candidate").
+3. Print: "Auto-moved <N> high-priority backlog items. <M> remaining candidates."
+
+Pause (unless `--auto`): "Proceed to Phase 3 — Bug Review? [y/N]"
+
+## Phase 3 — Bug review (backlog only)
+
+1. `op backlog --type bug --priority sev1,sev2 -p <project>` → move those not already
+   moved, in one `op sprint add`; add to `MOVED_TICKETS`.
+2. `op backlog --type bug -p <project>` → the rest go to `CANDIDATES` ("backlog bug candidate").
+3. Print: "Auto-moved <N> Sev1/Sev2 backlog bugs. <M> remaining bug candidates."
+
+Pause (unless `--auto`): "Proceed to Phase 4 — Figma Analysis? [y/N]"
 
 ---
 
-## Field Inference
+## Phase 4 — Figma analysis
 
-When creating new tickets, infer default field values from the last 3–5 completed sprints:
+Skip without `--figma`. Without the Figma MCP tools, print "Figma MCP unavailable —
+skipping Phase 4. Attach the Figma link manually." and go to the summary.
 
-1. `op sprint list -p <project>` → identify the 3–5 most recent closed sprints.
-2. For each sprint, list its work packages and collect: type, component, story points, assignee.
-3. Compute:
-   - `avg_points[type]` = mean story points for tickets of that type
-   - `typical_assignee[component]` = most frequent assignee for that component
-4. Apply as defaults when creating tickets via `--points` and `--assignee` flags on `op create`.
-5. If fewer than 3 completed sprints exist, skip inference and leave fields blank.
+1. Fetch the file with the Figma MCP. For each top-level frame or component: frame name
+   → title; description/annotations → description; an "Acceptance Criteria" annotation → AC.
+2. Look for an existing ticket by title. `op search` won't find it: it matches custom
+   fields such as the JIRA ID, not subjects. List the project's open tickets with
+   `op board --no-sprint -p <project>` and `op backlog -p <project>` and match subjects
+   in that output.
+3. **Match** → add the Figma link to that ticket's description. `op update --description`
+   replaces the whole field, so rebuild it from `op show` with every existing section and
+   inline image kept (see `/op:ticket-refine` for how), and show the before/after first.
+   Note it under `MOVED_TICKETS` or as already in the sprint.
+4. **No match** → a draft (description + "Figma: <url>"). After the two approvals:
+   `op create task ...`, then `op sprint add <new-id> --sprint="<NEXT_SPRINT_NAME>" -p <project>`.
+   Add to `CREATED_TICKETS`.
 
 ---
 
-## Summary Report
+## Field inference
 
-Print after all phases complete:
+Defaults for new tickets, from the last 3–5 closed sprints:
+1. From `op sprint list -p <project>`, take the 3–5 most recent closed/locked dated sprints.
+2. For each, `op board -p <project> --sprint="<name>"` and collect type, component,
+   points and assignee.
+3. `avg_points[type]` and `typical_assignee[component]` become `--points` / `--assignee`
+   on the drafts, shown in approval 2 like any other field.
+4. Fewer than 3 closed sprints → leave those fields blank.
+
+---
+
+## Summary
 
 ```
 ═══════════════════════════════════════
 Sprint Prepare Summary: <NEXT_SPRINT_NAME>
 ═══════════════════════════════════════
-
 Tickets moved to sprint (<N>):
   #<id>  <title>
-  ...
-
 Tickets created in sprint (<N>):
   #<id>  <title>  [from: <source>]
-  ...
-
 Candidates for manual follow-up (<N>):
   #<id>  <title>  [<reason>]
-  ...
 
-Next: use 'op sprint add <id> --sprint="<name>"' to move any candidates.
+Next: op sprint add <id> --sprint="<name>" -p <project> to move any candidates.
 ═══════════════════════════════════════
 ```
 
-If any phase was skipped or errored, note it in the summary.
+Note any phase that was skipped, declined or errored.
