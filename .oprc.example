@@ -10,6 +10,16 @@ api_key: your-api-key-here
 # Default project identifier (optional, can override with -p flag)
 project: my-project
 
+# Team rosters for /op:sprint-triage assignees (optional). One list per
+# component, names exactly as `op my team` prints them. List everyone: a teammate
+# with no tickets in the sprint never shows up in `op my team`, so without this
+# list the lightest-loaded person can't be proposed. Example:
+# team:
+#   android:
+#     - Alice Example
+#     - Bob Example
+#     - Carol Example
+
 # Default description templates per ticket type (optional)
 # Used when --description is not provided. Override with -d flag.
 # templates:
