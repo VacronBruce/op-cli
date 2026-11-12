@@ -1,8 +1,8 @@
 # PM rubric (`--pm`)
 
 Is the ticket complete and clear enough for business review? Audience: product
-managers, project managers, business analysts. Give rewrites, not just criticism:
-when acceptance criteria are vague, write better ones the PM can copy-paste; when the
+managers, project managers, business analysts. Give rewrites as well as criticism.
+When acceptance criteria are vague, write better ones the PM can copy-paste. When the
 business justification is missing, draft one they can fill in.
 
 ## Criteria

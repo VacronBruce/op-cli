@@ -6,34 +6,34 @@ argument-hint: "<id|JIRA-ID> [--pm] [--dev] [--done] [--post] | --detect"
 allowed-tools: Bash(op *), Read, Write
 ---
 
-# Ticket Review
+# Ticket review
 
 Review ticket `$ARGUMENTS` through one or more lenses and print the result. Posting is
-opt-in with `--post`: a comment notifies the creator and watchers and can't be cleanly
+opt-in with `--post`. A comment notifies the creator and watchers and can't be cleanly
 taken back, so by default a person reads the exact text first and decides.
 
 ## Arguments
 
-- `<id>` — OpenProject number, or a JIRA ID such as `WP-23` / `BUG-655`.
+- `<id>`: an OpenProject number, or a JIRA ID such as `WP-23` / `BUG-655`.
 - Lens, default `--pm --dev`:
-  - `--pm` — quality before business review; read `references/pm-rubric.md`.
-  - `--dev` — readiness before coding; read `references/dev-rubric.md`.
-  - `--done` — Definition of Done before closing; read `references/dod.md`. Runs alone.
-- `--post` — post the combined PM + Dev review as one bot comment. It skips the
+  - `--pm`: quality before business review. Read `references/pm-rubric.md`.
+  - `--dev`: readiness before coding. Read `references/dev-rubric.md`.
+  - `--done`: Definition of Done before closing. Read `references/dod.md`. It runs alone.
+- `--post`: post the combined PM + Dev review as one bot comment. It skips the
   show-first step, so it is meant for the unattended op-agent daemon. By hand, run
   without it, read the review, then ask to post it.
-- `--dry-run` — accepted from older callers; same as the default (print only).
-- `--detect` — one-time setup for the daemon; see `references/bot-comment.md`.
+- `--dry-run`: accepted from older callers, and the same as the default (print only).
+- `--detect`: one-time setup for the daemon. See `references/bot-comment.md`.
 
 ## Fetch once, for every lens
 
-0. A JIRA ID → `op search <JIRA-ID>` and continue with the returned `#<number>`.
+0. For a JIRA ID, run `op search <JIRA-ID>` and continue with the returned `#<number>`.
    `op search` matches the JIRA ID custom field across all projects, not titles.
-1. `op show <id>` — subject, author (the creator to address), type, status, component,
+1. Run `op show <id>` for subject, author (the creator to address), type, status, component,
    label, points, description, User Story field, attachments.
-2. `op check <id>` (PM / Dev lenses) — the Definition-of-Ready gate: a deterministic
+2. Run `op check <id>` (PM / Dev lenses) for the Definition-of-Ready gate, a deterministic
    `NN%` and READY / NEEDS WORK. A FAIL blocks; a WARN is advisory.
-3. `op comment <id>` — for `--done` (evidence) and `--post` (idempotency guard).
+3. Run `op comment <id>` for `--done` (evidence) and `--post` (idempotency guard).
 
 Stop and say what failed if any of these errors (auth, unknown ID, unparseable output)
 rather than reviewing a ticket you couldn't read.
@@ -42,11 +42,11 @@ rather than reviewing a ticket you couldn't read.
 
 Read the rubric file for each lens that runs and apply it.
 
-- **Default (`--pm --dev`)** — one combined review. Gate: READY only if PM = READY FOR
+- **Default (`--pm --dev`)**: one combined review. Gate: READY only if PM = READY FOR
   REVIEW and Dev = READY TO BUILD; otherwise NEEDS WORK. Print it in the comment format
   from `references/bot-comment.md`, so what the user reads is exactly what `--post`
   would post, and end with the RESULT line from that file.
-- **`--pm` or `--dev` alone, or `--done`** — print that rubric's own output format.
+- **`--pm` or `--dev` alone, or `--done`**: print that rubric's own output format.
   These are never posted.
 
 ## Posting
@@ -62,4 +62,4 @@ Read the rubric file for each lens that runs and apply it.
 
 - It only reads, and comments with `--post`. Status, fields and assignees stay as they
   are; use `/op:ticket-refine` to rewrite AC or the user story.
-- It doesn't discover tickets or run the poll loop; that is the op-agent daemon.
+- It doesn't discover tickets or run the poll loop; the op-agent daemon does that.

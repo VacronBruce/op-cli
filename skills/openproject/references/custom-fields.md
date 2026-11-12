@@ -1,4 +1,4 @@
-# Custom Field Values
+# Custom field values
 
 ## Components
 android, ios, ott, engineering, analytics
@@ -6,7 +6,7 @@ android, ios, ott, engineering, analytics
 ## Products
 eet, entd, djy, cntd, others, competition
 
-## Tech Areas
+## Tech areas
 web, app, adtech, video, infra, portal, seo
 
 ## Labels
@@ -17,8 +17,8 @@ Use these values, **NOT** the "Low/Normal/High" labels shown in `--help`:
 - Standard: `P0`, `P1`, `P2`, `P3`
 - Severity (bugs): `SEV0`, `SEV1`, `SEV2`, `SEV3`
 
-> Components/products/tech-areas/labels are built-in defaults. Both the field key
-> and the options are overridable per instance via a `custom_fields:` section in
+> Components/products/tech-areas/labels are built-in defaults. You can override both
+> the field key and the options per instance with a `custom_fields:` section in
 > `~/.oprc` (see README). Values accept unique-prefix abbreviations
 > (e.g. `--component=eng`), and shell completion (`op completion zsh|bash`)
 > suggests them.

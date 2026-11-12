@@ -1,28 +1,28 @@
-# op-cli — Team Onboarding
+# op-cli team onboarding
 
-`op` is a fast CLI for our OpenProject (sprints, backlogs, work packages), plus a
-set of **Claude Code skills** so you can just *ask* in natural language instead of
-remembering flags. This guide gets you from zero to productive in ~5 minutes.
+`op` is a CLI for our OpenProject (sprints, backlogs, work packages), plus a
+set of **Claude Code skills** so you can *ask* in natural language instead of
+remembering flags. This guide gets you set up in about 5 minutes.
 
 ---
 
 ## 1. Install
 
-**Install op-cli + the `op` Claude Code plugin** (public repo — no login or token needed):
+**Install op-cli and the `op` Claude Code plugin.** The repo is public, so you need no login or token:
 
 ```bash
 bash <(curl -fsSL https://github.com/VacronBruce/op-cli/releases/latest/download/install.sh)
 ```
 
 The script detects your platform, downloads the `op` binary from the latest GitHub
-release, asks for your API key, and installs the **`op` plugin** — all skills under
+release, asks for your API key, and installs the **`op` plugin**, which puts every skill under
 the `op:` prefix (`/op:openproject`, `/op:sprint-report`, `/op:file-bug`, `/op:ticket-review`, …).
 
 ---
 
 ## 2. Configure `~/.oprc`
 
-The installer creates it; the essentials:
+The installer creates it. These are the keys that matter:
 
 ```yaml
 url: https://openpr.epochbase.com
@@ -38,9 +38,9 @@ op version
 op projects        # should list projects you can see
 ```
 
-> **Optional power-ups** (see the repo README): a `custom_fields:` block to map
+> **Optional extras** (see the repo README): a `custom_fields:` block to map
 > component/product/label to your instance, and a `templates:` block so every
-> `op create bug`/`feature` starts with the right description scaffold.
+> `op create bug`/`feature` starts from your description template.
 
 ---
 
@@ -54,19 +54,19 @@ claude plugin update op  # just the skills, to the latest plugin version
 # or re-run the install one-liner from step 1 — refreshes the binary AND the plugin
 ```
 
-(Manual fallback if you cloned the repo:
-`claude plugin marketplace add .` then `claude plugin install op@op`.)
+If you cloned the repo, you can install the plugin by hand with
+`claude plugin marketplace add .` then `claude plugin install op@op`.
 
 ---
 
 ## 4. Use it in Claude Code
 
-You rarely need raw commands — invoke a skill or just describe what you want.
+You rarely need raw commands. Invoke a skill or describe what you want.
 
 | You want… | Say in Claude |
 |---|---|
-| Map NL → `op` command | `/op:openproject add 101 102 to the current sprint` |
-| What's on my plate | "what am I working on?" → `op my` (auto-detects project/sprint if none set) |
+| Turn natural language into an `op` command | `/op:openproject add 101 102 to the current sprint` |
+| What's on my plate | "what am I working on?" runs `op my` (auto-detects project/sprint if none set) |
 | Cross-project view | `op overview` |
 | Standup briefing | `/op:sprint-report` |
 | Weekly status report | `/op:sprint-report --weekly -p app` |
@@ -97,10 +97,10 @@ op backlog --unestimated       # backlog items needing estimation
 ```
 
 Tips:
-- **Shell completion:** `source <(op completion zsh)` → `--component=<TAB>` suggests values.
-- **No project set?** bare `op my` auto-detects the project+sprint where most of
+- **Shell completion:** after `source <(op completion zsh)`, `--component=<TAB>` suggests values.
+- With no project set, bare `op my` auto-detects the project and sprint where most of
   your open work lives and points you at `op overview`.
-- Most flag values accept **unique-prefix abbreviations** (`--component=eng` → engineering).
+- Most flag values accept unique-prefix abbreviations (`--component=eng` resolves to engineering).
 - `-p <project>` and `--sprint "<name>"` override your defaults on any command.
 
 ---
@@ -108,5 +108,5 @@ Tips:
 ## 6. Help
 
 - `op <command> --help` for any command.
-- Repo: `https://github.com/VacronBruce/op-cli` (README has full docs).
+- Repo: `https://github.com/VacronBruce/op-cli` (the README has the full docs).
 - `op upgrade` to self-update to the latest release.

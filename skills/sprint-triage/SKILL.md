@@ -6,24 +6,24 @@ argument-hint: "components|assignees [-p <project>] [--sprint <name>] [--compone
 allowed-tools: Bash(op *), Bash(awk *)
 ---
 
-# Sprint Triage
+# Sprint triage
 
-Two modes, both: read the sprint, propose a plan as a table, write after approval.
-- **`components`** — tickets with no Component get one inferred from label, title, type.
-- **`assignees`** — unassigned tickets of one component go to the lightest-loaded
+Both modes read the sprint, propose a plan as a table, and write after approval.
+- **`components`**: tickets with no Component get one inferred from label, title and type.
+- **`assignees`**: unassigned tickets of one component go to the lightest-loaded
   teammate on that component's roster. Built for a recurring (e.g. twice-weekly)
   dispatch.
 
-No mode given: "missing components" / "tag tickets" → `components`; "dispatch" /
-"hand out tickets" / "who should take these" → `assignees`; unclear → ask.
+With no mode given, pick `components` for "missing components" / "tag tickets" and
+`assignees` for "dispatch" / "hand out tickets" / "who should take these". If it's unclear, ask.
 
 ## Arguments
 
-- `-p <project>` / `--project <project>` — pass to every `op` call.
-- `--sprint "<name>"` — the sprint; default is the current one, resolved below.
-- `--component <c>` — `assignees` only: which component to dispatch (default `android`).
-- `--dry-run` — print the plan, write nothing.
-- `--auto` — apply the plan without the confirm step. These are field updates on
+- `-p <project>` / `--project <project>`: pass to every `op` call.
+- `--sprint "<name>"`: the sprint. The default is the current one, resolved below.
+- `--component <c>`: for `assignees` only, which component to dispatch (default `android`).
+- `--dry-run`: print the plan and write nothing.
+- `--auto`: apply the plan without the confirm step. These are field updates on
   existing tickets, which are recoverable and notify no one new.
 
 ## Resolve the sprint
@@ -32,7 +32,7 @@ No mode given: "missing components" / "tag tickets" → `components`; "dispatch"
 `app` that is the year-long `App_2026_Done_Story/Tasks`, not the current two-week
 sprint. So with no `--sprint`, run `op sprint list -p <project>` and take the sprint
 that follows the project's dated naming pattern (`App_MM/DD/YYYY`, `Web - MM/DD/YYYY`)
-with start ≤ today ≤ end (no end date, as in web → latest start ≤ today). Print
+with start ≤ today ≤ end (with no end date, as in web, the latest start ≤ today). Print
 `Sprint: <name>` and pass `--sprint="<name>"` to `op board` and `op my team`.
 
 ---
@@ -43,10 +43,10 @@ Valid components: `android`, `ios`, `ott`, `engineering`, `analytics` (`op field
 component` lists the live set).
 
 ### Collect
-1. `op board --sprint="<name>"` for every ticket in the sprint.
-2. A ticket with no component (or unsure from the board) → `op show <id>` for title,
-   type, labels, assignee, description. Collect them as `UNTAGGED`.
-3. `UNTAGGED` empty → "All tickets already have a component." and stop.
+1. Run `op board --sprint="<name>"` to get every ticket in the sprint.
+2. For a ticket with no component (or where the board leaves it unclear), run `op show <id>` for title,
+   type, labels, assignee and description. Collect them as `UNTAGGED`.
+3. If `UNTAGGED` is empty, print "All tickets already have a component." and stop.
 
 ### Infer, in priority order
 
@@ -70,10 +70,10 @@ component` lists the live set).
 | `[web]`, `web`, `website`, `wordpress`, `frontend`, `backend`, `api`, `server` | `engineering` |
 | `analytics`, `tracking`, `gtm`, `ga4`, `event`, `pixel` | `analytics` |
 
-**3. Assignee** (LOW), only when 1 and 2 found nothing: if the assignee is on exactly one
+**3. Assignee** (LOW), only when 1 and 2 found nothing. If the assignee is on exactly one
 roster in `~/.oprc` (see Roster below), use that component. Otherwise mark `?`.
 
-**4. Type fallback** (LOW): a `bug` or `task` with no other signal → `engineering`.
+**4. Type fallback** (LOW): a `bug` or `task` with no other signal gets `engineering`.
 
 Tickets left at `?` go to a "needs manual review" list.
 
@@ -90,7 +90,7 @@ Needs manual review (1):
   #12349  Some vague ticket title       (no signal found)
 ```
 
-`--dry-run` → print and stop. Otherwise, unless `--auto`, ask: "Apply these <N>? [y/N]
+With `--dry-run`, print and stop. Otherwise, unless `--auto`, ask: "Apply these <N>? [y/N]
 (or list IDs to skip)".
 
 ### Apply
@@ -114,7 +114,7 @@ Errors, then suggest `op check --sprint --sprint-name="<name>"` to confirm cover
 ## Mode `assignees`
 
 ### Roster
-The candidates come from a roster in `~/.oprc`, not from who already holds tickets: a
+The candidates come from a roster in `~/.oprc`, not from who already holds tickets. A
 teammate with zero tickets in the sprint, the lightest load of all, never appears in
 `op my team`, and `op my team` also lists other teams (iOS devs show up next to Android
 ones). Read only the `team:` block, so the API key in the same file stays out of the
@@ -133,20 +133,20 @@ team:
     - Bob Example
 ```
 
-No roster for `<component>` → say so, offer the `.oprc` snippet, and fall back to the
+If there is no roster for `<component>`, say so, offer the `.oprc` snippet, and fall back to the
 people in `op my team` who already hold `<component>` tickets, warning that teammates
 with no tickets can't be seen this way.
 
 ### Collect
-1. `op board --sprint="<name>" --component=<component>`.
-2. Tickets whose card shows `@unassigned` → `UNASSIGNED = [{id, title, type, priority,
-   points}]`. If a card is unclear, `op show <id>`.
-3. Empty → "No unassigned <component> tickets in <sprint>." and stop.
-4. Backlog pull only if the user asked: add `op backlog --type task` items after the
+1. Run `op board --sprint="<name>" --component=<component>`.
+2. Put tickets whose card shows `@unassigned` into `UNASSIGNED = [{id, title, type, priority,
+   points}]`. If a card is unclear, run `op show <id>`.
+3. If it's empty, print "No unassigned <component> tickets in <sprint>." and stop.
+4. Pull from the backlog only if the user asked. Add `op backlog --type task` items after the
    sprint tickets.
 
 ### Load
-`op my team --sprint="<name>"` → `LOAD[person] = {in_progress, todo, points}` across all
+Build `LOAD[person] = {in_progress, todo, points}` from `op my team --sprint="<name>"` across all
 components, since that is the person's real capacity. Every roster member missing from
 the output gets load 0. People not on the roster are not candidates; if the user wants
 someone else, they can name them at the confirm step.
@@ -165,11 +165,11 @@ Dispatch Plan — <sprint> (<component>)
 Load after this plan:  Alice: 2 wip   Bob: 2 wip   Carol: 3 wip
 ```
 
-`--dry-run` → print and stop. Otherwise, unless `--auto`, ask: "Apply this dispatch?
+With `--dry-run`, print and stop. Otherwise, unless `--auto`, ask: "Apply this dispatch?
 [y/N] — or edit like `82361:Carol`, or `skip 82365`", and apply the edits.
 
 ### Apply
-One call per assignee:
+Make one call per assignee:
 
 ```
 op update <id> <id> ... --assignee="<Name>"

@@ -6,31 +6,31 @@ argument-hint: "[--weekly] [-p <project>]... [--sprint <name>] [--component <c>]
 allowed-tools: Bash(op *)
 ---
 
-# Sprint Report
+# Sprint report
 
 Two outputs from the same data:
-- **default** — a standup digest a lead reads in 15 seconds.
-- **`--weekly`** — one copy-paste markdown block per project; a stakeholder reads each
+- **default**: a standup digest a lead reads in 15 seconds.
+- **`--weekly`**: one copy-paste markdown block per project; a stakeholder reads each
   in about 30 seconds.
 
 ## Arguments
 
-- `--weekly` — the weekly report instead of the standup digest.
-- `-p <project>` / `--project <project>` — repeatable with `--weekly` (one block per
-  project). None given → the `project:` in `~/.oprc`.
-- `--sprint "<name>"` — the sprint to report; default is the current one, resolved below.
-- `--component <c>` — only that component's tickets (`android`, `ios`, `ott`,
+- `--weekly`: the weekly report instead of the standup digest.
+- `-p <project>` / `--project <project>`: repeatable with `--weekly` (one block per
+  project). If none is given, use the `project:` in `~/.oprc`.
+- `--sprint "<name>"`: the sprint to report. The default is the current one, resolved below.
+- `--component <c>`: only that component's tickets (`android`, `ios`, `ott`,
   `engineering`, `analytics`). Without it, the whole project.
 
 ## Resolve the sprint first
 
-`op sprint progress`, `op blocked` and `op sprint close` take no `--sprint` flag: they
+`op sprint progress`, `op blocked` and `op sprint close` take no `--sprint` flag. They
 use the first open version whose dates cover today. In `app` that is the year-long
 `App_2026_Done_Story/Tasks`, not the two-week `App_11/03/2026`, so their numbers can
 describe the wrong sprint. Resolve the sprint yourself and pass it explicitly:
 
-1. `--sprint` given → use it.
-2. Otherwise `op sprint list -p <project>` and take the sprint that follows the project's
+1. If `--sprint` is given, use it.
+2. Otherwise run `op sprint list -p <project>` and take the sprint that follows the project's
    dated naming pattern (`App_MM/DD/YYYY` in app, `Web - MM/DD/YYYY` in web) with
    start ≤ today ≤ end. Where the project leaves the end date blank (web), take the
    latest start ≤ today.
@@ -40,10 +40,10 @@ describe the wrong sprint. Resolve the sprint yourself and pass it explicitly:
 
 Stop and report if an `op` command errors.
 
-1. `op board -p <p> --sprint="<name>" [--component=<c>]` — items by status; the footer
+1. `op board -p <p> --sprint="<name>" [--component=<c>]` lists items by status. The footer
    reads `X/Y items done | P/Q points`. Cards show `@unassigned` when nobody owns one.
-2. `op board -p <p> --sprint="<name>" --status=blocked [--component=<c>]` — blocked items.
-3. Standup only: `op my team -p <p> --sprint="<name>"` — work grouped by person. It has
+2. `op board -p <p> --sprint="<name>" --status=blocked [--component=<c>]` lists blocked items.
+3. Standup only: `op my team -p <p> --sprint="<name>"` groups work by person. It has
    no component filter, so with `--component` keep only the tickets that appeared in
    step 1.
 4. `op sprint progress -v` and `op blocked` are fine as a cross-check only when the
@@ -58,9 +58,9 @@ A short digest, not raw dumps:
 
 - **Sprint:** name · `X/Y` items done · `P/Q` points (%) · days left (from the sprint's
   end date).
-- **🚧 Blocked (N):** one line each, `#id subject — assignee`. First, because these
+- **🚧 Blocked (N):** one line each, `#id subject — assignee`. Put it first, because these
   need action.
-- **By person:** one line per assignee — in progress vs. to do, the key item(s).
+- **By person:** one line per assignee with in progress vs. to do and the key item(s).
 - **⚠ Risks:** unestimated items, unassigned open items, anything stale or overdue.
 - **Focus:** the single most important thing for the team to discuss today.
 

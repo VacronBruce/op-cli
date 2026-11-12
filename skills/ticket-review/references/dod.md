@@ -1,6 +1,6 @@
 # Definition of Done (`--done`)
 
-The exit gate, the mirror of `op check` (the Definition of Ready entry gate).
+This is the exit gate, the counterpart of `op check` (the Definition of Ready entry gate).
 Audience: developers, tech leads, QA. This lens prints its verdict; it never posts a
 comment and never changes the ticket's status (moving to Done is a person's call or
 `/op:sprint-close`).
@@ -12,7 +12,7 @@ guided review: verify what the ticket and its comments prove, and mark the rest
 its own, because a ticket can be closed without the work being done.
 
 ## Evidence
-`op show <id>` (acceptance criteria, status, assignee) and `op comment <id>` (MR/PR
+Read `op show <id>` (acceptance criteria, status, assignee) and `op comment <id>` (MR/PR
 links, test or QA notes, deploy confirmations).
 
 ## Checklist
@@ -20,16 +20,16 @@ links, test or QA notes, deploy confirmations).
 Mark each `DONE`, `NOT DONE` or `UNKNOWN — confirm`.
 
 Required (a NOT DONE fails the gate):
-- **Acceptance criteria met** — every criterion is satisfied. *(Verifiable from the ticket.)*
-- **Code merged** — merged to the main branch. *(A merged MR/PR link in comments; else UNKNOWN.)*
-- **Tests added and passing** — tests cover the change and CI is green. *(UNKNOWN unless a comment shows it.)*
-- **Code reviewed** — reviewed and approved. *(UNKNOWN unless a comment or MR shows it.)*
-- **No known regressions** — QA/verification passed; no open blocking bugs linked. *(Partly verifiable.)*
+- **Acceptance criteria met**: every criterion is satisfied. *(Verifiable from the ticket.)*
+- **Code merged**: merged to the main branch. *(Needs a merged MR/PR link in comments; otherwise UNKNOWN.)*
+- **Tests added and passing**: tests cover the change and CI is green. *(UNKNOWN unless a comment shows it.)*
+- **Code reviewed**: reviewed and approved. *(UNKNOWN unless a comment or MR shows it.)*
+- **No known regressions**: QA/verification passed; no open blocking bugs linked. *(Partly verifiable.)*
 
 Advisory (report, don't block):
 - **Docs / changelog updated** where the change is user- or API-facing.
 - **Deployed** to staging, or shipped behind a flag.
-- **Story points reconciled** — actual effort noted if it diverged from the estimate.
+- **Story points reconciled**: actual effort noted if it diverged from the estimate.
 
 Gate: **DONE** only if every required item is DONE. Otherwise **NOT DONE**.
 

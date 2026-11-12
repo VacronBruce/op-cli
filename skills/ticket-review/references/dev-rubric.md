@@ -1,7 +1,7 @@
 # Developer rubric (`--dev`)
 
 Does the ticket carry enough technical detail to start coding? Audience: developers
-and tech leads. Generate questions, not rewrites: the output is a list of specific
+and tech leads. Generate questions, not rewrites. The output is a list of specific
 questions to send back to the PM (the PM lens is the one that rewrites content).
 
 ## Criteria

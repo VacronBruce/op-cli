@@ -4,7 +4,7 @@ description: "Runs the `op` CLI for any OpenProject request: show, create, updat
 user_invocable: true
 ---
 
-# OpenProject CLI Skill
+# OpenProject CLI skill
 
 Translate natural language requests into `op` CLI commands and execute them.
 
@@ -23,7 +23,7 @@ Translate natural language requests into `op` CLI commands and execute them.
   is not an approval. For bugs, use `/op:file-bug`.
 - **Posting or editing a comment**: show the exact text and the ticket, and wait for
   approval before running it. A comment notifies watchers and can't be cleanly
-  retracted. Several comments → list them so each can be approved or dropped.
+  retracted. For several comments, list them so the user can approve or drop each one.
 - After `op create`, verify on the board it printed (`op my --author -p <board>`). An
   empty result from another project is not a failed create; re-running it is how
   duplicate tickets happened.
@@ -41,15 +41,15 @@ Check the `Sprint:` line they print; when it's wrong, use `op board --sprint="<n
 
 ## Reference files
 
-Consult these before constructing a command — don't guess flags or values:
+Read these before you build a command, so you never guess flags or values:
 
-- **`references/commands.md`** — full command + flag reference (board, my, create,
+- **`references/commands.md`**: the full command and flag reference (board, my, create,
   update, link, comment, sprint, release, backlog, check, version) plus global flags
   and the no-project / user-story notes.
-- **`references/custom-fields.md`** — valid values for `--component`, `--product`,
+- **`references/custom-fields.md`**: valid values for `--component`, `--product`,
   `--tech-area`, `--label`, and `--priority`.
 
-## How to Handle Requests
+## How to handle requests
 
 1. **"create a task/bug"** → `op create task/bug "subject" --flags`
 2. **"show board"** → `op board`
@@ -60,17 +60,17 @@ Consult these before constructing a command — don't guess flags or values:
 5. **"sprint progress"** → `op sprint progress`
 6. **"assign X to Y"** → `op update <id> --assignee="Person"`
 7. **"move to in progress"** → `op update <id> --status=in-progress`
-8. **"attach this screenshot"** → Save image to file, then `op attach <id> /path/to/file` (see Attaching Images below)
+8. **"attach this screenshot"** → Save image to file, then `op attach <id> /path/to/file` (see Attaching images below)
 9. **"plan next sprint"** → `op backlog` then `op sprint add`
 9a. **"prepare / set up next sprint"** → invoke /op:sprint-prepare skill (`--project`, `--tickets`, `--figma`, `--prd`, `--auto`)
 9b. **"create a sprint"** → `op sprint create "<name>" --start=YYYY-MM-DD` (`--end` defaults to start+13 days)
 9c. **"show high-priority backlog"** → `op backlog --priority p0,p1` (accepts P0–P3 and SEV0–SEV3 values)
 9d. **"show backlog bugs"** → `op backlog --type bug` (combine with `--priority` to filter further)
-10. **"close sprint / end of sprint"** → `op sprint close` for carryover report; for closing ready tickets → invoke /op:sprint-close skill (`-p`, `--sprint`, `--release`, `--status`, `--auto`)
+10. **"close sprint / end of sprint"** → `op sprint close` for the carryover report; to close ready tickets, invoke /op:sprint-close skill (`-p`, `--sprint`, `--release`, `--status`, `--auto`)
 10a. **"check/assign missing components"** → invoke /op:sprint-triage components (`-p`, `--sprint`, `--dry-run`, `--auto`)
-10b. **"dispatch / assign android work / hand out tickets / distribute the sprint"** → invoke /op:sprint-triage assignees (`--component`, `-p`, `--sprint`, `--dry-run`, `--auto`) — balances unassigned tickets across the team roster in `~/.oprc` by current load, bulk-assigns on confirm
+10b. **"dispatch / assign android work / hand out tickets / distribute the sprint"** → invoke /op:sprint-triage assignees (`--component`, `-p`, `--sprint`, `--dry-run`, `--auto`). It balances unassigned tickets across the team roster in `~/.oprc` by current load and bulk-assigns on confirm
 11. **"generate report"** → `op sprint progress -v`
-11a. **"weekly report / status report / what shipped this week"** → invoke /op:sprint-report --weekly (`-p`... repeatable, `--sprint`, `--component`) — copy-paste weekly block per project (shipped / in progress / blocked / at risk / next)
+11a. **"weekly report / status report / what shipped this week"** → invoke /op:sprint-report --weekly (`-p`... repeatable, `--sprint`, `--component`). It prints a copy-paste weekly block per project (shipped / in progress / blocked / at risk / next)
 12. **"is this ticket ready?"** → `op check <id>` (Definition-of-Ready gate: prints a deterministic completeness percent and READY / NEEDS WORK; a FAIL blocks, a WARN is advisory). Teams can tune which checks apply per type via a DoR config file pointed to by `OP_DOR_CONFIG` (see `references/commands.md`).
 13. **"check sprint quality"** → `op check --sprint`
 14. **"what's the discussion on X?"** → `op comment <id>`
@@ -92,7 +92,7 @@ Consult these before constructing a command — don't guess flags or values:
 20. **"unestimated backlog"** → `op backlog --unestimated`
 21. **"show ticket details"** → `op show <id>`
 21a. **"get the ticket web link / browser URL / shareable link"** → `op show <id> --url` (prints only the URL, no API call)
-22. **"what's the OP number for WP-23 / look up a JIRA ID"** → `op search <jira-id>` (maps the JIRA ID custom field to the OpenProject work package number); use `--field <name>` to search a different custom field (e.g. `op search AR-178 --field key` when tickets were renamed and the key is in a separate field); if the key only appears in historical activity (e.g. a renamed ticket's old key in a journal note), use `op search AR-178 --scan --project <id>` to scan activity journals
+22. **"what's the OP number for WP-23 / look up a JIRA ID"** → `op search <jira-id>` (maps the JIRA ID custom field to the OpenProject work package number). Use `--field <name>` to search a different custom field (e.g. `op search AR-178 --field key` when tickets were renamed and the key is in a separate field). If the key only appears in historical activity (e.g. a renamed ticket's old key in a journal note), use `op search AR-178 --scan --project <id>` to scan activity journals
 23. **"set parent / link tickets"** → `op link <id> --parent=X` (or `--relates-to`, `--blocks`, `--no-parent`)
 23a. **"start work on / start a ticket"** → `op start <id>` (creates branch `<project>-<id>-<slug>`, moves it to In Progress, assigns to you; run inside the git repo)
 23b. **"what's linked to this ticket / show relations"** → `op link <id> --list`
@@ -109,7 +109,7 @@ Consult these before constructing a command — don't guess flags or values:
 For exact flags and field values on any of the above, read `references/commands.md`
 and `references/custom-fields.md` first.
 
-## Attaching Images
+## Attaching images
 
 When the user provides an image (pasted or screenshot) to attach to a ticket:
 

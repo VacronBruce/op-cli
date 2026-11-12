@@ -37,7 +37,7 @@ resolves it to the real path, runs `op`, and deletes the copy.
 bash .op-bridge/op.sh attach 81455 "/path/to/screenshot.png"
 ```
 
-Only the `attach` subcommand gets this file copying. `create --attach=<path>` is passed
+Only the `attach` subcommand gets this file copying. op.sh passes `create --attach=<path>`
 through unchanged and the host can't see a container path, so create the ticket
 without `--attach`, then `op.sh attach <new-id> <file>`.
 
@@ -59,11 +59,11 @@ without `--attach`, then `op.sh attach <new-id> <file>`.
 
 ## Troubleshooting
 
-- **`error: timeout waiting for host-watcher`** — the watcher isn't running. `run_cc.sh`
-  starts it with Docker; if Docker was started by hand, run
+- **`error: timeout waiting for host-watcher`** means the watcher isn't running. `run_cc.sh`
+  starts it with Docker. If you started Docker by hand, run
   `bash .op-bridge/host-watcher.sh &` on the host.
-- **Stale results** — `run_cc.sh` clears old bridge files on startup. When running by
+- **Stale results.** `run_cc.sh` clears old bridge files on startup. When running by
   hand, delete `request.txt`, `result.txt` and `status.txt` from the bridge folder first.
-- **Wrong sprint** — without `--sprint`, `op board` and `op sprint progress` use the
+- **Wrong sprint.** Without `--sprint`, `op board` and `op sprint progress` use the
   first open version whose dates cover today, falling back to the first open version.
   Pass the sprint explicitly: `bash .op-bridge/op.sh board -p app --sprint="App_06/02/2026"`.

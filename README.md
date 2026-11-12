@@ -1,10 +1,10 @@
 # op-cli
 
-A lean CLI for managing OpenProject sprints, backlogs, and work packages. Built for team leads.
+A CLI for team leads to manage OpenProject sprints, backlogs, and work packages.
 
 ## Install
 
-### Quick Install (recommended)
+### Quick install (recommended)
 
 ```bash
 bash <(curl -fsSL https://github.com/VacronBruce/op-cli/releases/latest/download/install.sh)
@@ -16,20 +16,20 @@ The repo is public, so this needs no login or token. The script will:
 3. Ask for your OpenProject API key
 4. Install the `op` Claude Code plugin (`/op:openproject`, `/op:sprint-report`, `/op:file-bug`, `/op:ticket-review`, …)
 
-**Windows (PowerShell):** no Git Bash needed — run this in PowerShell:
+**Windows (PowerShell):** run this in PowerShell, no Git Bash needed:
 
 ```powershell
 irm https://github.com/VacronBruce/op-cli/releases/latest/download/install.ps1 | iex
 ```
 
-It downloads `op.exe`, adds it to your PATH, and sets up config + completion.
+It downloads `op.exe`, adds it to your PATH, and sets up config and completion.
 (Git Bash / WSL users can use the `curl` one-liner above instead.)
 
-**Updating:** existing users re-run the same one-liner (refreshes the binary **and**
-the plugin), or run `op upgrade` for just the binary. Already on the plugin?
+**Updating:** existing users re-run the same one-liner to refresh both the binary and
+the plugin, or run `op upgrade` for just the binary. If you already have the plugin,
 `claude plugin update op` pulls the latest skills.
 
-### Alternative: Clone + Build (needs Go)
+### Alternative: clone and build (needs Go)
 
 ```bash
 git clone https://github.com/VacronBruce/op-cli.git
@@ -38,13 +38,13 @@ cd op-cli && bash install.sh
 
 ## Setup
 
-Your OpenProject API key is required. Get it from:
+You need an OpenProject API key. To get one:
 
 1. Log in to https://openpr.epochbase.com
 2. Go to **My Account** > **Access Tokens**
 3. Create a new API token
 
-The install script creates `~/.oprc` automatically. To edit manually:
+The install script creates `~/.oprc` for you. To edit it by hand:
 
 ```yaml
 url: https://openpr.epochbase.com
@@ -57,8 +57,8 @@ sprint: "App_06/02/2026"    # Update this each sprint
 
 The `--component`, `--product`, `--tech-area`, and `--label` flags map to
 instance-specific custom fields. Built-in defaults target this OpenProject
-instance; override them — or add your own — under `custom_fields:` in `~/.oprc`.
-Both the field key and the option set are configurable:
+instance. Override them, or add your own, under `custom_fields:` in `~/.oprc`.
+You can configure both the field key and the option set:
 
 ```yaml
 custom_fields:
@@ -80,8 +80,8 @@ API (e.g. `/api/v3/custom_fields`).
 ### Ticket templates (optional)
 
 `op create <type>` fills the description from a `templates.<type>` block in
-`~/.oprc` when you don't pass `--description`, so every bug/feature starts with
-the right scaffold. The key is the lowercased type name.
+`~/.oprc` when you don't pass `--description`, so every bug/feature starts from
+your template. The key is the lowercased type name.
 
 ```yaml
 templates:
@@ -110,8 +110,8 @@ templates:
 ### Verify & maintain
 
 `op setup` prints an `[ok]`/`[--]` checklist (config, credentials, connection,
-project, sprint, completion) with the exact fix for anything missing, and its
-flags update single keys in `~/.oprc` without touching the rest of the file:
+project, sprint, completion) with the exact fix for anything missing. Its flags
+update single keys in `~/.oprc` and leave the rest of the file alone:
 
 ```bash
 op setup                              # health check — run anytime
@@ -146,13 +146,13 @@ op search AR-178 --scan --project app  # Scan activity journals when a key only 
 op start 12345                     # Start work: branch <project>-12345-<slug>, In Progress, assign to you
 ```
 
-> **No project set?** With neither `-p` nor `OP_PROJECT`, `op my` auto-detects the
-> project + sprint where most of your recent open work lives and shows it, then
+> With neither `-p` nor `OP_PROJECT` set, `op my` auto-detects the
+> project and sprint where most of your recent open work lives and shows it, then
 > points you at `op overview` (everything) or `op my -p <id> --sprint "<name>"`.
 
 ### Create & update
 
-> `op create bug` files to the Bug Backlog board (`bug`) by default, with **no sprint** (the `.oprc`/`OP_SPRINT` sprint belongs to the ambient project and is not applied — triage assigns one). Pass `-p <board>` to file it elsewhere, or `--sprint="<name>"` to place it on a bug-board sprint.
+> `op create bug` files to the Bug Backlog board (`bug`) by default, with **no sprint**. It ignores the `.oprc`/`OP_SPRINT` sprint, which belongs to your default project, because triage assigns one. Pass `-p <board>` to file it elsewhere, or `--sprint="<name>"` to place it on a bug-board sprint.
 
 ```bash
 op create task "Fix login page" --assignee="Ken Peng" --priority=P1
@@ -259,11 +259,11 @@ op check --sprint                  # Check all tickets in current sprint
 op check --sprint --component=android  # Check android tickets only
 ```
 
-`op check` is the **Definition-of-Ready gate**. It prints a deterministic score —
-`Score: 5/8 (63%) — NEEDS WORK` — where the percent is `Pass=100, Warn=50, Fail=0`
-averaged (reproducible, not a model guess) and the gate reads `READY` unless a
+`op check` is the **Definition-of-Ready gate**. It prints a deterministic score such as
+`Score: 5/8 (63%) — NEEDS WORK`. The percent is `Pass=100, Warn=50, Fail=0`
+averaged (reproducible, not a model guess), and the gate reads `READY` unless a
 check FAILs (a WARN is advisory). Tune which checks apply per work-package type
-with a JSON file pointed to by `OP_DOR_CONFIG` — including the opt-in QUS checks
+with a JSON file pointed to by `OP_DOR_CONFIG`, including the opt-in QUS checks
 `well_formed` and `atomic`. See `skills/openproject/references/commands.md` for the
 check IDs and config format.
 
@@ -288,7 +288,7 @@ op upgrade                         # Upgrade to latest version
 ### Shell completion
 
 `op` ships completion for all commands, and the enum flags complete their
-values (honoring any `custom_fields:` overrides in `~/.oprc`):
+values, honoring any `custom_fields:` overrides in `~/.oprc`.
 
 `install.sh` enables this automatically for your shell (zsh/bash). To set it up
 manually, or for other shells:
@@ -304,12 +304,12 @@ Then `op create --component <TAB>` suggests `android  ios  ott  engineering  ana
 ### Claude Code (Docker / container mode)
 
 When Claude Code runs inside a container, it cannot execute `op` directly and the host's
-`op` plugin isn't visible. Two things are needed: installing the skill into the container
-as a loose skill, and bridging `op` commands back to the host.
+`op` plugin isn't visible. You need to do two things: install the skill into the container
+as a loose skill, and bridge `op` commands back to the host.
 
 #### 1. Install the skill into the container
 
-The container's `~/.claude/` directory is mounted from the **project root**'s `.claude/`
+The container mounts its `~/.claude/` directory from the **project root**'s `.claude/`
 folder. Copy the skill there (from a clone of this repo) so the containerized Claude Code
 can see it:
 
@@ -319,10 +319,10 @@ mkdir -p .claude/skills/openproject
 cp /path/to/op-cli/skills/openproject/SKILL.md .claude/skills/openproject/SKILL.md
 ```
 
-> **Tip:** `.claude/` in the project root is already gitignored. If it isn't, add it.
+> `.claude/` in the project root should already be gitignored. If it isn't, add it.
 
-After this, `/openproject` will be available inside the container (loose skill — no `op:`
-prefix, since the plugin isn't installed in the container).
+After this, `/openproject` works inside the container. As a loose skill it has no `op:`
+prefix, since the plugin isn't installed in the container.
 
 #### 2. Start the host bridge
 
@@ -344,9 +344,9 @@ binary, and writes the result to `.op-bridge/result.txt`.
 
 ### Claude Code skills
 
-The skills ship as the **`op` plugin** — namespaced under an `op:` prefix
+The skills ship as the **`op` plugin**, under an `op:` prefix
 (`/op:openproject`, `/op:sprint-report`, …) so they never collide with other skills.
-`install.sh` registers the marketplace and installs the plugin for you; to do it
+`install.sh` registers the marketplace and installs the plugin for you. To do it
 by hand:
 
 ```
@@ -354,9 +354,9 @@ by hand:
 /plugin install op@op
 ```
 
-Slash commands available in Claude Code for natural language access:
+The plugin adds these slash commands to Claude Code:
 
-**`/op:openproject`** — Translates natural language into `op` commands:
+**`/op:openproject`** translates natural language into `op` commands:
 
 ```
 /op:openproject create a SEV1 bug "Crash on save" for NTD+, assign to Bruce, android component
@@ -368,7 +368,7 @@ Slash commands available in Claude Code for natural language access:
 /op:openproject what's in the backlog that needs estimation?
 ```
 
-**`/op:ticket-review`** — Review a ticket through one or more lenses and print the result:
+**`/op:ticket-review`** reviews a ticket through one or more lenses and prints the result:
 
 ```
 /op:ticket-review 12345            # PM + developer readiness (default)
@@ -378,17 +378,17 @@ Slash commands available in Claude Code for natural language access:
 /op:ticket-review WP-23            # a JIRA ID is resolved first
 ```
 
-The PM lens checks completeness, clarity, business justification, acceptance criteria, visual assets and scope, with rewrite suggestions. The developer lens checks implementability, technical gaps, ambiguities, dependencies, risk and estimation, plus team-specific checks (android/ios/web). The DoD lens mirrors the `op check` Definition-of-Ready gate and marks anything the ticket can't prove `UNKNOWN — confirm`; it never changes ticket status. The review is printed; `--post` posts the combined PM + Dev review as one bot comment (used by the op-agent reviewer daemon).
+The PM lens checks completeness, clarity, business justification, acceptance criteria, visual assets and scope, with rewrite suggestions. The developer lens checks implementability, technical gaps, ambiguities, dependencies, risk and estimation, plus team-specific checks (android/ios/web). The DoD lens mirrors the `op check` Definition-of-Ready gate and marks anything the ticket can't prove `UNKNOWN — confirm`. It never changes ticket status. By default the skill only prints the review. `--post` posts the combined PM + Dev review as one bot comment, which is what the op-agent reviewer daemon uses.
 
-**`/op:ticket-refine`** — Interactive refinement that writes the improved fields back:
+**`/op:ticket-refine`** refines a ticket interactively and writes the improved fields back:
 
 ```
 /op:ticket-refine 12345
 ```
 
-Unlike `/op:ticket-review`, this one *fixes* the ticket. It finds weak or missing acceptance criteria and user story, talks through each gap one question at a time, shows a before/after, and — only after you confirm — writes the corrected description (AC) and User Story field back via `op update`. Posts no comment; the field history records the change.
+Unlike `/op:ticket-review`, this one *fixes* the ticket. It finds weak or missing acceptance criteria and user story, talks through each gap one question at a time, shows a before/after, and writes the corrected description (AC) and User Story field back via `op update` only after you confirm. It posts no comment; the field history records the change.
 
-**`/op:sprint-report`** — Standup digest, or a weekly stakeholder report:
+**`/op:sprint-report`** prints a standup digest or a weekly stakeholder report:
 
 ```
 /op:sprint-report
@@ -398,24 +398,24 @@ Unlike `/op:ticket-review`, this one *fixes* the ticket. It finds weak or missin
 
 The default is a 15-second standup briefing (progress, blockers, work by person, risks). `--weekly` prints one copy-paste block per project (shipped / in progress / blocked / at risk / next). `--component` narrows either to one component.
 
-**`/op:file-bug`** — Guided bug filing:
+**`/op:file-bug`** walks you through filing a bug:
 
 ```
 /op:file-bug CC button crashes when publishing on Android
 ```
 
-Collects repro/expected/actual/acceptance criteria + the right component/product/label, shows the complete final ticket, and creates it only after you approve that exact content.
+It collects repro steps, expected and actual behavior, acceptance criteria, and the right component/product/label. It shows the complete final ticket and creates it only after you approve that exact content.
 
-**`/op:sprint-prepare`** — Full next-sprint preparation for dev leads:
+**`/op:sprint-prepare`** prepares the next sprint for dev leads:
 
 ```
 /op:sprint-prepare --project app --tickets 123,456 --prd ./prd.md
 /op:sprint-prepare --project app --figma https://figma.com/... --auto
 ```
 
-Finds or creates the next sprint under the project's naming convention (`App_MM/DD/YYYY`, `Web - MM/DD/YYYY`), auto-moves P0/P1 and Sev1/Sev2 backlog items, drafts tickets from IDs / PRD / Figma, and produces a summary. Pauses between phases (`--auto` skips the pauses); new tickets always need your approval of the intent and of the exact content.
+It finds or creates the next sprint under the project's naming convention (`App_MM/DD/YYYY`, `Web - MM/DD/YYYY`), auto-moves P0/P1 and Sev1/Sev2 backlog items, drafts tickets from IDs / PRD / Figma, and produces a summary. It pauses between phases (`--auto` skips the pauses). New tickets always need your approval of the intent and of the exact content.
 
-**`/op:sprint-triage`** — Tag or dispatch a sprint's tickets:
+**`/op:sprint-triage`** tags or dispatches a sprint's tickets:
 
 ```
 /op:sprint-triage components --dry-run
@@ -425,7 +425,7 @@ Finds or creates the next sprint under the project's naming convention (`App_MM/
 
 `components` infers a missing Component from labels (`team#appandroid` → android, `team#appall` → android + ios, `roku` → ott, `team#web` → engineering), then title keywords, then type. `assignees` spreads unassigned tickets across the `team:` roster in `~/.oprc` (see `.oprc.example`) by current load, including teammates with no tickets yet. Both show a plan before writing; `--dry-run` only shows it.
 
-**`/op:sprint-close`** — End-of-sprint workflow: give each "Ready for Release" ticket its product's release and move it to Done:
+**`/op:sprint-close`** closes out a sprint. It gives each "Ready for Release" ticket its product's release and moves it to Done:
 
 ```
 /op:sprint-close
@@ -433,7 +433,7 @@ Finds or creates the next sprint under the project's naming convention (`App_MM/
 /op:sprint-close --release "[iOS][ETV] 1.2.0" --auto
 ```
 
-Matches each ticket's `[Platform][Product]` tag to the open release with that prefix (e.g. `[Android][DJY] …`), confirms the grouped plan, then sets `--release` and `--status=done` in one update per release. `--release` forces one release for all; `--status` overrides the default "ready for release" filter.
+It matches each ticket's `[Platform][Product]` tag to the open release with that prefix (e.g. `[Android][DJY] …`), confirms the grouped plan, then sets `--release` and `--status=done` in one update per release. `--release` forces one release for all; `--status` overrides the default "ready for release" filter.
 
 ### Skill renames in plugin 0.26.0
 
@@ -444,7 +444,7 @@ Fourteen skills became eight. Old commands map to:
 | `/op:ticket-prep <id>` | `/op:ticket-review <id> --pm` |
 | `/op:ticket-verify <id>` | `/op:ticket-review <id> --dev` |
 | `/op:ticket-dod <id>` | `/op:ticket-review <id> --done` |
-| `/op:ticket-review <id>` (posted) | `/op:ticket-review <id> --post` — without `--post` it now only prints |
+| `/op:ticket-review <id>` (posted) | `/op:ticket-review <id> --post`. Without `--post` it now only prints |
 | `/op:standup` | `/op:sprint-report` |
 | `/op:weekly-report -p …` | `/op:sprint-report --weekly -p …` |
 | `/op:assign-components` | `/op:sprint-triage components` |
@@ -462,7 +462,7 @@ Create `~/.oprc` or set environment variables (`OP_URL`, `OP_API_KEY`).
 The project has no open version. Use `--sprint="Name"` to specify one.
 
 **"unknown type/status/priority"**
-Names are case-insensitive with prefix match. The error message shows available options.
+Names are case-insensitive and match by prefix. The error message shows available options.
 
 **"Version filter has invalid values"**
-The default sprint in `~/.oprc` may be stale. Update the `sprint:` field or use `--sprint` flag. Run `op sprint list` to see available sprints.
+The default sprint in `~/.oprc` may be stale. Update the `sprint:` field or use the `--sprint` flag. Run `op sprint list` to see available sprints.

@@ -1,11 +1,11 @@
 # Bot comment, RESULT line and `--detect`
 
-The combined PM + Dev review is printed and, with `--post`, posted in this format. The
+The skill prints the combined PM + Dev review in this format and, with `--post`, posts it. The
 op-agent ticket-reviewer daemon (gitlab-tw `gmedtn/op-agent`, `ticket-reviewer/`) runs
 `claude -p "/ticket-review <id> --post" --allowedTools "Bash(op *),Read,Write"` per
 ticket and parses the RESULT line; before plugin 0.26.0 it ran the same command without
-`--post`, because posting was the default then. Its config is written by
-`/ticket-review --detect`.
+`--post`, because posting was the default then. `/ticket-review --detect` writes
+its config.
 
 ## Config
 
@@ -19,18 +19,18 @@ exists. Defaults when it doesn't:
 Run this on the `op comment <id>` listing before posting, so the bot never posts twice
 for the same ticket version:
 - Find the most recent comment containing the marker (the bot's last review).
-- None → post (first review).
-- One exists and no later comment contains the trigger phrase → don't post; print
+- If there is none, post (first review).
+- If one exists and no later comment contains the trigger phrase, don't post. Print
   `RESULT id=<id> posted=skipped reason=already-reviewed` and stop.
-- One exists and a later comment from a non-bot author contains the trigger phrase →
+- If one exists and a later comment from a non-bot author contains the trigger phrase,
   post (re-review requested).
 
-Without `--post` the guard is skipped: a person asking for a review wants to read it
+Without `--post`, skip the guard, because a person asking for a review wants to read it
 even when the bot already commented.
 
 ## Comment format
 
-The comment is role-layered so business, product and dev each find their part fast. The
+The comment has a section per role, so business, product and dev each find their part fast. The
 plain-terms block comes first after the title so a non-technical reader gets the whole
 picture without scrolling into jargon.
 
@@ -68,19 +68,19 @@ Hi @<creator> — automated readiness review below. Please address the items, th
 Rules:
 - The marker is the first line, because the daemon and later runs find the bot's own
   comment by it.
-- The plain-terms block stays first after the title, one plain sentence per line: it is
-  the shared, jargon-free view (Impact Map Why / Who / What) any role can read.
-- Use plain headed sections, not `<details>`: OpenProject sanitizes comment HTML, so
+- The plain-terms block stays first after the title, one plain sentence per line. It is
+  the shared, jargon-free view (Impact Map Why / Who / What) that any role can read.
+- Use plain headed sections, not `<details>`, because OpenProject sanitizes comment HTML, so
   `<details>` can render as raw text.
-- Status ↔ overall: 🟢 = overall `READY`; 🟡/🔴 = `NEEDS WORK` (🔴 when PM = NEEDS
-  REWRITE or Dev = BLOCKED, 🟡 otherwise). The RESULT line keeps the binary token; the
+- Status maps to overall: 🟢 means overall `READY`, and 🟡/🔴 mean `NEEDS WORK` (🔴 when PM is NEEDS
+  REWRITE or Dev is BLOCKED, 🟡 otherwise). The RESULT line keeps the binary token; the
   traffic light is presentation only.
 - List only the items that matter.
 
 ## RESULT line
 
-The last line of output for a combined PM + Dev review, posted or not. One line of
-space-separated `key=value` tokens; every value is a single token with no spaces (the
+It is the last line of output for a combined PM + Dev review, posted or not: one line of
+space-separated `key=value` tokens. Every value is a single token with no spaces (the
 underscore forms below), because the daemon splits on whitespace and reports these
 fields per project to a status webhook.
 
@@ -100,12 +100,12 @@ RESULT id=<id> posted=skipped reason=already-reviewed
 ## Prefix detection (`--detect`)
 
 One-time daemon setup: work out what the BR- / AR- / APP- prefixes map to.
-1. `op projects` — list project identifiers.
-2. Identifiers match BR / AR / APP (case-insensitive) → `prefixMapping: "projects"`, and
+1. Run `op projects` to list project identifiers.
+2. If identifiers match BR / AR / APP (case-insensitive), set `prefixMapping: "projects"` and
    record the matching identifiers in `projects`.
-3. Otherwise `op show` a few recent tickets and inspect subjects for `BR-/AR-/APP-` and
-   the JIRA ID field → `subject-prefix` or `jira-id`.
-4. Inconclusive → stop and report exactly what was found. Don't guess, because the
+3. Otherwise run `op show` on a few recent tickets and inspect subjects for `BR-/AR-/APP-` and
+   the JIRA ID field to choose `subject-prefix` or `jira-id`.
+4. If that is inconclusive, stop and report exactly what you found. Don't guess, because the
    daemon enumerates tickets from this file.
 5. Write the result to the config file (default `~/.claude/state/ticket-reviewer.config.json`):
    ```json

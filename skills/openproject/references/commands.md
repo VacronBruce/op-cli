@@ -1,9 +1,9 @@
-# `op` Command Reference
+# `op` command reference
 
 Full command and flag reference. For custom-field values (components, products,
 tech-areas, labels, priority), see `references/custom-fields.md`.
 
-## Daily Operations
+## Daily operations
 ```bash
 op board                              # Sprint board (kanban view)
 op board --status=blocked             # Board filtered by status (matches "in-progress" → "In progress")
@@ -27,24 +27,24 @@ op start <id>                         # Start work: create/checkout branch <proj
                                       #   move ticket to In Progress, assign it to you (run in a git repo)
 ```
 
-> **No project set?** With neither `-p` nor `OP_PROJECT`, `op my` auto-detects
-> the project + sprint holding most of your recent open work, shows it, and
+> With neither `-p` nor `OP_PROJECT` set, `op my` auto-detects
+> the project and sprint holding most of your recent open work, shows it, and
 > suggests `op overview` (all projects) or `op my -p <id> --sprint "<name>"`
-> to broaden/pin. Set `project:` in `~/.oprc` to fix a default.
+> to broaden or pin the view. Set `project:` in `~/.oprc` to fix a default.
 
 > `op show` and `op check` read the **User Story** custom field (customField36)
-> when present; `op check` counts a populated User Story field as satisfying the
+> when present. `op check` counts a populated User Story field as satisfying the
 > user-story requirement even if the description has no "As a…" text.
 
-> **Inline comment images:** screenshots pasted into comments are stored in
+> **Inline comment images:** OpenProject stores screenshots pasted into comments in
 > `Activity::Comment` containers, so they do NOT appear in the work package's
 > `/attachments` list. `op comment` renders them as `[image #ID: filename]`
-> markers (instead of raw `<img>` HTML), `op show` lists them under "Inline
-> images in comments" and includes them in `--download` (named `<id>-<filename>`),
-> and `op check` counts them toward the "Has attachments" rule so a bug/feature
-> whose only screenshots live in a comment is not flagged as having none.
+> markers (instead of raw `<img>` HTML). `op show` lists them under "Inline
+> images in comments" and includes them in `--download` (named `<id>-<filename>`).
+> `op check` counts them toward the "Has attachments" rule, so it doesn't flag a bug/feature
+> whose only screenshots live in a comment as having none.
 
-## Create & Update
+## Create & update
 ```bash
 op create <type> "<subject>" [flags]  # Create work package
   # Types: task, bug, feature, epic, user-story, milestone
@@ -83,9 +83,9 @@ op comment <id> "message" --edit=<comment-id>  # Edit an existing comment's text
 
 > **Ticket URLs:** `op create`, `op update`, and `op comment` (post/edit) print the
 > work package's browser URL (`<base>/work_packages/<id>`) after the confirmation
-> line — include it when reporting the result so the ticket is one click away.
+> line. Include it when you report the result, so the ticket is one click away.
 
-## Sprint Management
+## Sprint management
 ```bash
 op sprint list                        # List all sprints (ID, status, dates)
 op sprint create "<name>" --start=YYYY-MM-DD  # Create a sprint; --end defaults to start+13d
@@ -97,7 +97,7 @@ op sprint progress -v                 # Full sprint report for stakeholders
 op sprint close                       # Sprint close summary + carryover list
 ```
 
-## Releases / Versions
+## Releases / versions
 ```bash
 op release list                       # List all releases (versions) for the project
 op release create "<name>"            # Create a release, e.g. "[iOS][ETV] 1.0.9" (status open)
@@ -113,12 +113,12 @@ op update <id> --release="<name>"     # Assign a work package to a release (reso
 ```
 
 > A ticket's release is custom field 50, not the built-in version field (that one is
-> the sprint), which is why `op board`/`op my` filters can't list a release; use
-> `op release show`. Release descriptions are **plain text** in OpenProject: Markdown
+> the sprint), which is why `op board`/`op my` filters can't list a release. Use
+> `op release show` instead. Release descriptions are **plain text** in OpenProject, so Markdown
 > such as `## Heading` or `**bold**` shows literally.
 
 > `--release` resolves the name against the project's existing releases (kind
-> `release`); an unknown name fails with the list of available releases, and the
+> `release`). An unknown name fails with the list of available releases, and the
 > flag tab-completes. `op release create` makes a *new* release.
 
 ## Backlog
@@ -130,13 +130,13 @@ op backlog --type bug                 # Filter by work package type (e.g. bug, t
 op backlog --type bug --priority sev1,sev2  # Combine filters
 ```
 
-## Version & Upgrade
+## Version & upgrade
 ```bash
 op version                            # Show current version
 op upgrade                            # Self-update to latest release
 ```
 
-## Quality Checks
+## Quality checks
 ```bash
 op check <id>                         # Definition-of-Ready gate for one ticket
 op check <id> --strict                # Treat warnings as failures
@@ -147,17 +147,17 @@ op check --sprint --sprint-name="App_11/03/2026"  # A named sprint instead of th
 ```
 
 `op check` is the **Definition-of-Ready gate**. It prints a deterministic
-completeness score — `Score: 5/8 (63%) — NEEDS WORK` — where the percent is
+completeness score such as `Score: 5/8 (63%) — NEEDS WORK`. The percent is
 `Pass=100, Warn=50, Fail=0` averaged (reproducible, not a guess), and the gate is
 `READY` unless any check FAILs (a WARN is advisory and never blocks).
 
 **Tuning the checks (`OP_DOR_CONFIG`).** By default each work-package type uses a
-baked-in check set. Point `OP_DOR_CONFIG` at a JSON file to add/drop checks per
+built-in check set. Point `OP_DOR_CONFIG` at a JSON file to add/drop checks per
 type without a code change. Check IDs: `description`, `acceptance_criteria`,
 `use_case`, `business_value`, `reproduction_steps`, `story_points`, `assignee`,
 `priority`, `attachments`, `parent_epic`, `component`, `well_formed` (QUS role+means),
 `atomic` (QUS one-feature-per-story; opt-in, advisory), `no_blockers` (INVEST
-Independent — advisory Warn when the ticket is blocked by other work; default for
+Independent, an advisory Warn when other work blocks the ticket; default for
 bug/feature/task, not epic). Story/User Story fold onto
 `feature`; the `""` key is the fallback for unknown types. An unknown ID, missing
 file, or bad JSON fails loudly rather than silently dropping a check.
@@ -166,28 +166,28 @@ file, or bad JSON fails loudly rather than silently dropping a check.
              "feature": ["description", "acceptance_criteria", "well_formed", "atomic"] } }
 ```
 
-> **Definition of Done** is the exit gate mirror of this: invoke /op:ticket-review
+> **Definition of Done** is the matching exit gate. Invoke /op:ticket-review
 > --done before closing a ticket. Most DoD items (tests, review, deploy) live
 > outside OpenProject, so it is a guided review, not an `op` subcommand.
 
-## Setup & Config
+## Setup & config
 ```bash
 op setup                              # [ok]/[--] health check: config, key, connection, project, sprint, completion
 op setup --sprint="<name>"            # update one ~/.oprc key in place (also --project, --api-key, --url)
 ```
-Works without valid config — it's the tool for diagnosing config problems.
+`op setup` works without a valid config, so use it to diagnose config problems.
 
-## Custom Fields
+## Custom fields
 ```bash
 op fields                             # List custom fields (name, field key, option count)
 op fields component                   # List the allowed --component values
 ```
-Shows the same registry the `--component`/`--product`/`--tech-area`/`--label`/
-`--jira-id` flags resolve against, including `~/.oprc` overrides. Works without
+`op fields` shows the same registry the `--component`/`--product`/`--tech-area`/`--label`/
+`--jira-id` flags resolve against, including `~/.oprc` overrides. It works without
 URL/API-key config.
 
-## Global Flags
-- `-p, --project <id>` — Override default project
+## Global flags
+- `-p, --project <id>`: override the default project
 - `--sprint <name>` is not global: `board`, `my`, `my team`, `sprint add`, `create` and
   `update` take it (`check --sprint` uses `--sprint-name`). `sprint progress`, `blocked`
   and `sprint close` have no sprint flag and always use the first open version whose
