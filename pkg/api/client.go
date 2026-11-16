@@ -124,8 +124,25 @@ func NewClient(baseURL, apiKey, project string) *Client {
 		APIKey:  apiKey,
 		Project: project,
 		HTTPClient: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout:       60 * time.Second,
+			CheckRedirect: keepAPIKeyOnBase(baseURL),
 		},
+	}
+}
+
+// keepAPIKeyOnBase drops the API key from a redirect that leaves the base URL's
+// scheme and host. Go itself keeps it for the same hostname on another port,
+// for https to http, and for subdomains.
+func keepAPIKeyOnBase(baseURL string) func(*http.Request, []*http.Request) error {
+	base, err := url.Parse(baseURL)
+	return func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return fmt.Errorf("stopped after 10 redirects")
+		}
+		if err != nil || req.URL.Scheme != base.Scheme || !strings.EqualFold(req.URL.Host, base.Host) {
+			req.Header.Del("Authorization")
+		}
+		return nil
 	}
 }
 

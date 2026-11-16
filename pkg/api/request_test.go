@@ -89,3 +89,44 @@ func TestRequest_NonSuccessIsReturnedNotErrored(t *testing.T) {
 		t.Errorf("status %d body %s err %v", status, body, err)
 	}
 }
+
+func TestRedirectOffTheBaseHostDropsTheAPIKey(t *testing.T) {
+	other, got := requestServer(t, 200, `{}`)
+	base := httptest.NewServer(http.RedirectHandler(other.URL+"/api/v3/statuses", http.StatusFound))
+	t.Cleanup(base.Close)
+	c := NewClient(base.URL, "secret", "")
+
+	if _, _, err := c.Request("GET", "statuses", nil); err != nil {
+		t.Fatalf("Request: %v", err)
+	}
+	var v map[string]interface{}
+	if err := c.Get("/statuses", &v); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+
+	if got.hits != 2 {
+		t.Fatalf("expected both redirects to be followed, got %d hits", got.hits)
+	}
+	if got.user != "" || got.pass != "" {
+		t.Errorf("the API key reached %s: user=%q pass=%q", other.URL, got.user, got.pass)
+	}
+}
+
+func TestRedirectWithinTheBaseHostKeepsTheAPIKey(t *testing.T) {
+	var user string
+	mux := http.NewServeMux()
+	mux.Handle("/api/v3/old", http.RedirectHandler("/api/v3/new", http.StatusFound))
+	mux.HandleFunc("/api/v3/new", func(w http.ResponseWriter, r *http.Request) {
+		user, _, _ = r.BasicAuth()
+		_, _ = w.Write([]byte(`{}`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	if _, _, err := NewClient(srv.URL, "secret", "").Request("GET", "old", nil); err != nil {
+		t.Fatalf("Request: %v", err)
+	}
+	if user != "apikey" {
+		t.Errorf("same-host redirect lost the API key, user=%q", user)
+	}
+}
