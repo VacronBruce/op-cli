@@ -66,3 +66,16 @@ func TestFields_UnknownFieldFailsListingKnown(t *testing.T) {
 		t.Errorf("error must list the known field names, got: %v", err)
 	}
 }
+
+func TestFields_StatusPointsToUpdateAndStatusesEndpoint(t *testing.T) {
+	var err error
+	out := testutil.CaptureStdout(func() { err = runFields(fieldsCmd, []string{"Status"}) })
+	if err != nil {
+		t.Fatalf("status is a real question, not an error: %v", err)
+	}
+	for _, want := range []string{"built-in", "op update <id> --status=", "op api statuses"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in: %s", want, out)
+		}
+	}
+}

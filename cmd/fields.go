@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/spf13/cobra"
@@ -51,6 +52,12 @@ func runFields(cmd *cobra.Command, args []string) error {
 }
 
 func describeField(name string) error {
+	if strings.EqualFold(name, "status") {
+		fmt.Println("status is a built-in OpenProject field, not a custom field.")
+		fmt.Println("Set it with: op update <id> --status=\"<name>\"")
+		fmt.Println("List the allowed values with: op api statuses")
+		return nil
+	}
 	cf, err := api.CustomFieldByName(name)
 	if err != nil {
 		return err
