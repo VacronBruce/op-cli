@@ -46,8 +46,8 @@ op start <id>                         # Start work: create/checkout branch <proj
 
 ```text
 $ op show 86156 85722 --brief
-#86156 [Done] [Android][EET] OneTrust "not determined" consent: event keeps identity keys but is marked denied | Bruce Chen | App_11/17/2026 | [Android][EET] 3.3.3
-#85722 [In Progress] [Android][EET] Align article page_view, wall and click tracking with iOS (#85418 follow-up) | BoHan Chan | App_11/03/2026 | -
+#86156 [Done] [Android][EET] Settings screen loses scroll position after rotation | Bruce Chen | App_11/17/2026 | [Android][EET] 3.3.3
+#85722 [In Progress] [Android][EET] Add share button to the article toolbar | Ada Wang | App_11/03/2026 | -
 ```
 
 > `op search <word>` with a value that is not a key (no `-<digits>`) and no JIRA
@@ -103,7 +103,7 @@ op comment <id> "message" --edit=<comment-id>  # Edit an existing comment's text
 
 ```text
 $ op activity 86156
-[2026-11-03 06:07 UTC] BoHan Chan (#1016154)
+[2026-11-03 06:07 UTC] Ada Wang (#1016154)
   - Type set to Bug
   - Project set to App
 ...
