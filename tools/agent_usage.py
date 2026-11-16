@@ -19,11 +19,11 @@ from datetime import datetime, timezone
 
 OP = re.compile(r"(?:^|[\s;&|(`]|\$\()(?:rtk proxy\s+)?op\s+([a-z][\w-]*)")
 RAW_API = re.compile(r"curl\b[^\n]*/api/v3/")
-READS_ORC = re.compile(r"\.oprc\b")
+READS_ORC = re.compile(r"(?:~|\$HOME)/\.oprc(?![\w.])")
 UNKNOWN = re.compile(r'Error: unknown (command|flag|shorthand flag)[: ]+"?([^"\s]+)')
 BAD_ID = re.compile(r"invalid work package ID: (\S+)")
 JIRA_MISS = re.compile(r'no work package found with JIRA ID "([^"]*)"')
-TOO_MANY_ARGS = re.compile(r"accepts 1 arg\(s\), received \d+")
+SEARCH_WORDS_ERROR = re.compile(r"accepts 1 arg\(s\), received [2-9]|op search takes one value|quote the words: op search")
 KEY_SHAPED = re.compile(r"-\d+$")
 HOOK_DENIED = re.compile(r"PreToolUse:Bash hook error: This command posts or edits an OpenProject comment")
 SHOW_PIPED = re.compile(r"\bop\s+show\s+[^|;\n]*\|\s*(head|grep|sed|tail)\b")
@@ -104,7 +104,7 @@ def main():
             counts["for-loops over ticket ids"] += bool(ID_LOOP.search(cmd))
             counts["op search given free text"] += sum(
                 not KEY_SHAPED.search(q) for q in JIRA_MISS.findall(out)) + (
-                "search" in used and bool(TOO_MANY_ARGS.search(out)))
+                "search" in used and bool(SEARCH_WORDS_ERROR.search(out)))
             for kind, name in UNKNOWN.findall(out):
                 errors[f"{kind} {name}"] += 1
             for word in BAD_ID.findall(out):
