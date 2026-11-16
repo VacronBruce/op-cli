@@ -130,3 +130,26 @@ func TestRedirectWithinTheBaseHostKeepsTheAPIKey(t *testing.T) {
 		t.Errorf("same-host redirect lost the API key, user=%q", user)
 	}
 }
+
+// Attachment hrefs can be full URLs on object storage. Those need no key, and
+// the key must never leave the OpenProject host.
+func TestDoRawSendsTheAPIKeyOnlyToTheBaseHost(t *testing.T) {
+	other, offHost := requestServer(t, 200, `file`)
+	base, onHost := requestServer(t, 200, `{}`)
+	c := NewClient(base.URL, "secret", "")
+
+	for _, href := range []string{other.URL + "/bucket/a.png", "/api/v3/attachments/1/content", base.URL + "/api/v3/x"} {
+		resp, err := c.DoRaw("GET", href)
+		if err != nil {
+			t.Fatalf("DoRaw(%s): %v", href, err)
+		}
+		resp.Body.Close()
+	}
+
+	if offHost.hits != 1 || offHost.user != "" || offHost.pass != "" {
+		t.Errorf("the API key reached %s: hits=%d user=%q pass=%q", other.URL, offHost.hits, offHost.user, offHost.pass)
+	}
+	if onHost.hits != 2 || onHost.user != "apikey" || onHost.pass != "secret" {
+		t.Errorf("the OpenProject host lost the key: hits=%d user=%q", onHost.hits, onHost.user)
+	}
+}

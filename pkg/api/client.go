@@ -134,16 +134,22 @@ func NewClient(baseURL, apiKey, project string) *Client {
 // scheme and host. Go itself keeps it for the same hostname on another port,
 // for https to http, and for subdomains.
 func keepAPIKeyOnBase(baseURL string) func(*http.Request, []*http.Request) error {
-	base, err := url.Parse(baseURL)
 	return func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 10 {
 			return fmt.Errorf("stopped after 10 redirects")
 		}
-		if err != nil || req.URL.Scheme != base.Scheme || !strings.EqualFold(req.URL.Host, base.Host) {
+		if !onBase(baseURL, req.URL) {
 			req.Header.Del("Authorization")
 		}
 		return nil
 	}
+}
+
+// onBase reports whether u has the base URL's scheme and host, the only place
+// the API key may go.
+func onBase(baseURL string, u *url.URL) bool {
+	base, err := url.Parse(baseURL)
+	return err == nil && u.Scheme == base.Scheme && strings.EqualFold(u.Host, base.Host)
 }
 
 // WorkPackageURL returns the browser URL of a work package.
@@ -236,22 +242,25 @@ func (c *Client) Patch(path string, body interface{}, result interface{}) error 
 	return nil
 }
 
-// DoRaw performs an authenticated request and returns the raw response.
+// DoRaw performs a request and returns the raw response, authenticated only
+// when the href is on the OpenProject host.
 // Unlike Get/Post/Patch, the href is NOT prefixed with "/api/v3": it must be
 // a full URL or a server-rooted path (e.g. "/api/v3/work_packages/1/activities"),
 // matching the href format the API returns in _links.
 func (c *Client) DoRaw(method, href string) (*http.Response, error) {
-	url := href
+	target := href
 	if !strings.HasPrefix(href, "http") {
-		url = c.BaseURL + href
+		target = c.BaseURL + href
 	}
 
-	req, err := http.NewRequest(method, url, nil)
+	req, err := http.NewRequest(method, target, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	req.SetBasicAuth("apikey", c.APIKey)
+	if onBase(c.BaseURL, req.URL) {
+		req.SetBasicAuth("apikey", c.APIKey)
+	}
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
