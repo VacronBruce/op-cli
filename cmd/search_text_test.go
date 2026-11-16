@@ -6,6 +6,7 @@ import (
 
 	"github.com/chenhuijun/op-cli/internal/testutil"
 	"github.com/chenhuijun/op-cli/pkg/api"
+	"github.com/spf13/cobra"
 )
 
 func subjectFilterValue(t *testing.T, filters []api.Filter) (string, string) {
@@ -83,5 +84,14 @@ func TestSearch_UnfoundWordSuggestsTextSearch(t *testing.T) {
 	_, err = runSearchWith(t, mock, nil, []string{"WP-99"})
 	if err == nil || strings.Contains(err.Error(), "--text") {
 		t.Errorf("a key-shaped value must not suggest --text, got %v", err)
+	}
+}
+
+func TestSearch_SeveralUnquotedWordsSuggestTextSearch(t *testing.T) {
+	c := &cobra.Command{}
+	c.Flags().String("text", "", "")
+	err := searchArgs(c, []string{"paywall", "tracking"})
+	if err == nil || !strings.Contains(err.Error(), `op search --text "paywall tracking"`) {
+		t.Errorf("expected --text suggestion, got %v", err)
 	}
 }

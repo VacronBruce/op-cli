@@ -37,12 +37,7 @@ Examples:
   op search BUG-655
   op search AR-178 --field key
   op search AR-178 --scan --project app`,
-	Args: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flags().Changed("text") {
-			return cobra.NoArgs(cmd, args)
-		}
-		return cobra.ExactArgs(1)(cmd, args)
-	},
+	Args: searchArgs,
 	RunE: runSearch,
 }
 
@@ -60,9 +55,21 @@ const (
 	searchTextSort     = `[["updatedAt","desc"]]`
 )
 
-var hasNumberSuffixRe = regexp.MustCompile(`-\d+`)
+var keyShapedRe = regexp.MustCompile(`-\d+$`)
+
+func searchArgs(cmd *cobra.Command, args []string) error {
+	if cmd.Flags().Changed("text") {
+		return cobra.NoArgs(cmd, args)
+	}
+	if len(args) > 1 {
+		cmd.SilenceUsage = true
+		return fmt.Errorf("op search takes one value; to search subjects use: op search --text %q", strings.Join(args, " "))
+	}
+	return cobra.ExactArgs(1)(cmd, args)
+}
 
 func runSearch(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	if cmd.Flags().Changed("text") {
 		text, _ := cmd.Flags().GetString("text")
 		project, _ := cmd.Flags().GetString("project")
@@ -105,7 +112,7 @@ func runSearch(cmd *cobra.Command, args []string) error {
 				return nil
 			}
 		}
-		if !hasNumberSuffixRe.MatchString(query) {
+		if !keyShapedRe.MatchString(query) {
 			return fmt.Errorf("no work package found with JIRA ID %q; to search subjects use: op search --text %q", query, query)
 		}
 		return fmt.Errorf("no work package found with JIRA ID %q", query)
