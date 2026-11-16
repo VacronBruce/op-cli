@@ -110,6 +110,14 @@ check and update the docs that demonstrate it — they drift silently otherwise:
 Every command/flag/output example shown in those files must still match real `op` output.
 If a change touches them, update them in the same commit; if you can't verify an example, say so.
 
+## Measuring agent usage
+
+`python3 tools/agent_usage.py --days 7` reads the Claude Code transcripts under
+`~/.claude/projects` and counts the turns agents wasted on `op`: curl calls to the
+raw API, comment reads the outbound hook denied, `op show` piped into head or grep,
+loops over ticket IDs, and unknown command or flag errors. Run it before and after a
+release that changes agent-facing commands and compare the counters.
+
 ## Release
 
 Releases live on **GitHub** at `VacronBruce/op-cli` (public repo). The repo is
