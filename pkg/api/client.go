@@ -125,6 +125,7 @@ func NewClient(baseURL, apiKey, project string) *Client {
 		Project: project,
 		HTTPClient: &http.Client{
 			Timeout:       60 * time.Second,
+			Transport:     newTransport(),
 			CheckRedirect: keepAPIKeyOnBase(baseURL),
 		},
 	}
