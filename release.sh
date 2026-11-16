@@ -16,6 +16,11 @@ REPO="VacronBruce/op-cli"
 echo "=== Releasing op-cli ${VERSION} ==="
 echo ""
 
+# Step 0: a release never ships a binary whose tests fail.
+echo "0/4 Testing..."
+go vet ./...
+go test ./...
+
 # Step 1: Build
 echo "1/4 Building binaries..."
 LDFLAGS="-X github.com/chenhuijun/op-cli/cmd.Version=${VERSION#v}"
