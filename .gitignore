@@ -26,3 +26,6 @@ dist/
 
 # local secrets (GITLAB_TOKEN etc.)
 .env
+
+# Python bytecode (release.sh runs git add -A)
+__pycache__/
