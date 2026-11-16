@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -12,37 +13,113 @@ import (
 )
 
 var showCmd = &cobra.Command{
-	Use:   "show <id>",
+	Use:   "show <id>...",
 	Short: "Show work package details and attachments",
-	Long: `Show full details of a work package including attachments.
+	Long: `Show full details of one or more work packages including attachments.
+
+Several IDs print each block in order; an ID that fails is reported on stderr,
+the rest still print, and the exit status is non-zero.
 
 Examples:
   op show 81321
+  op show 81321 81322 --brief Status, assignee, sprint, release on one line each
+  op show 81321 --json        Raw API JSON (an array for several IDs)
   op show 81321 --url         Print only the browser URL
   op show 81321 --download    Download all attachments to current directory
   op show 81321 --download --out=/tmp`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MinimumNArgs(1),
 	RunE: runShow,
 }
 
 func init() {
 	rootCmd.AddCommand(showCmd)
-	showCmd.Flags().Bool("url", false, "Print only the browser URL and exit")
+	showCmd.Flags().Bool("url", false, "Print only the browser URL (one per ID) and exit")
+	showCmd.Flags().Bool("brief", false, "One line per ID: #id [status] subject | assignee | sprint | release")
+	showCmd.Flags().Bool("json", false, "Print the raw work package JSON and nothing else")
 	showCmd.Flags().BoolP("download", "d", false, "Download attachments")
 	showCmd.Flags().StringP("out", "o", ".", "Download directory")
+	showCmd.MarkFlagsMutuallyExclusive("brief", "json", "download")
 }
 
 func runShow(cmd *cobra.Command, args []string) error {
-	id, err := parseWorkPackageID(args[0])
+	cmd.SilenceUsage = true
+	urlOnly, _ := cmd.Flags().GetBool("url")
+	brief, _ := cmd.Flags().GetBool("brief")
+	asJSON, _ := cmd.Flags().GetBool("json")
+
+	var raws []json.RawMessage
+	failed := 0
+	for i, arg := range args {
+		id, err := parseWorkPackageID(arg)
+		if err == nil {
+			switch {
+			case urlOnly:
+				fmt.Println(client.WorkPackageURL(id))
+			case asJSON:
+				var raw json.RawMessage
+				if raw, err = fetchWorkPackageJSON(id); err == nil {
+					raws = append(raws, raw)
+				}
+			case brief:
+				var wp *api.WorkPackage
+				if wp, err = client.GetWorkPackage(id); err != nil {
+					err = fmt.Errorf("getting work package: %w", err)
+				} else {
+					fmt.Println(display.WorkPackageBrief(wp))
+				}
+			default:
+				if i > 0 {
+					fmt.Println()
+				}
+				err = showFull(cmd, id)
+			}
+		}
+		if err != nil {
+			if len(args) == 1 {
+				return err
+			}
+			failed++
+			fmt.Fprintf(os.Stderr, "Error: %s: %s\n", arg, err)
+		}
+	}
+
+	if asJSON {
+		if err := printJSON(raws, len(args) == 1); err != nil {
+			return err
+		}
+	}
+	if failed > 0 {
+		return fmt.Errorf("%d of %d work packages failed", failed, len(args))
+	}
+	return nil
+}
+
+func fetchWorkPackageJSON(id int) (json.RawMessage, error) {
+	resp, err := client.DoRaw("GET", fmt.Sprintf("/api/v3/work_packages/%d", id))
+	if err != nil {
+		return nil, fmt.Errorf("getting work package: %w", err)
+	}
+	defer resp.Body.Close()
+	return io.ReadAll(resp.Body)
+}
+
+func printJSON(raws []json.RawMessage, single bool) error {
+	var v interface{} = raws
+	if single {
+		if len(raws) == 0 {
+			return nil
+		}
+		v = raws[0]
+	}
+	out, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return err
 	}
+	fmt.Println(string(out))
+	return nil
+}
 
-	if urlOnly, _ := cmd.Flags().GetBool("url"); urlOnly {
-		fmt.Println(client.WorkPackageURL(id))
-		return nil
-	}
-
+func showFull(cmd *cobra.Command, id int) error {
 	wp, err := client.GetWorkPackage(id)
 	if err != nil {
 		return fmt.Errorf("getting work package: %w", err)

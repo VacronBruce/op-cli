@@ -19,6 +19,8 @@ import (
 func newShowCmd() *cobra.Command {
 	cmd := &cobra.Command{}
 	cmd.Flags().Bool("url", false, "")
+	cmd.Flags().Bool("brief", false, "")
+	cmd.Flags().Bool("json", false, "")
 	cmd.Flags().BoolP("download", "d", false, "")
 	cmd.Flags().StringP("out", "o", ".", "")
 	return cmd

@@ -65,9 +65,8 @@ func WorkPackageDetail(wp *api.WorkPackage) {
 	if wp.Links.Version.Title != "" {
 		fmt.Printf("  Sprint:     %s\n", wp.Links.Version.Title)
 	}
-	// Release lives on customField50 as an array holding at most one release.
-	if len(wp.Links.Release) > 0 && wp.Links.Release[0].Title != "" {
-		fmt.Printf("  Release:    %s\n", wp.Links.Release[0].Title)
+	if release := releaseTitle(wp); release != "" {
+		fmt.Printf("  Release:    %s\n", release)
 	}
 	if wp.UserStory != nil && wp.UserStory.Raw != "" {
 		fmt.Printf("  User Story:\n    %s\n", wp.UserStory.Raw)
@@ -75,6 +74,27 @@ func WorkPackageDetail(wp *api.WorkPackage) {
 	if wp.Description != nil && wp.Description.Raw != "" {
 		fmt.Printf("  Description:\n    %s\n", wp.Description.Raw)
 	}
+}
+
+// releaseTitle lives on customField50 as an array holding at most one release.
+func releaseTitle(wp *api.WorkPackage) string {
+	if len(wp.Links.Release) > 0 {
+		return wp.Links.Release[0].Title
+	}
+	return ""
+}
+
+// WorkPackageBrief renders the one-line summary printed by "op show --brief".
+func WorkPackageBrief(wp *api.WorkPackage) string {
+	return fmt.Sprintf("#%d [%s] %s | %s | %s | %s", wp.ID, wp.Links.Status.Title, wp.Subject,
+		orDash(wp.Links.Assignee.Title), orDash(wp.Links.Version.Title), orDash(releaseTitle(wp)))
+}
+
+func orDash(s string) string {
+	if s == "" {
+		return "-"
+	}
+	return s
 }
 
 // GroupByAssignee groups work packages by assignee and prints them.
