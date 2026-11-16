@@ -13,8 +13,9 @@ import (
 )
 
 var showCmd = &cobra.Command{
-	Use:   "show <id>...",
-	Short: "Show work package details and attachments",
+	Use:     "show <id>...",
+	Aliases: []string{"view"},
+	Short:   "Show work package details and attachments",
 	Long: `Show full details of one or more work packages including attachments.
 
 Several IDs print each block in order; an ID that fails is reported on stderr,

@@ -9,8 +9,9 @@ import (
 )
 
 var fieldsCmd = &cobra.Command{
-	Use:   "fields [name]",
-	Short: "List custom fields and their allowed values",
+	Use:        "fields [name]",
+	SuggestFor: []string{"statuses", "status"},
+	Short:      "List custom fields and their allowed values",
 	Long: `List the logical custom fields behind --component, --product,
 --tech-area, --label, and --jira-id, or the allowed values of one field.
 

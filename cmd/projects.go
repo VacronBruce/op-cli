@@ -9,9 +9,10 @@ import (
 )
 
 var projectsCmd = &cobra.Command{
-	Use:   "projects",
-	Short: "List all accessible projects",
-	RunE:  runProjects,
+	Use:     "projects",
+	Aliases: []string{"project"},
+	Short:   "List all accessible projects",
+	RunE:    runProjects,
 }
 
 func init() {
