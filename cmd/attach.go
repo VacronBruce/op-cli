@@ -2,21 +2,25 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
+	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/spf13/cobra"
 )
 
 var attachCmd = &cobra.Command{
 	Use:   "attach <id> [<file>...]",
-	Short: "Upload, list, or remove attachments on a work package",
+	Short: "Upload, list, download, or remove attachments on a work package",
 	Long: `Upload one or more files to an existing work package, list its
-attachments (with their IDs), or remove one by attachment ID.
+attachments (with their IDs), download one by attachment ID (including
+images pasted into comments), or remove one by attachment ID.
 
 Examples:
   op attach 81317 screenshot.png
   op attach 81317 bug.png crash.log --desc="CC button screenshot"
   op attach 81317 --list               List attachments with their IDs
+  op attach 81317 --get=318 -o /tmp    Download attachment #318 as /tmp/318-<name>
   op attach 81317 --remove=318         Remove attachment #318`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: runAttach,
@@ -27,6 +31,9 @@ func init() {
 	attachCmd.Flags().String("desc", "", "Description for the attachment(s)")
 	attachCmd.Flags().Bool("list", false, "List the work package's attachments")
 	attachCmd.Flags().Int("remove", 0, "Remove an attachment by its ID (see --list)")
+	attachCmd.Flags().Int("get", 0, "Download an attachment by its ID (see --list)")
+	attachCmd.Flags().StringP("out", "o", ".", "Directory for --get")
+	attachCmd.MarkFlagsMutuallyExclusive("list", "remove", "get")
 }
 
 func runAttach(cmd *cobra.Command, args []string) error {
@@ -44,6 +51,10 @@ func runAttach(cmd *cobra.Command, args []string) error {
 	if list {
 		return listAttachments(id)
 	}
+	if getID, _ := cmd.Flags().GetInt("get"); getID > 0 {
+		outDir, _ := cmd.Flags().GetString("out")
+		return getAttachment(getID, outDir)
+	}
 	if removeID > 0 {
 		return removeAttachment(id, removeID)
 	}
@@ -52,7 +63,7 @@ func runAttach(cmd *cobra.Command, args []string) error {
 
 	files := args[1:]
 	if len(files) == 0 {
-		return fmt.Errorf("provide files to upload, or use --list / --remove=<attachment-id>")
+		return fmt.Errorf("provide files to upload, or use --list, --get=<attachment-id> or --remove=<attachment-id>")
 	}
 	failures := 0
 	for _, filePath := range files {
@@ -86,6 +97,21 @@ func listAttachments(id int) error {
 	for _, att := range col.Embedded.Elements {
 		fmt.Printf("  #%-6d %s (%s, %d bytes)\n", att.ID, att.FileName, att.ContentType, att.FileSize)
 	}
+	return nil
+}
+
+// getAttachment downloads one attachment, named <id>-<file name> so pasted
+// screenshots, which are all image.png, don't overwrite each other.
+func getAttachment(attID int, outDir string) error {
+	var att api.Attachment
+	if err := client.Get(fmt.Sprintf("/attachments/%d", attID), &att); err != nil {
+		return fmt.Errorf("getting attachment #%d: %w", attID, err)
+	}
+	outPath := filepath.Join(outDir, fmt.Sprintf("%d-%s", attID, safeFileName(att.FileName, "attachment")))
+	if err := downloadAttachment(att.Links.DownloadLocation.Href, outPath); err != nil {
+		return fmt.Errorf("downloading attachment #%d: %w", attID, err)
+	}
+	fmt.Printf("Downloaded: %s\n", outPath)
 	return nil
 }
 

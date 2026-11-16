@@ -14,6 +14,8 @@ func newAttachCmd() *cobra.Command {
 	c.Flags().String("desc", "", "")
 	c.Flags().Bool("list", false, "")
 	c.Flags().Int("remove", 0, "")
+	c.Flags().Int("get", 0, "")
+	c.Flags().StringP("out", "o", ".", "")
 	return c
 }
 
