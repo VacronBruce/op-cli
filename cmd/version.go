@@ -25,6 +25,7 @@ var versionCmd = &cobra.Command{
 
 func printVersion() {
 	fmt.Printf("op-cli %s (%s/%s)\n", Version, runtime.GOOS, runtime.GOARCH)
+	printUpdateNotice()
 }
 
 var upgradeCmd = &cobra.Command{

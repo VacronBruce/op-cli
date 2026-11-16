@@ -63,8 +63,14 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+// Execute runs op. After a failure it also says when a newer release exists,
+// since the plugin's skills may describe commands this binary lacks.
 func Execute() error {
-	return rootCmd.Execute()
+	err := rootCmd.Execute()
+	if err != nil {
+		printUpdateNotice()
+	}
+	return err
 }
 
 func init() {
