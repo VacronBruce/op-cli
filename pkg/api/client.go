@@ -185,6 +185,11 @@ func (c *Client) do(method, path string, body io.Reader) (*http.Response, error)
 		if json.Unmarshal(data, apiErr) != nil {
 			apiErr.Message = string(data)
 		}
+		if resp.StatusCode == http.StatusNotFound {
+			if msg := c.unknownProjectMessage(path); msg != "" {
+				apiErr.Message = msg
+			}
+		}
 		return nil, apiErr
 	}
 
