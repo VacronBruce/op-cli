@@ -75,7 +75,10 @@ func TestShow_BriefIsOneLinePerIDWithNoExtraRequests(t *testing.T) {
 		1: briefWP(1, "Paywall crash", "In Progress", "Ada", "App_11/17/2026", "[Android][EET] 3.2.1"),
 		2: briefWP(2, "Bare ticket", "To Do", "", "", ""),
 	})
-	mock.ListAttachmentsFn = func(int) (*api.AttachmentCollection, error) { t.Error("brief must not list attachments"); return nil, nil }
+	mock.ListAttachmentsFn = func(int) (*api.AttachmentCollection, error) {
+		t.Error("brief must not list attachments")
+		return nil, nil
+	}
 	mock.ListActivitiesFn = func(int) (*api.ActivityCollection, error) { t.Error("brief must not list activities"); return nil, nil }
 	SetClient(mock)
 	c := newShowCmd()

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
+	"github.com/chenhuijun/op-cli/pkg/display"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +17,7 @@ import (
 var opKeyRe = regexp.MustCompile(`^[A-Z]+-\d+$`)
 
 var searchCmd = &cobra.Command{
-	Use:   "search <value>",
+	Use:   "search <value> | --text <words>",
 	Short: "Map a JIRA ID (or other custom field) to its OpenProject work package",
 	Long: `Find the OpenProject work package(s) whose custom field matches the given value.
 
@@ -26,12 +27,22 @@ search a different custom field (must be configured in ~/.oprc).
 Use --scan to search through activity journals when a ticket key only appears
 in historical activity entries (e.g. a Jira key recorded as a journal note).
 
+Use --text to find work packages whose subject contains the words, across all
+projects or only the one given with -p.
+
 Examples:
+  op search --text "paywall"
+  op search --text "paywall" -p app
   op search WP-23
   op search BUG-655
   op search AR-178 --field key
   op search AR-178 --scan --project app`,
-	Args: cobra.ExactArgs(1),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if cmd.Flags().Changed("text") {
+			return cobra.NoArgs(cmd, args)
+		}
+		return cobra.ExactArgs(1)(cmd, args)
+	},
 	RunE: runSearch,
 }
 
@@ -39,11 +50,24 @@ func init() {
 	rootCmd.AddCommand(searchCmd)
 	searchCmd.Flags().StringP("field", "f", "jira-id", "custom field to search; jira-id prefers exact matches, other fields substring-match (configured in ~/.oprc)")
 	searchCmd.Flags().Bool("scan", false, "scan work package activity journals for the value")
-	searchCmd.Flags().String("project", "", "project identifier to scan (required with --scan)")
+	searchCmd.Flags().StringP("project", "p", "", "project identifier: scopes --text, and is the project to scan with --scan")
+	searchCmd.Flags().String("text", "", "find work packages whose subject contains these words")
 	searchCmd.Flags().Int("limit", 200, "max work packages to scan (with --scan)")
 }
 
+const (
+	searchTextPageSize = 50
+	searchTextSort     = `[["updatedAt","desc"]]`
+)
+
+var hasNumberSuffixRe = regexp.MustCompile(`-\d+`)
+
 func runSearch(cmd *cobra.Command, args []string) error {
+	if cmd.Flags().Changed("text") {
+		text, _ := cmd.Flags().GetString("text")
+		project, _ := cmd.Flags().GetString("project")
+		return runTextSearch(text, project)
+	}
 	query := strings.TrimSpace(args[0])
 	searchField, _ := cmd.Flags().GetString("field")
 	searchScan, _ := cmd.Flags().GetBool("scan")
@@ -81,6 +105,9 @@ func runSearch(cmd *cobra.Command, args []string) error {
 				return nil
 			}
 		}
+		if !hasNumberSuffixRe.MatchString(query) {
+			return fmt.Errorf("no work package found with JIRA ID %q; to search subjects use: op search --text %q", query, query)
+		}
 		return fmt.Errorf("no work package found with JIRA ID %q", query)
 	}
 
@@ -99,6 +126,27 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	for _, wp := range result.Embedded.Elements {
 		fmt.Printf("%s -> #%d  %s  [%s]\n", wp.JiraID, wp.ID, wp.Subject, wp.Links.Status.Title)
 	}
+	return nil
+}
+
+func runTextSearch(text, project string) error {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return fmt.Errorf("--text needs the words to look for")
+	}
+	filters := []api.Filter{api.NewFilter("subject", "~", text)}
+	var result *api.WPCollection
+	var err error
+	if project != "" {
+		result, err = client.ListWorkPackages(project, filters, searchTextSort, searchTextPageSize)
+	} else {
+		result, err = client.ListAllWorkPackages(filters, searchTextSort, searchTextPageSize)
+	}
+	if err != nil {
+		return fmt.Errorf("searching subjects: %w", err)
+	}
+	warnTruncated(result.Total, len(result.Embedded.Elements))
+	display.WorkPackageTable(result.Embedded.Elements)
 	return nil
 }
 

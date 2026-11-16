@@ -25,8 +25,9 @@ func runSearchWith(t *testing.T, mock *testutil.MockClient, flags map[string]str
 	cmd := &cobra.Command{}
 	cmd.Flags().String("field", "jira-id", "")
 	cmd.Flags().Bool("scan", false, "")
-	cmd.Flags().String("project", "", "")
+	cmd.Flags().StringP("project", "p", "", "")
 	cmd.Flags().Int("limit", 200, "")
+	cmd.Flags().String("text", "", "")
 	for name, value := range flags {
 		if err := cmd.Flags().Set(name, value); err != nil {
 			t.Fatalf("setting flag %s=%s: %v", name, value, err)
