@@ -186,10 +186,7 @@ func showFull(cmd *cobra.Command, id int) error {
 					if att == nil {
 						continue
 					}
-					// Prefix with the attachment ID: inline screenshots are often all
-					// named "image.png" and would otherwise overwrite each other.
-					name := fmt.Sprintf("%d-%s", iid, safeFileName(att.FileName, "attachment"))
-					outPath := filepath.Join(outDir, name)
+					outPath := filepath.Join(outDir, idPrefixedFileName(iid, att.FileName))
 					if err := downloadAttachment(att.Links.DownloadLocation.Href, outPath); err != nil {
 						fmt.Printf("  Error downloading #%d: %s\n", iid, err)
 						continue
@@ -212,6 +209,12 @@ func safeFileName(name, fallback string) string {
 		return fallback
 	}
 	return base
+}
+
+// idPrefixedFileName names a downloaded attachment <id>-<file name>: pasted
+// screenshots are often all "image.png" and would otherwise overwrite each other.
+func idPrefixedFileName(id int, name string) string {
+	return fmt.Sprintf("%d-%s", id, safeFileName(name, "attachment"))
 }
 
 func downloadAttachment(href, outPath string) error {

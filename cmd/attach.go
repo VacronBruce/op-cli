@@ -100,14 +100,13 @@ func listAttachments(id int) error {
 	return nil
 }
 
-// getAttachment downloads one attachment, named <id>-<file name> so pasted
-// screenshots, which are all image.png, don't overwrite each other.
+// getAttachment downloads one attachment as <outDir>/<id>-<file name>.
 func getAttachment(attID int, outDir string) error {
 	var att api.Attachment
 	if err := client.Get(fmt.Sprintf("/attachments/%d", attID), &att); err != nil {
 		return fmt.Errorf("getting attachment #%d: %w", attID, err)
 	}
-	outPath := filepath.Join(outDir, fmt.Sprintf("%d-%s", attID, safeFileName(att.FileName, "attachment")))
+	outPath := filepath.Join(outDir, idPrefixedFileName(attID, att.FileName))
 	if err := downloadAttachment(att.Links.DownloadLocation.Href, outPath); err != nil {
 		return fmt.Errorf("downloading attachment #%d: %w", attID, err)
 	}

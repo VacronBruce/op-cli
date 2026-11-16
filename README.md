@@ -489,7 +489,7 @@ The project has no open version. Use `--sprint="Name"` to specify one.
 Names are case-insensitive with prefix match. The error message shows available options.
 
 **"no response from openpr.epochbase.com after 3 tries"**
-op sent the read three times, 2 s and 5 s apart, and never got an answer. Check the
+op sent the read again after 2 s and 5 s and never got an answer. Check the
 VPN or network; writes are never retried, so check whether an update went through
 before sending it again.
 

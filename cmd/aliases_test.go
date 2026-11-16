@@ -3,6 +3,8 @@ package cmd
 import (
 	"strings"
 	"testing"
+
+	"github.com/chenhuijun/op-cli/internal/testutil"
 )
 
 // Names agents typed in the last 21 days that op didn't know: view (3 times),
@@ -22,5 +24,9 @@ func TestStatuses_PointsAtFields(t *testing.T) {
 	err := rootCmd.Execute()
 	if err == nil || !strings.Contains(err.Error(), "Did you mean this?\n\tfields") {
 		t.Errorf("err = %v, want a suggestion of op fields", err)
+	}
+	overview := testutil.CaptureStdout(func() { _ = runFields(fieldsCmd, nil) })
+	if !strings.Contains(overview, "op fields status") {
+		t.Errorf("op fields, where op statuses points, never mentions statuses:\n%s", overview)
 	}
 }

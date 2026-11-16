@@ -2,13 +2,13 @@ package api
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"time"
 )
 
-// readRetryWaits are the pauses before each extra try of a read. With the
-// 10s dial timeout, three tries fit inside the client's 60s timeout.
+// readRetryWaits are the pauses before each extra try of a read. A refused or
+// dropped connection gets three tries in about 7s. A connection that times out
+// takes 30s per try, so the client's 60s timeout ends it after the second.
 var readRetryWaits = []time.Duration{2 * time.Second, 5 * time.Second}
 
 // retryReads sends a GET or HEAD again when no response arrived at all: a dial
@@ -21,9 +21,7 @@ type retryReads struct {
 }
 
 func newTransport() http.RoundTripper {
-	t := http.DefaultTransport.(*http.Transport).Clone()
-	t.DialContext = (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext
-	return retryReads{next: t, waits: readRetryWaits}
+	return retryReads{next: http.DefaultTransport, waits: readRetryWaits}
 }
 
 func (r retryReads) RoundTrip(req *http.Request) (*http.Response, error) {

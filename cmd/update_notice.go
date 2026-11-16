@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -48,17 +49,8 @@ func newerRelease(current, cacheFile string, fetch func() (string, error)) strin
 		_ = os.MkdirAll(filepath.Dir(cacheFile), 0o755)
 		_ = os.WriteFile(cacheFile, []byte(tag+"\n"), 0o644)
 	}
-	latest, ok := parseVersion(tag)
-	if !ok {
-		return ""
-	}
-	for i := range latest {
-		if latest[i] != have[i] {
-			if latest[i] > have[i] {
-				return tag
-			}
-			return ""
-		}
+	if latest, ok := parseVersion(tag); ok && slices.Compare(latest[:], have[:]) > 0 {
+		return tag
 	}
 	return ""
 }

@@ -49,8 +49,8 @@ var nonAlnum = regexp.MustCompile(`[^a-z0-9]+`)
 
 // unknownProjectMessage explains a 404 under /projects/<identifier> when that
 // project doesn't exist, naming identifiers that share a word with it. It
-// returns "" when the path names no project or the project exists, so the
-// server's own message stands.
+// returns "" when the path names no project, the project exists, or the list
+// is too long to be sure, so the server's own message stands.
 func (c *Client) unknownProjectMessage(path string) string {
 	rest, ok := strings.CutPrefix(path, "/projects/")
 	if !ok {
@@ -62,7 +62,7 @@ func (c *Client) unknownProjectMessage(path string) string {
 		return ""
 	}
 	projects, err := c.ListProjects()
-	if err != nil {
+	if err != nil || projects.Total > len(projects.Embedded.Elements) {
 		return ""
 	}
 	var words []string
@@ -77,7 +77,8 @@ func (c *Client) unknownProjectMessage(path string) string {
 			return ""
 		}
 		for _, w := range words {
-			if strings.Contains(p.Identifier, w) || strings.Contains(strings.ToLower(p.Name), w) {
+			if strings.Contains(p.Identifier, w) || strings.Contains(strings.ToLower(p.Name), w) ||
+				(len(p.Identifier) >= 3 && strings.Contains(w, p.Identifier)) {
 				similar = append(similar, p.Identifier)
 				break
 			}

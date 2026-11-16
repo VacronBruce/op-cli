@@ -49,6 +49,7 @@ func runFields(cmd *cobra.Command, args []string) error {
 		}
 	}
 	fmt.Println("\nUse 'op fields <name>' to list a field's allowed values.")
+	fmt.Println("Statuses are built in, not custom fields: op fields status explains them.")
 	return nil
 }
 

@@ -192,8 +192,8 @@ op-cli v0.27.0 is out (this is 0.25.0); update with: op upgrade
 ```
 
 op asks GitHub at most once a day and caches the answer under the user cache
-directory (`~/Library/Caches/op-cli/` on macOS). Commands that succeed make no
-extra request. `OP_NO_UPDATE_CHECK=1` turns the check off; dev builds skip it.
+directory (`~/Library/Caches/op-cli/` on macOS). Apart from `op version`, a command
+that succeeds makes no extra request. `OP_NO_UPDATE_CHECK=1` turns the check off; dev builds skip it.
 
 ## Quality Checks
 ```bash
@@ -272,11 +272,12 @@ Error: HTTP 404
 
 ## Network and project errors
 
-A GET or HEAD that gets no response at all (dial timeout, refused or dropped
+A GET or HEAD that gets no response at all (refused, dropped or timed-out
 connection) is sent again after 2 s and 5 s. After the third try op fails with
-`no response from <host> after 3 tries: <cause>`. Writes are sent once, because
-the server may have acted before the connection broke, and an HTTP error status
-is never retried.
+`no response from <host> after 3 tries: <cause>`; a connection that times out
+takes 30 s a try, so the 60 s request timeout ends it after the second. Writes
+are sent once, because the server may have acted before the connection broke,
+and an HTTP error status is never retried.
 
 A 404 under a project identifier that doesn't exist names it and the identifiers
 sharing a word with it:
@@ -286,7 +287,8 @@ $ op sprint list -p ntd-app
 Error: listing versions: OpenProject API error (404): project "ntd-app" not found; did you mean app? (op projects lists every identifier)
 ```
 
-Runtime errors print no usage block; only a mistyped command or flag does.
+Only an unknown command or flag, or a wrong number of arguments, prints the
+usage block. Other errors print just the message.
 `op view` is `op show` and `op project` is `op projects`.
 
 ## Global Flags

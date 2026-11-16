@@ -254,12 +254,12 @@ func (c *Client) Patch(path string, body interface{}, result interface{}) error 
 // a full URL or a server-rooted path (e.g. "/api/v3/work_packages/1/activities"),
 // matching the href format the API returns in _links.
 func (c *Client) DoRaw(method, href string) (*http.Response, error) {
-	target := href
+	url := href
 	if !strings.HasPrefix(href, "http") {
-		target = c.BaseURL + href
+		url = c.BaseURL + href
 	}
 
-	req, err := http.NewRequest(method, target, nil)
+	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
