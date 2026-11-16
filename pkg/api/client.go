@@ -10,6 +10,8 @@ import (
 	"net/textproto"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -373,25 +375,29 @@ func (c *Client) UploadAttachment(wpID int, filePath string, description string)
 	return &att, nil
 }
 
-// JournalDetail is one field-change entry within an Activity (e.g. the
-// "Key: BR-136 -> AR-178" line rendered by the OP UI when a work package
-// moves between projects).
-type JournalDetail struct {
-	Name        string `json:"name"`
-	RawOldValue string `json:"rawOldValue"`
-	RawNewValue string `json:"rawNewValue"`
-}
-
 // Activity represents a single activity (comment or change) on a work package.
 type Activity struct {
-	ID        int             `json:"id"`
-	Comment   *Formattable    `json:"comment"`
-	CreatedAt string          `json:"createdAt"`
-	UpdatedAt string          `json:"updatedAt"`
-	Details   []JournalDetail `json:"details,omitempty"`
+	ID        int           `json:"id"`
+	Comment   *Formattable  `json:"comment"`
+	CreatedAt string        `json:"createdAt"`
+	UpdatedAt string        `json:"updatedAt"`
+	Details   []Formattable `json:"details,omitempty"`
 	Links     struct {
 		User Link `json:"user"`
 	} `json:"_links"`
+}
+
+var userHrefRe = regexp.MustCompile(`/users/(\d+)$`)
+
+// UserID returns the numeric ID from the activity's user link, or 0 when the
+// link is missing. The API gives only an href for activities, no title.
+func (a Activity) UserID() int {
+	m := userHrefRe.FindStringSubmatch(a.Links.User.Href)
+	if m == nil {
+		return 0
+	}
+	id, _ := strconv.Atoi(m[1])
+	return id
 }
 
 // ActivityCollection is the response from listing activities.

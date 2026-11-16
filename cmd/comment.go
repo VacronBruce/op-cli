@@ -77,6 +77,7 @@ func runComment(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("listing activities: %w", err)
 	}
 
+	resolveActivityAuthors(activities)
 	names := inlineAttachmentNames(fetchInlineAttachments(api.CommentInlineAttachmentIDs(activities)))
 	display.Activities(activities, names)
 	return nil
