@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Report how Claude Code agents used op, from their session transcripts.
 
-    python3 tools/agent_usage.py [--days 7] [--since 2026-11-17]
+    python3 tools/agent_usage.py [--days 7] [--since 2026-11-17] [--until 2026-11-24T00:00]
+                                 [--exclude <transcript id>]
 
 Rerun after a release and compare: each counter is a turn an agent wasted.
+--since and --until take a date or a UTC time, so a window can start at a release.
+--exclude skips a transcript, such as the session that tested op's error paths on purpose.
 "comment reads denied by hook" counts denials from ~/.claude/hooks/confirm-outbound.py
 and stays 0 where that hook isn't installed. "transcripts holding the API key" compares
 against the key in ~/.oprc (or OP_API_KEY) and never prints it.
@@ -28,9 +31,18 @@ KEY_SHAPED = re.compile(r"-\d+$")
 HOOK_DENIED = re.compile(r"PreToolUse:Bash hook error: This command posts or edits an OpenProject comment")
 SHOW_PIPED = re.compile(r"\bop\s+show\s+[^|;\n]*\|\s*(head|grep|sed|tail)\b")
 ID_LOOP = re.compile(r"for \w+ in [\d\s$]+;\s*do[^\n]*\bop\s+(show|comment)\b")
+RAW_RELATIONS = re.compile(r"(?:/api/v3/|\bop\s+api\s)[^|;\n]*\brelations\b")
+RAW_ATTACHMENT = re.compile(r"(?:/api/v3/|\bop\s+api\s)[^|;\n]*\battachments/[\w${}]+")
+NO_RESPONSE = re.compile(r"executing request: \w+ \"[^\"]*\": |no response from \S+ after \d+ tries")
+WRONG_PROJECT = re.compile(r'project "[^"]+" not found')
+PROJECT_FLAG = re.compile(r"\bop\s[^|;\n]*(?:-p|--project)[ =]\S+")
+NOT_FOUND = re.compile(r"The requested resource could not be found")
+UPDATE_NOTICE = re.compile(r"op-cli v\S+ is out \(this is ")
 COUNTERS = ("raw API curl", "commands touching ~/.oprc", "comment reads denied by hook",
             "op show piped to head/grep/sed/tail", "for-loops over ticket ids",
-            "op search given free text")
+            "op search given free text", "relations read through the raw API",
+            "single attachments fetched through the raw API", "op calls that got no response",
+            "wrong project identifiers", "update notices (op older than the release)")
 
 
 def api_key():
@@ -43,6 +55,15 @@ def api_key():
         except OSError:
             return None
     return key if key and len(key) >= 16 else None
+
+
+def utc(text):
+    when = datetime.fromisoformat(text)
+    return (when if when.tzinfo else when.replace(tzinfo=timezone.utc)).timestamp()
+
+
+def stamp(seconds):
+    return datetime.fromtimestamp(seconds, timezone.utc).strftime("%Y-%m-%d %H:%M")
 
 
 def tool_calls(path):
@@ -71,20 +92,22 @@ def tool_calls(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--days", type=int, default=7)
-    parser.add_argument("--since", help="ISO date; overrides --days")
+    parser.add_argument("--since", help="ISO date or UTC time; overrides --days")
+    parser.add_argument("--until", help="ISO date or UTC time; defaults to now")
+    parser.add_argument("--exclude", action="append", default=[], help="transcript id to skip")
     parser.add_argument("--root", default=os.path.expanduser("~/.claude/projects"))
     args = parser.parse_args()
-    since = (datetime.fromisoformat(args.since).replace(tzinfo=timezone.utc).timestamp()
-             if args.since else time.time() - args.days * 86400)
+    since = utc(args.since) if args.since else time.time() - args.days * 86400
+    until = utc(args.until) if args.until else time.time()
     key = api_key()
 
     counts, subcommands, errors = Counter(), Counter(), Counter()
     sessions, leaked = set(), set()
     for path in glob.glob(f"{args.root}/*/*.jsonl") + glob.glob(f"{args.root}/*/*/subagents/*.jsonl"):
-        if os.path.getmtime(path) < since:
+        if os.path.getmtime(path) < since or any(x in path for x in args.exclude):
             continue
         for ts, cmd, out in tool_calls(path):
-            if ts and datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp() < since:
+            if ts and not since <= utc(ts.replace("Z", "+00:00")) < until:
                 continue
             if key and (key in cmd or key in out):
                 leaked.add(path)
@@ -105,17 +128,23 @@ def main():
             counts["op search given free text"] += sum(
                 not KEY_SHAPED.search(q) for q in JIRA_MISS.findall(out)) + (
                 "search" in used and bool(SEARCH_WORDS_ERROR.search(out)))
+            counts["relations read through the raw API"] += bool(RAW_RELATIONS.search(cmd))
+            counts["single attachments fetched through the raw API"] += bool(RAW_ATTACHMENT.search(cmd))
+            counts["op calls that got no response"] += bool(used and NO_RESPONSE.search(out))
+            counts["wrong project identifiers"] += bool(WRONG_PROJECT.search(out)) or bool(
+                PROJECT_FLAG.search(cmd) and NOT_FOUND.search(out))
+            counts["update notices (op older than the release)"] += bool(UPDATE_NOTICE.search(out))
             for kind, name in UNKNOWN.findall(out):
                 errors[f"{kind} {name}"] += 1
             for word in BAD_ID.findall(out):
                 errors[f"ticket ID {word}"] += 1
 
-    print(f"{counts['calls']} op/API calls in {len(sessions)} transcripts since "
-          f"{datetime.fromtimestamp(since).date()}")
+    print(f"{counts['calls']} op/API calls in {len(sessions)} transcripts from "
+          f"{stamp(since)} to {stamp(until)} UTC")
     for name in COUNTERS:
-        print(f"  {name:40} {counts[name]}")
-    print(f"  {'transcripts holding the API key':40} {len(leaked) if key else 'n/a (no key found)'}")
-    print(f"  {'unknown command/flag or bad ID errors':40} {sum(errors.values())}")
+        print(f"  {name:48} {counts[name]}")
+    print(f"  {'transcripts holding the API key':48} {len(leaked) if key else 'n/a (no key found)'}")
+    print(f"  {'unknown command/flag or bad ID errors':48} {sum(errors.values())}")
     for name, n in errors.most_common(10):
         print(f"      {n:4}  {name}")
     print("  subcommands:", ", ".join(f"{k} {v}" for k, v in subcommands.most_common(12)))

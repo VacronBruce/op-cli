@@ -115,8 +115,13 @@ If a change touches them, update them in the same commit; if you can't verify an
 `python3 tools/agent_usage.py --days 7` reads the Claude Code transcripts under
 `~/.claude/projects` and counts the turns agents wasted on `op`: curl calls to the
 raw API, comment reads the outbound hook denied, `op show` piped into head or grep,
-loops over ticket IDs, and unknown command or flag errors. Run it before and after a
-release that changes agent-facing commands and compare the counters.
+loops over ticket IDs, relations and single attachments read through the raw API,
+op calls that got no response, wrong project identifiers, update notices, and unknown
+command or flag errors. Run it before and after a release that changes agent-facing
+commands and compare the counters. `--since` and `--until` take a UTC time, so a window
+can start at a release's publish time, and `--exclude <transcript id>` drops a session
+that ran op's error paths on purpose. Claude Code deletes transcripts after 30 days, so
+save the baseline's output when you take it.
 
 ## Release
 
