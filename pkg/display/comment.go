@@ -3,7 +3,9 @@ package display
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 )
@@ -58,4 +60,34 @@ func renderCommentBody(raw string, names map[int]string) string {
 		}
 		return fmt.Sprintf("[image #%d]", id)
 	})
+}
+
+// ActivityLog prints every activity oldest first: a header with time, author
+// and activity ID, each field change as a "- " line, then the comment body.
+func ActivityLog(ac *api.ActivityCollection, names map[int]string) {
+	els := append([]api.Activity(nil), ac.Embedded.Elements...)
+	if len(els) == 0 {
+		fmt.Println("No activity.")
+		return
+	}
+	sort.SliceStable(els, func(i, j int) bool { return els[i].CreatedAt < els[j].CreatedAt })
+
+	for i, a := range els {
+		if i > 0 {
+			fmt.Println()
+		}
+		when := strings.Replace(a.CreatedAt, "T", " ", 1)
+		if len(when) > 16 {
+			when = when[:16]
+		}
+		fmt.Printf("[%s] %s (#%d)\n", when, a.Links.User.Title, a.ID)
+		for _, d := range a.Details {
+			fmt.Printf("  - %s\n", d.Raw)
+		}
+		if a.Comment != nil && a.Comment.Raw != "" {
+			for _, line := range strings.Split(renderCommentBody(a.Comment.Raw, names), "\n") {
+				fmt.Printf("  %s\n", line)
+			}
+		}
+	}
 }
