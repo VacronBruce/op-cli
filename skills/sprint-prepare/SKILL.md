@@ -115,10 +115,8 @@ skipping Phase 4. Attach the Figma link manually." and go to the summary.
 
 1. Fetch the file with the Figma MCP. For each top-level frame or component: frame name
    → title; description/annotations → description; an "Acceptance Criteria" annotation → AC.
-2. Look for an existing ticket by title. `op search` won't find it: it matches custom
-   fields such as the JIRA ID, not subjects. List the project's open tickets with
-   `op board --no-sprint -p <project>` and `op backlog -p <project>` and match subjects
-   in that output.
+2. Look for an existing ticket by title with `op search --text "<title words>" -p <project>`,
+   which matches subjects. Plain `op search <value>` matches the JIRA ID, not subjects.
 3. **Match** → add the Figma link to that ticket's description. `op update --description`
    replaces the whole field, so rebuild it from `op show` with every existing section and
    inline image kept (see `/op:ticket-refine` for how), and show the before/after first.

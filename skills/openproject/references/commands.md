@@ -228,12 +228,13 @@ URL/API-key config.
 ```bash
 op api statuses                       # GET /api/v3/statuses with the configured URL and key
 op api "work_packages?pageSize=3"     # query strings pass through
-op api /api/v3/work_packages/86156    # also accepted: a full URL on the configured host only
+op api /api/v3/work_packages/86156    # the /api/v3 prefix is optional; a full URL works only on the configured host
 op api work_packages/1 -X PATCH --input body.json   # --input: file or - for stdin; not with GET
 ```
-Use this instead of curl: it never exposes the API key. Output is the response
-body, pretty-printed when JSON. A non-2xx status prints the body to stderr, then
-`Error: HTTP <code>`, and exits 1. A URL on any other host is refused.
+Use this instead of curl: it sends the API key only to the configured OpenProject
+host, redirects included. Output is the response body, pretty-printed when JSON. A
+non-2xx status prints the body to stderr, then `Error: HTTP <code>`, and exits 1. A
+URL on any other host is refused.
 
 ```text
 $ op api work_packages/99999999
