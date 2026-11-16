@@ -58,8 +58,13 @@ const (
 var keyShapedRe = regexp.MustCompile(`-\d+$`)
 
 func searchArgs(cmd *cobra.Command, args []string) error {
+	if cmd.Flags().Changed("text") && len(args) > 0 {
+		text, _ := cmd.Flags().GetString("text")
+		cmd.SilenceUsage = true
+		return fmt.Errorf("quote the words: op search --text %q", strings.Join(append([]string{text}, args...), " "))
+	}
 	if cmd.Flags().Changed("text") {
-		return cobra.NoArgs(cmd, args)
+		return nil
 	}
 	if len(args) > 1 {
 		cmd.SilenceUsage = true

@@ -95,3 +95,13 @@ func TestSearch_SeveralUnquotedWordsSuggestTextSearch(t *testing.T) {
 		t.Errorf("expected --text suggestion, got %v", err)
 	}
 }
+
+func TestSearch_TextWithUnquotedWordsSuggestsQuoting(t *testing.T) {
+	c := &cobra.Command{}
+	c.Flags().String("text", "", "")
+	_ = c.Flags().Set("text", "paywall")
+	err := searchArgs(c, []string{"tracking"})
+	if err == nil || !strings.Contains(err.Error(), `op search --text "paywall tracking"`) {
+		t.Errorf("expected a quoted --text suggestion, got %v", err)
+	}
+}
