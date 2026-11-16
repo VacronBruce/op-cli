@@ -19,8 +19,12 @@ var versionCmd = &cobra.Command{
 	Short:       "Print op-cli version",
 	Annotations: skipClientInit(),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("op-cli %s (%s/%s)\n", Version, runtime.GOOS, runtime.GOARCH)
+		printVersion()
 	},
+}
+
+func printVersion() {
+	fmt.Printf("op-cli %s (%s/%s)\n", Version, runtime.GOOS, runtime.GOARCH)
 }
 
 var upgradeCmd = &cobra.Command{
