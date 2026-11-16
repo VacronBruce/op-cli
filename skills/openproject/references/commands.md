@@ -20,9 +20,17 @@ op overview --projects=8 --sprints=5  # Widen the dashboard (defaults 5 x 3)
 op blocked                            # Blocked items in sprint
 op projects                           # List all projects
 op show <id>                          # Work package details + attachments + inline comment images
-op show <id> --url                    # Print only the browser URL (no API call)
+op show <id> <id> ...                 # Several tickets: each block in order, blank line between;
+                                      #   a failing ID goes to stderr, the rest print, exit status 1
+op show <id> <id> --brief             # One line per ticket, no attachment/activity requests:
+                                      #   #<id> [<status>] <subject> | <assignee or -> | <sprint or -> | <release or ->
+op show <id> --json                   # Raw API JSON, nothing else (array for several IDs)
+op show <id> --url                    # Print only the browser URL, one per ID (no API call)
 op show <id> --download [--out=DIR]   # Download attachments AND inline comment images (default: current dir)
 op search <jira-id>                   # Map a JIRA ID (e.g. WP-23) to its OP number
+op search --text "paywall"            # Subject contains the words, all projects (50 newest-updated)
+op search --text "paywall" -p app     # ...only in project app
+op activity <id>                      # Full history, oldest first (aliases: activities, history)
 op start <id>                         # Start work: create/checkout branch <project>-<id>-<slug>,
                                       #   move ticket to In Progress, assign it to you (run in a git repo)
 ```
@@ -35,6 +43,15 @@ op start <id>                         # Start work: create/checkout branch <proj
 > `op show` and `op check` read the **User Story** custom field (customField36)
 > when present; `op check` counts a populated User Story field as satisfying the
 > user-story requirement even if the description has no "As a…" text.
+
+```text
+$ op show 86156 85722 --brief
+#86156 [Done] [Android][EET] OneTrust "not determined" consent: event keeps identity keys but is marked denied | Bruce Chen | App_11/17/2026 | [Android][EET] 3.3.3
+#85722 [In Progress] [Android][EET] Align article page_view, wall and click tracking with iOS (#85418 follow-up) | BoHan Chan | App_11/03/2026 | -
+```
+
+> `op search <word>` with a value that is not a key (no `-<digits>`) and no JIRA
+> ID match suggests `op search --text "<word>"`. `--text` matches the subject only.
 
 > **Inline comment images:** screenshots pasted into comments are stored in
 > `Activity::Comment` containers, so they do NOT appear in the work package's
@@ -77,9 +94,27 @@ op attach <id> file.png [file2.jpg]   # Upload attachments
 op attach <id> --list                 # List attachments with their IDs
 op attach <id> --remove=<attachment-id>  # Remove an attachment (must belong to <id>)
 op comment <id>                       # List comments (shows comment IDs; inline images as [image #ID: file])
+op comment list <id>                  # Same as above (alias: op comments <id>)
+op activity <id>                      # Everything: status/field changes plus comments, oldest first
+                                      #   (aliases: op activities <id>, op history <id>)
 op comment <id> "message"             # Post a comment
 op comment <id> "message" --edit=<comment-id>  # Edit an existing comment's text
 ```
+
+```text
+$ op activity 86156
+[2026-11-03 06:07] BoHan Chan (#1016154)
+  - Type set to Bug
+  - Project set to App
+...
+[2026-11-15 10:40] Bruce Chen (#1019544)
+  - Status changed from Ready for Release to Done
+  - Completed date set to 11/15/2026
+  - Release set to [Android][EET] 3.3.3
+```
+
+Authors are real names (looked up once per user). Timestamps are UTC. A comment
+body prints under its header, indented.
 
 > **Ticket URLs:** `op create`, `op update`, and `op comment` (post/edit) print the
 > work package's browser URL (`<base>/work_packages/<id>`) after the confirmation
@@ -132,7 +167,7 @@ op backlog --type bug --priority sev1,sev2  # Combine filters
 
 ## Version & Upgrade
 ```bash
-op version                            # Show current version
+op version                            # Show current version (same text: op --version)
 op upgrade                            # Self-update to latest release
 ```
 
@@ -182,9 +217,33 @@ Works without valid config — it's the tool for diagnosing config problems.
 op fields                             # List custom fields (name, field key, option count)
 op fields component                   # List the allowed --component values
 ```
+`op fields status` explains that Status is built in: set it with
+`op update <id> --status=...` and list values with `op api statuses`.
+
 Shows the same registry the `--component`/`--product`/`--tech-area`/`--label`/
 `--jira-id` flags resolve against, including `~/.oprc` overrides. Works without
 URL/API-key config.
+
+## Raw API
+```bash
+op api statuses                       # GET /api/v3/statuses with the configured URL and key
+op api "work_packages?pageSize=3"     # query strings pass through
+op api /api/v3/work_packages/86156    # also accepted: a full URL on the configured host only
+op api work_packages/1 -X PATCH --input body.json   # --input: file or - for stdin; not with GET
+```
+Use this instead of curl: it never exposes the API key. Output is the response
+body, pretty-printed when JSON. A non-2xx status prints the body to stderr, then
+`Error: HTTP <code>`, and exits 1. A URL on any other host is refused.
+
+```text
+$ op api work_packages/99999999
+{
+  "_type": "Error",
+  "errorIdentifier": "urn:openproject-org:api:v3:errors:NotFound",
+  "message": "The work package you are looking for cannot be found or has been deleted."
+}
+Error: HTTP 404
+```
 
 ## Global Flags
 - `-p, --project <id>` — Override default project

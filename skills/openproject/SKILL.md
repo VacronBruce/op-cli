@@ -73,7 +73,8 @@ Consult these before constructing a command — don't guess flags or values:
 11a. **"weekly report / status report / what shipped this week"** → invoke /op:sprint-report --weekly (`-p`... repeatable, `--sprint`, `--component`) — copy-paste weekly block per project (shipped / in progress / blocked / at risk / next)
 12. **"is this ticket ready?"** → `op check <id>` (Definition-of-Ready gate: prints a deterministic completeness percent and READY / NEEDS WORK; a FAIL blocks, a WARN is advisory). Teams can tune which checks apply per type via a DoR config file pointed to by `OP_DOR_CONFIG` (see `references/commands.md`).
 13. **"check sprint quality"** → `op check --sprint`
-14. **"what's the discussion on X?"** → `op comment <id>`
+14. **"what's the discussion on X?"** → `op comment <id>` (or `op comment list <id>`)
+14a. **"history / what changed / who moved it to X / status changes"** → `op activity <id>` (aliases `activities`, `history`; every status and field change plus comments, oldest first). There is no `op show --comments`.
 15. **"leave a comment"** → show the exact text first (see Writes that notify people), then `op comment <id> "message"`
 15a. **"edit/fix my comment"** → `op comment <id>` to find the comment ID, then `op comment <id> "new text" --edit=<comment-id>`
 16. **"list sprints"** → `op sprint list`
@@ -86,11 +87,15 @@ Consult these before constructing a command — don't guess flags or values:
 16d. **"change epic/parent/dates/product/label after creation"** → `op update <id> --epic="<name>"`, `--parent=<id>`, `--start`/`--due` (YYYY-MM-DD), `--product=<p>`, `--label=<l>` (same values as create)
 16d-i. **"edit the description / user story"** → `op update <id> --description="<markdown>"` (replaces the whole description), `op update <id> --user-story="<markdown>"` (User Story field, customField36)
 16e. **"bulk update / move several tickets at once"** → `op update <id> <id> <id> --<flag>=...` (same change per ID; continues past failures and summarizes)
-17. **"what version?"** → `op version`
+17. **"what version?"** → `op version` (or `op --version`)
 18. **"update op"** → `op upgrade`
 19. **"show blocked items"** → `op blocked` or `op board --status=blocked`
 20. **"unestimated backlog"** → `op backlog --unestimated`
 21. **"show ticket details"** → `op show <id>`
+21b. **"several tickets / one field of a ticket"** → `op show <id> <id> ... --brief` (one line each: `#id [status] subject | assignee | sprint | release`) instead of looping `op show` or piping it into grep/head
+21c. **"scripting / need exact fields"** → `op show <id> --json` (raw API JSON; pipe to `jq`)
+21d. **"call the API directly / something op can't do"** → `op api <path>` (e.g. `op api statuses`), never curl or reading `~/.oprc` for the key
+21e. **"find tickets by words in the title"** → `op search --text "<words>"` (`-p <project>` to scope)
 21a. **"get the ticket web link / browser URL / shareable link"** → `op show <id> --url` (prints only the URL, no API call)
 22. **"what's the OP number for WP-23 / look up a JIRA ID"** → `op search <jira-id>` (maps the JIRA ID custom field to the OpenProject work package number); use `--field <name>` to search a different custom field (e.g. `op search AR-178 --field key` when tickets were renamed and the key is in a separate field); if the key only appears in historical activity (e.g. a renamed ticket's old key in a journal note), use `op search AR-178 --scan --project <id>` to scan activity journals
 23. **"set parent / link tickets"** → `op link <id> --parent=X` (or `--relates-to`, `--blocks`, `--no-parent`)
@@ -102,7 +107,7 @@ Consult these before constructing a command — don't guess flags or values:
 26. **"fully review / bot-review a ticket"** → invoke /op:ticket-review (combined PM + Dev, printed; `--post` adds one bot comment)
 26a. **"is this done / definition of done / can I close this"** → invoke /op:ticket-review --done (Definition of Done exit gate; reports DONE / NOT DONE, does not change status)
 26b. **"refine ticket / fix the AC / improve the user story"** → invoke /op:ticket-refine skill (interactive: talks through weak acceptance criteria and user story one question at a time, then writes the corrected fields back after you confirm)
-27. **"what components/products/labels are valid?"** → `op fields` (overview) or `op fields component` (values)
+27. **"what components/products/labels are valid?"** → `op fields` (overview) or `op fields component` (values); statuses are built in: `op api statuses`
 28. **"remove an attachment"** → `op attach <id> --list` to find the attachment ID, then `op attach <id> --remove=<attachment-id>`
 29. **"op isn't working / check my config"** → `op setup` (health checklist with fixes); **"new sprint started"** → `op setup --sprint="<name>"`
 

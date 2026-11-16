@@ -138,11 +138,16 @@ op overview                        # Cross-project dashboard of my open work
 op overview --projects=8 --sprints=5  # Widen the dashboard
 op blocked                         # Blocked items in sprint
 op show 12345                      # View ticket details (includes JIRA ID + User Story + Release + inline comment images)
+op show 12345 12346 --brief        # One line per ticket: #id [status] subject | assignee | sprint | release
+op show 12345 --json               # Raw API JSON (an array for several IDs)
 op show 12345 --url                # Print only the browser URL (no API call)
 op show 12345 --download           # Download attachments and inline comment images
 op search WP-23                    # Map a JIRA ID to its OpenProject number
 op search AR-178 --field key       # Search a different custom field (substring match)
 op search AR-178 --scan --project app  # Scan activity journals when a key only exists in history
+op search --text "paywall"         # Subject search across projects (add -p app to scope)
+op activity 12345                  # Full history: status/field changes and comments (aliases: activities, history)
+op api statuses                    # Call any API endpoint with your configured key (GET by default)
 op start 12345                     # Start work: branch <project>-12345-<slug>, In Progress, assign to you
 ```
 
@@ -185,6 +190,7 @@ Priority values: `P0`, `P1`, `P2`, `P3` (tasks/stories) | `SEV0`, `SEV1`, `SEV2`
 
 ```bash
 op comment 12345                   # List all comments (shows comment IDs; inline images as [image #ID: file])
+op comment list 12345              # Same as above (alias: op comments 12345)
 op comment 12345 "LGTM"           # Post a comment
 op comment 12345 "fixed typo" --edit=6789  # Edit comment #6789
 ```
@@ -273,7 +279,7 @@ check IDs and config format.
 op projects                        # List all accessible projects
 op fields                          # List custom fields (component, product, ...)
 op fields component                # List the allowed --component values
-op version                         # Print CLI version
+op version                         # Print CLI version (same: op --version)
 op upgrade                         # Upgrade to latest version
 ```
 
@@ -434,6 +440,13 @@ Finds or creates the next sprint under the project's naming convention (`App_MM/
 ```
 
 Matches each ticket's `[Platform][Product]` tag to the open release with that prefix (e.g. `[Android][DJY] …`), confirms the grouped plan, then sets `--release` and `--status=done` in one update per release. `--release` forces one release for all; `--status` overrides the default "ready for release" filter.
+
+### What changed in plugin 0.27.0
+
+`op activity`, `op show --brief/--json` with several IDs, `op search --text`, `op api`,
+`op comment list`, `op --version`, and real author names in `op comment` output.
+The `openproject` skill now routes history, multi-ticket lookups, scripting and raw
+API calls to these instead of curl or `op show | grep`.
 
 ### Skill renames in plugin 0.26.0
 
