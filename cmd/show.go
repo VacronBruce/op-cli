@@ -38,7 +38,7 @@ func init() {
 	showCmd.Flags().Bool("json", false, "Print the raw work package JSON and nothing else")
 	showCmd.Flags().BoolP("download", "d", false, "Download attachments")
 	showCmd.Flags().StringP("out", "o", ".", "Download directory")
-	showCmd.MarkFlagsMutuallyExclusive("brief", "json", "download")
+	showCmd.MarkFlagsMutuallyExclusive("url", "brief", "json", "download")
 }
 
 func runShow(cmd *cobra.Command, args []string) error {
@@ -47,7 +47,7 @@ func runShow(cmd *cobra.Command, args []string) error {
 	brief, _ := cmd.Flags().GetBool("brief")
 	asJSON, _ := cmd.Flags().GetBool("json")
 
-	var raws []json.RawMessage
+	raws := []json.RawMessage{}
 	failed := 0
 	for i, arg := range args {
 		id, err := parseWorkPackageID(arg)
@@ -95,20 +95,16 @@ func runShow(cmd *cobra.Command, args []string) error {
 }
 
 func fetchWorkPackageJSON(id int) (json.RawMessage, error) {
-	resp, err := client.DoRaw("GET", fmt.Sprintf("/api/v3/work_packages/%d", id))
-	if err != nil {
+	var raw json.RawMessage
+	if err := client.Get(fmt.Sprintf("/work_packages/%d", id), &raw); err != nil {
 		return nil, fmt.Errorf("getting work package: %w", err)
 	}
-	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
+	return raw, nil
 }
 
 func printJSON(raws []json.RawMessage, single bool) error {
 	var v interface{} = raws
 	if single {
-		if len(raws) == 0 {
-			return nil
-		}
 		v = raws[0]
 	}
 	out, err := json.MarshalIndent(v, "", "  ")

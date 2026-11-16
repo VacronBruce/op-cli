@@ -1,10 +1,9 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -28,7 +27,7 @@ func briefWP(id int, subject, status, assignee, sprint, release string) *api.Wor
 	return wp
 }
 
-func showMock(t *testing.T, wps map[int]*api.WorkPackage) *testutil.MockClient {
+func showMock(wps map[int]*api.WorkPackage) *testutil.MockClient {
 	return &testutil.MockClient{
 		GetWorkPackageFn: func(id int) (*api.WorkPackage, error) {
 			if wp, ok := wps[id]; ok {
@@ -41,7 +40,7 @@ func showMock(t *testing.T, wps map[int]*api.WorkPackage) *testutil.MockClient {
 }
 
 func TestShow_SeveralIDsPrintEachBlockSeparatedByBlankLine(t *testing.T) {
-	SetClient(showMock(t, map[int]*api.WorkPackage{1: briefWP(1, "First", "Open", "", "", ""), 2: briefWP(2, "Second", "Done", "", "", "")}))
+	SetClient(showMock(map[int]*api.WorkPackage{1: briefWP(1, "First", "Open", "", "", ""), 2: briefWP(2, "Second", "Done", "", "", "")}))
 	var err error
 	out := testutil.CaptureStdout(func() { err = runShow(newShowCmd(), []string{"1", "2"}) })
 	if err != nil {
@@ -53,7 +52,7 @@ func TestShow_SeveralIDsPrintEachBlockSeparatedByBlankLine(t *testing.T) {
 }
 
 func TestShow_FailingIDReportsToStderrOthersStillPrintAndExitNonZero(t *testing.T) {
-	SetClient(showMock(t, map[int]*api.WorkPackage{1: briefWP(1, "First", "Open", "", "", ""), 3: briefWP(3, "Third", "Open", "", "", "")}))
+	SetClient(showMock(map[int]*api.WorkPackage{1: briefWP(1, "First", "Open", "", "", ""), 3: briefWP(3, "Third", "Open", "", "", "")}))
 	var err error
 	var out string
 	stderr := testutil.CaptureStderr(func() {
@@ -71,7 +70,7 @@ func TestShow_FailingIDReportsToStderrOthersStillPrintAndExitNonZero(t *testing.
 }
 
 func TestShow_BriefIsOneLinePerIDWithNoExtraRequests(t *testing.T) {
-	mock := showMock(t, map[int]*api.WorkPackage{
+	mock := showMock(map[int]*api.WorkPackage{
 		1: briefWP(1, "Paywall crash", "In Progress", "Ada", "App_11/17/2026", "[Android][EET] 3.2.1"),
 		2: briefWP(2, "Bare ticket", "To Do", "", "", ""),
 	})
@@ -95,20 +94,20 @@ func TestShow_BriefIsOneLinePerIDWithNoExtraRequests(t *testing.T) {
 	}
 }
 
-func rawResponder(t *testing.T, bodies map[string]string, hits *[]string) func(method, href string) (*http.Response, error) {
-	return func(method, href string) (*http.Response, error) {
-		*hits = append(*hits, method+" "+href)
-		b, ok := bodies[href]
+func jsonResponder(bodies map[string]string, hits *[]string) func(path string, result interface{}) error {
+	return func(path string, result interface{}) error {
+		*hits = append(*hits, path)
+		b, ok := bodies[path]
 		if !ok {
-			return nil, errors.New("HTTP 404")
+			return &api.APIError{StatusCode: 404, Message: "The work package you are looking for cannot be found or has been deleted."}
 		}
-		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(b))}, nil
+		return json.Unmarshal([]byte(b), result)
 	}
 }
 
 func TestShow_JSONSingleIDIsPrettyObjectAndNothingElse(t *testing.T) {
 	var hits []string
-	mock := &testutil.MockClient{DoRawFn: rawResponder(t, map[string]string{"/api/v3/work_packages/5": `{"id":5,"subject":"x"}`}, &hits)}
+	mock := &testutil.MockClient{GetFn: jsonResponder(map[string]string{"/work_packages/5": `{"id":5,"subject":"x"}`}, &hits)}
 	SetClient(mock)
 	c := newShowCmd()
 	_ = c.Flags().Set("json", "true")
@@ -120,15 +119,15 @@ func TestShow_JSONSingleIDIsPrettyObjectAndNothingElse(t *testing.T) {
 	if out != "{\n  \"id\": 5,\n  \"subject\": \"x\"\n}\n" {
 		t.Errorf("got %q", out)
 	}
-	if fmt.Sprint(hits) != "[GET /api/v3/work_packages/5]" {
+	if fmt.Sprint(hits) != "[/work_packages/5]" {
 		t.Errorf("only the work package may be requested, got %v", hits)
 	}
 }
 
 func TestShow_JSONSeveralIDsIsArray(t *testing.T) {
 	var hits []string
-	mock := &testutil.MockClient{DoRawFn: rawResponder(t, map[string]string{
-		"/api/v3/work_packages/5": `{"id":5}`, "/api/v3/work_packages/6": `{"id":6}`}, &hits)}
+	mock := &testutil.MockClient{GetFn: jsonResponder(map[string]string{
+		"/work_packages/5": `{"id":5}`, "/work_packages/6": `{"id":6}`}, &hits)}
 	SetClient(mock)
 	c := newShowCmd()
 	_ = c.Flags().Set("json", "true")
@@ -139,6 +138,27 @@ func TestShow_JSONSeveralIDsIsArray(t *testing.T) {
 	}
 	if out != "[\n  {\n    \"id\": 5\n  },\n  {\n    \"id\": 6\n  }\n]\n" {
 		t.Errorf("got %q", out)
+	}
+}
+
+func TestShow_JSONWhenEveryIDFailsIsAnEmptyArrayAndKeepsTheServerMessage(t *testing.T) {
+	var hits []string
+	SetClient(&testutil.MockClient{GetFn: jsonResponder(nil, &hits)})
+	c := newShowCmd()
+	_ = c.Flags().Set("json", "true")
+	var err error
+	var out string
+	stderr := testutil.CaptureStderr(func() {
+		out = testutil.CaptureStdout(func() { err = runShow(c, []string{"8", "9"}) })
+	})
+	if out != "[]\n" {
+		t.Errorf("stdout must stay valid JSON, got %q", out)
+	}
+	if err == nil {
+		t.Error("expected a non-zero exit")
+	}
+	if !strings.Contains(stderr, "cannot be found or has been deleted") {
+		t.Errorf("the server's message must reach stderr, got %q", stderr)
 	}
 }
 
