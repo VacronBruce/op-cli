@@ -103,11 +103,11 @@ op comment <id> "message" --edit=<comment-id>  # Edit an existing comment's text
 
 ```text
 $ op activity 86156
-[2026-11-03 06:07] BoHan Chan (#1016154)
+[2026-11-03 06:07 UTC] BoHan Chan (#1016154)
   - Type set to Bug
   - Project set to App
 ...
-[2026-11-15 10:40] Bruce Chen (#1019544)
+[2026-11-15 10:40 UTC] Bruce Chen (#1019544)
   - Status changed from Ready for Release to Done
   - Completed date set to 11/15/2026
   - Release set to [Android][EET] 3.3.3

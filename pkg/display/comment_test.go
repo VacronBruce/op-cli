@@ -249,9 +249,9 @@ func TestActivityLog_ShowsEveryActivityChronologicallyWithDetailsAndBody(t *test
 
 	out := captureOutput(func() { ActivityLog(ac, map[int]string{5: "shot.png"}) })
 
-	want := "[2026-11-06 08:00] Cy (#3)\n  - Subject changed\n\n" +
-		"[2026-11-06 09:30] Ada (#1)\n  - Status changed from To Do to In Progress\n  - Assignee set to Ada\n\n" +
-		"[2026-11-07 10:05] Bob (#2)\n  See [image #5: shot.png]\n  second line\n"
+	want := "[2026-11-06 08:00 UTC] Cy (#3)\n  - Subject changed\n\n" +
+		"[2026-11-06 09:30 UTC] Ada (#1)\n  - Status changed from To Do to In Progress\n  - Assignee set to Ada\n\n" +
+		"[2026-11-07 10:05 UTC] Bob (#2)\n  See [image #5: shot.png]\n  second line\n"
 	if out != want {
 		t.Errorf("got:\n%q\nwant:\n%q", out, want)
 	}

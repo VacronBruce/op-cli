@@ -32,7 +32,7 @@ func TestActivity_PrintsHistoryWithResolvedNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "[2026-11-06 09:30] Ada (#11)\n  - Status changed from To Do to In Progress\n"
+	want := "[2026-11-06 09:30 UTC] Ada (#11)\n  - Status changed from To Do to In Progress\n"
 	if out != want {
 		t.Errorf("got %q want %q", out, want)
 	}

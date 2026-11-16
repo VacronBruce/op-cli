@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 )
@@ -76,9 +77,9 @@ func ActivityLog(ac *api.ActivityCollection, names map[int]string) {
 		if i > 0 {
 			fmt.Println()
 		}
-		when := strings.Replace(a.CreatedAt, "T", " ", 1)
-		if len(when) > 16 {
-			when = when[:16]
+		when := a.CreatedAt
+		if t, err := time.Parse(time.RFC3339, a.CreatedAt); err == nil {
+			when = t.UTC().Format("2006-01-02 15:04 UTC")
 		}
 		fmt.Printf("[%s] %s (#%d)\n", when, a.Links.User.Title, a.ID)
 		for _, d := range a.Details {
