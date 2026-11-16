@@ -10,8 +10,9 @@ import (
 )
 
 var commentCmd = &cobra.Command{
-	Use:   "comment <id> [message]",
-	Short: "List or post comments on a work package",
+	Use:     "comment <id> [message]",
+	Aliases: []string{"comments"},
+	Short:   "List or post comments on a work package",
 	Long: `List comments on a work package, or post or edit a comment.
 
 Comment IDs are shown in the list output (e.g. "Alice (#1234)"); pass that
@@ -19,6 +20,7 @@ ID to --edit to replace an existing comment's text.
 
 Examples:
   op comment 81321                       List all comments (with their IDs)
+  op comment list 81321                  Same as above
   op comment 81321 "LGTM"                Post a comment
   op comment 81321 "fixed typo" --edit=1234   Edit comment #1234`,
 	Args: cobra.RangeArgs(1, 2),
@@ -31,6 +33,9 @@ func init() {
 }
 
 func runComment(cmd *cobra.Command, args []string) error {
+	if len(args) == 2 && args[0] == "list" {
+		args = args[1:]
+	}
 	id, err := parseWorkPackageID(args[0])
 	if err != nil {
 		return err
