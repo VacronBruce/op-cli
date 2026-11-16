@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -181,5 +182,26 @@ func TestSearch_Scan_NoProject(t *testing.T) {
 	_, err := runSearchWith(t, &testutil.MockClient{}, map[string]string{"scan": "true"}, []string{"AR-178"})
 	if err == nil || !strings.Contains(err.Error(), "--project") {
 		t.Errorf("expected --project error, got: %v", err)
+	}
+}
+
+// The server reads sortBy as a JSON list of [field, direction] pairs and answers
+// 400 to anything else, so a scan that sent "updatedAt:desc" never ran.
+func TestSearch_Scan_SortsNewestFirstInTheFormatTheServerAccepts(t *testing.T) {
+	var sortBy string
+	mock := &testutil.MockClient{
+		ListWorkPackagesFn: func(_ string, _ []api.Filter, s string, _ int) (*api.WPCollection, error) {
+			sortBy = s
+			return &api.WPCollection{}, nil
+		},
+	}
+	_, _ = runSearchWith(t, mock, map[string]string{"scan": "true", "project": "app"}, []string{"AR-178"})
+
+	var pairs [][]string
+	if err := json.Unmarshal([]byte(sortBy), &pairs); err != nil {
+		t.Fatalf("sortBy %q is not the JSON the server accepts: %v", sortBy, err)
+	}
+	if len(pairs) != 1 || pairs[0][0] != "updatedAt" || pairs[0][1] != "desc" {
+		t.Errorf("sortBy = %s, want [[\"updatedAt\",\"desc\"]]", sortBy)
 	}
 }

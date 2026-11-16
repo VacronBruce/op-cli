@@ -52,7 +52,7 @@ func init() {
 
 const (
 	searchTextPageSize = 50
-	searchTextSort     = `[["updatedAt","desc"]]`
+	newestFirst        = `[["updatedAt","desc"]]`
 )
 
 var keyShapedRe = regexp.MustCompile(`-\d+$`)
@@ -150,9 +150,9 @@ func runTextSearch(text, project string) error {
 	var result *api.WPCollection
 	var err error
 	if project != "" {
-		result, err = client.ListWorkPackages(project, filters, searchTextSort, searchTextPageSize)
+		result, err = client.ListWorkPackages(project, filters, newestFirst, searchTextPageSize)
 	} else {
-		result, err = client.ListAllWorkPackages(filters, searchTextSort, searchTextPageSize)
+		result, err = client.ListAllWorkPackages(filters, newestFirst, searchTextPageSize)
 	}
 	if err != nil {
 		return fmt.Errorf("searching subjects: %w", err)
@@ -167,7 +167,7 @@ func runTextSearch(text, project string) error {
 // raw JSON response is searched so it catches both user comments and structured
 // field-change entries (e.g. "Key: BR-136 -> AR-178").
 func runScanSearch(query, project string, limit int) error {
-	wps, err := client.ListWorkPackages(project, nil, "updatedAt:desc", limit)
+	wps, err := client.ListWorkPackages(project, nil, newestFirst, limit)
 	if err != nil {
 		return fmt.Errorf("listing %s work packages: %w", project, err)
 	}
