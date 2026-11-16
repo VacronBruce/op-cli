@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -24,6 +25,7 @@ type APIClient interface {
 	Post(path string, body interface{}, result interface{}) error
 	Patch(path string, body interface{}, result interface{}) error
 	DoRaw(method, href string) (*http.Response, error)
+	Request(method, path string, body []byte) (status int, respBody []byte, err error)
 	WorkPackageURL(id int) string
 
 	// Work packages
@@ -468,4 +470,64 @@ func detectContentType(name string) string {
 	default:
 		return "application/octet-stream"
 	}
+}
+
+// resolveRequestURL turns "work_packages/1", "/work_packages/1",
+// "/api/v3/work_packages/1" or a full URL on the configured host into the URL
+// to call. Any other host is refused so the API key never leaves the server.
+func (c *Client) resolveRequestURL(path string) (string, error) {
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+		target, err := url.Parse(path)
+		if err != nil {
+			return "", fmt.Errorf("invalid URL %q: %w", path, err)
+		}
+		base, err := url.Parse(c.BaseURL)
+		if err != nil {
+			return "", fmt.Errorf("invalid configured URL %q: %w", c.BaseURL, err)
+		}
+		if target.Host != base.Host || target.Scheme != base.Scheme || target.User != nil {
+			return "", fmt.Errorf("refusing to send the API key to %s: only %s is allowed", target.Host, base.Host)
+		}
+		return path, nil
+	}
+	rooted := "/" + strings.TrimLeft(path, "/")
+	if rooted == "/api/v3" || strings.HasPrefix(rooted, "/api/v3/") || strings.HasPrefix(rooted, "/api/v3?") {
+		return c.BaseURL + rooted, nil
+	}
+	return c.BaseURL + "/api/v3" + rooted, nil
+}
+
+// Request performs an authenticated request and returns the status and body
+// whatever the status, so callers decide what a non-2xx means. See
+// resolveRequestURL for the accepted path spellings.
+func (c *Client) Request(method, path string, body []byte) (int, []byte, error) {
+	target, err := c.resolveRequestURL(path)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	var reader io.Reader
+	if body != nil {
+		reader = bytes.NewReader(body)
+	}
+	req, err := http.NewRequest(method, target, reader)
+	if err != nil {
+		return 0, nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.SetBasicAuth("apikey", c.APIKey)
+	req.Header.Set("Accept", "application/json")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return 0, nil, fmt.Errorf("executing request: %w", err)
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, nil, fmt.Errorf("reading response: %w", err)
+	}
+	return resp.StatusCode, data, nil
 }

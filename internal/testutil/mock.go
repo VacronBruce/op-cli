@@ -17,6 +17,7 @@ type MockClient struct {
 	PostFn                func(path string, body interface{}, result interface{}) error
 	PatchFn               func(path string, body interface{}, result interface{}) error
 	DoRawFn               func(method, href string) (*http.Response, error)
+	RequestFn             func(method, path string, body []byte) (int, []byte, error)
 	GetWorkPackageFn      func(id int) (*api.WorkPackage, error)
 	ListWorkPackagesFn    func(project string, filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error)
 	ListAllWorkPackagesFn func(filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error)
@@ -255,4 +256,11 @@ func (m *MockClient) DeleteRelation(relID int) error {
 		return m.DeleteRelationFn(relID)
 	}
 	return nil
+}
+
+func (m *MockClient) Request(method, path string, body []byte) (int, []byte, error) {
+	if m.RequestFn != nil {
+		return m.RequestFn(method, path, body)
+	}
+	return 0, nil, fmt.Errorf("Request not mocked")
 }
