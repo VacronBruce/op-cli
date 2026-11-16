@@ -178,10 +178,16 @@ func listRelations(id int) error {
 
 	fmt.Printf("Relations of #%d (%d):\n", id, len(col.Embedded.Elements))
 	for _, rel := range col.Embedded.Elements {
-		other, direction := relationOtherEnd(rel, id)
-		fmt.Printf("  %-10s %s #%d  %s\n", rel.Type, direction, wpIDFromHref(other.Href), other.Title)
+		fmt.Printf("  %s\n", relationLine(rel, id))
 	}
 	return nil
+}
+
+// relationLine shows one relation from id's side: its type, its direction and
+// the work package at the other end.
+func relationLine(rel api.Relation, id int) string {
+	other, direction := relationOtherEnd(rel, id)
+	return fmt.Sprintf("%-10s %s #%d  %s", rel.Type, direction, wpIDFromHref(other.Href), other.Title)
 }
 
 func runUnlink(cmd *cobra.Command, args []string) error {

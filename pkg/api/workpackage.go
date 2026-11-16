@@ -22,6 +22,17 @@ type WorkPackage struct {
 	JiraID         string       // populated by UnmarshalJSON from configured jira-id field
 	UserStory      *Formattable `json:"customField36,omitempty"`
 	Links          WPLinks      `json:"_links"`
+	Embedded       WPEmbedded   `json:"_embedded"`
+}
+
+// WPEmbedded holds the resources the API embeds in a work package that op reads.
+type WPEmbedded struct {
+	Relations RelationCollection `json:"relations"`
+}
+
+// Relations returns the work package's relations as embedded in its response.
+func (wp *WorkPackage) Relations() []Relation {
+	return wp.Embedded.Relations.Embedded.Elements
 }
 
 // wpWire is used internally for JSON decoding with the default customField3 tag.
@@ -40,6 +51,7 @@ type wpWire struct {
 	JiraID         string       `json:"customField3,omitempty"`
 	UserStory      *Formattable `json:"customField36,omitempty"`
 	Links          WPLinks      `json:"_links"`
+	Embedded       WPEmbedded   `json:"_embedded"`
 }
 
 // UnmarshalJSON populates JiraID from whichever custom field is configured for

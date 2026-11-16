@@ -123,6 +123,13 @@ func showFull(cmd *cobra.Command, id int) error {
 
 	display.WorkPackageDetail(wp)
 
+	if rels := wp.Relations(); len(rels) > 0 {
+		fmt.Printf("\n  Relations (%d):\n", len(rels))
+		for _, rel := range rels {
+			fmt.Printf("    %s\n", relationLine(rel, id))
+		}
+	}
+
 	// List attachments
 	attachments, err := client.ListAttachments(id)
 	if err != nil {
