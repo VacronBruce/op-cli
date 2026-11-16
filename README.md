@@ -137,7 +137,7 @@ op my team                         # Team items grouped by person
 op overview                        # Cross-project dashboard of my open work
 op overview --projects=8 --sprints=5  # Widen the dashboard
 op blocked                         # Blocked items in sprint
-op show 12345                      # View ticket details (includes JIRA ID + User Story + Release + inline comment images)
+op show 12345                      # View ticket details (includes JIRA ID + User Story + Release + relations + inline comment images)
 op show 12345 12346 --brief        # One line per ticket: #id [status] subject | assignee | sprint | release
 op show 12345 --json               # Raw API JSON (an array for several IDs)
 op show 12345 --url                # Print only the browser URL (no API call)
@@ -179,6 +179,7 @@ op update 12345 --product=entd --label=team#appandroid
 op update 101 102 103 --status=done            # bulk: same change applied to every ID
 op attach 12345 screenshot.png
 op attach 12345 --list                         # list attachments with their IDs
+op attach 12345 --get=318 -o /tmp              # download attachment #318 as /tmp/318-<name> (inline comment images too)
 op attach 12345 --remove=318                   # remove attachment #318 (must belong to #12345)
 ```
 
@@ -202,7 +203,7 @@ op link 81482 --parent=81477       # Set parent work package
 op link 81482 --no-parent          # Remove parent link
 op link 81482 --relates-to=81483   # Create a "relates" relation
 op link 81482 --blocks=81485       # Create a "blocks" relation
-op link 81482 --list               # List existing relations
+op link 81482 --list               # List existing relations (op show lists them too)
 op unlink 81482 --relates-to=81483 # Remove the "relates" relation to #81483
 op unlink 81482 --blocks=81485     # Remove the "blocks" relation to #81485
 ```
@@ -282,6 +283,10 @@ op fields component                # List the allowed --component values
 op version                         # Print CLI version (same: op --version)
 op upgrade                         # Upgrade to latest version
 ```
+
+When a newer release is out, a failed command and `op version` end with
+`op-cli vX is out (this is Y); update with: op upgrade` on stderr. op checks GitHub
+at most once a day; set `OP_NO_UPDATE_CHECK=1` to turn it off.
 
 ### Global flags
 
@@ -441,6 +446,12 @@ Finds or creates the next sprint under the project's naming convention (`App_MM/
 
 Matches each ticket's `[Platform][Product]` tag to the open release with that prefix (e.g. `[Android][DJY] …`), confirms the grouped plan, then sets `--release` and `--status=done` in one update per release. `--release` forces one release for all; `--status` overrides the default "ready for release" filter.
 
+### What changed in plugin 0.28.0
+
+`op show` lists relations, `op attach --get` downloads one attachment, reads that
+get no response are retried, a wrong project identifier names the closest real
+ones, `op view` and `op project` work, and op says when a newer release is out.
+
 ### What changed in plugin 0.27.0
 
 `op activity`, `op show --brief/--json` with several IDs, `op search --text`, `op api`,
@@ -476,6 +487,11 @@ The project has no open version. Use `--sprint="Name"` to specify one.
 
 **"unknown type/status/priority"**
 Names are case-insensitive with prefix match. The error message shows available options.
+
+**"no response from openpr.epochbase.com after 3 tries"**
+op sent the read three times, 2 s and 5 s apart, and never got an answer. Check the
+VPN or network; writes are never retried, so check whether an update went through
+before sending it again.
 
 **"Version filter has invalid values"**
 The default sprint in `~/.oprc` may be stale. Update the `sprint:` field or use `--sprint` flag. Run `op sprint list` to see available sprints.

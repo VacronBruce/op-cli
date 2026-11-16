@@ -140,6 +140,6 @@ Requires the `gh` CLI, authenticated (`gh auth status`):
 bash release.sh v0.5.0
 ```
 
-The script builds the binaries, tags + pushes to `origin` (GitHub), and runs
+The script runs `go vet` and the tests, builds the binaries, tags + pushes to `origin` (GitHub), and runs
 `gh release create` with the binaries and `install.sh` attached. Release links
 always resolve via `/releases/latest/download/` so developers get the newest version.

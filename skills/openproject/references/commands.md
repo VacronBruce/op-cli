@@ -19,7 +19,7 @@ op overview                           # Cross-project dashboard: my open work, t
 op overview --projects=8 --sprints=5  # Widen the dashboard (defaults 5 x 3)
 op blocked                            # Blocked items in sprint
 op projects                           # List all projects
-op show <id>                          # Work package details + attachments + inline comment images
+op show <id>                          # Work package details + relations + attachments + inline comment images
 op show <id> <id> ...                 # Several tickets: each block in order, blank line between;
                                       #   a failing ID goes to stderr, the rest print, exit status 1
 op show <id> <id> --brief             # One line per ticket, no attachment/activity requests:
@@ -60,6 +60,15 @@ $ op show 86156 85722 --brief
 > images in comments" and includes them in `--download` (named `<id>-<filename>`),
 > and `op check` counts them toward the "Has attachments" rule so a bug/feature
 > whose only screenshots live in a comment is not flagged as having none.
+> `op attach <id> --get=<image-id>` downloads one of them alone.
+
+`op show` prints a work package's relations after its fields, in the same form
+as `op link <id> --list`:
+
+```text
+  Relations (1):
+    relates    -> #85722  [Android][EET] Add share button to the article toolbar
+```
 
 ## Create & Update
 ```bash
@@ -92,6 +101,8 @@ op link <id> --blocks=81485           # Create "blocks" relation
 
 op attach <id> file.png [file2.jpg]   # Upload attachments
 op attach <id> --list                 # List attachments with their IDs
+op attach <id> --get=<attachment-id> [-o DIR]  # Download one as DIR/<attachment-id>-<file name> (default: current dir);
+                                      #   works for inline comment images too, which --list doesn't show
 op attach <id> --remove=<attachment-id>  # Remove an attachment (must belong to <id>)
 op comment <id>                       # List comments (shows comment IDs; inline images as [image #ID: file])
 op comment list <id>                  # Same as above (alias: op comments <id>)
@@ -171,6 +182,19 @@ op version                            # Show current version (same text: op --ve
 op upgrade                            # Self-update to latest release
 ```
 
+After a failed command, and in `op version`, op says on stderr when a newer
+release exists:
+
+```text
+$ op version
+op-cli 0.25.0 (darwin/arm64)
+op-cli v0.27.0 is out (this is 0.25.0); update with: op upgrade
+```
+
+op asks GitHub at most once a day and caches the answer under the user cache
+directory (`~/Library/Caches/op-cli/` on macOS). Commands that succeed make no
+extra request. `OP_NO_UPDATE_CHECK=1` turns the check off; dev builds skip it.
+
 ## Quality Checks
 ```bash
 op check <id>                         # Definition-of-Ready gate for one ticket
@@ -245,6 +269,25 @@ $ op api work_packages/99999999
 }
 Error: HTTP 404
 ```
+
+## Network and project errors
+
+A GET or HEAD that gets no response at all (dial timeout, refused or dropped
+connection) is sent again after 2 s and 5 s. After the third try op fails with
+`no response from <host> after 3 tries: <cause>`. Writes are sent once, because
+the server may have acted before the connection broke, and an HTTP error status
+is never retried.
+
+A 404 under a project identifier that doesn't exist names it and the identifiers
+sharing a word with it:
+
+```text
+$ op sprint list -p ntd-app
+Error: listing versions: OpenProject API error (404): project "ntd-app" not found; did you mean app? (op projects lists every identifier)
+```
+
+Runtime errors print no usage block; only a mistyped command or flag does.
+`op view` is `op show` and `op project` is `op projects`.
 
 ## Global Flags
 - `-p, --project <id>` — Override default project
