@@ -45,13 +45,17 @@ func runActivity(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	showDescription, _ := cmd.Flags().GetBool("description")
+	asJSON, _ := cmd.Flags().GetBool("json")
+	if asJSON && !showDescription {
+		return fmt.Errorf("--json only works with --description (op activity %d --description --json)", id)
+	}
 	activities, err := client.ListActivities(id)
 	if err != nil {
 		return fmt.Errorf("listing activities: %w", err)
 	}
 	resolveActivityAuthors(activities)
-	if showDescription, _ := cmd.Flags().GetBool("description"); showDescription {
-		asJSON, _ := cmd.Flags().GetBool("json")
+	if showDescription {
 		return printDescriptionHistory(activities, asJSON)
 	}
 	names := inlineAttachmentNames(fetchInlineAttachments(api.CommentInlineAttachmentIDs(activities)))

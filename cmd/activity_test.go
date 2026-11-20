@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/chenhuijun/op-cli/internal/testutil"
@@ -73,5 +74,24 @@ func TestActivity_WithoutDescriptionFlagNeverTouchesTheWeb(t *testing.T) {
 	want := "[2026-11-06 09:30 UTC] Ada (#11)\n  - Description changed (/journals/9/diff/description)\n"
 	if err != nil || out != want {
 		t.Errorf("out=%q err=%v", out, err)
+	}
+}
+
+// --json alone would silently print the human log, which a script then
+// mis-parses; it must say that --json belongs to --description.
+func TestActivity_JSONWithoutDescriptionIsAnError(t *testing.T) {
+	SetClient(&testutil.MockClient{
+		ListActivitiesFn: func(int) (*api.ActivityCollection, error) {
+			t.Error("activities fetched for a flag combination that is refused")
+			return &api.ActivityCollection{}, nil
+		},
+	})
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("description", false, "")
+	cmd.Flags().Bool("json", false, "")
+	_ = cmd.Flags().Set("json", "true")
+	err := runActivity(cmd, []string{"1"})
+	if err == nil || !strings.Contains(err.Error(), "--description") {
+		t.Errorf("want an error pointing at --description, got %v", err)
 	}
 }
