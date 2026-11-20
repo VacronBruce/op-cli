@@ -31,6 +31,7 @@ op search <jira-id>                   # Map a JIRA ID (e.g. WP-23) to its OP num
 op search --text "paywall"            # Subject contains the words, all projects (50 newest-updated)
 op search --text "paywall" -p app     # ...only in project app
 op activity <id>                      # Full history, oldest first (aliases: activities, history)
+op activity <id> --description        # Description edits as word diffs (--json: before/after per edit)
 op start <id>                         # Start work: create/checkout branch <project>-<id>-<slug>,
                                       #   move ticket to In Progress, assign it to you (run in a git repo)
 ```
@@ -123,6 +124,22 @@ $ op activity 86156
   - Completed date set to 11/15/2026
   - Release set to [Android][EET] 3.3.3
 ```
+
+```text
+$ op activity 86156 --description
+[2026-11-03 06:07 UTC] Ada Wang (journal #1002001)
+  {+As a reader, I want offline mode so that I can read on the train.+}
+
+[2026-11-05 08:12 UTC] Bruce Chen (journal #1002340)
+  Works [-online only-]{+offline after one sync+}.
+```
+
+`--description` reads OpenProject's web diff pages (the API never returns old
+description text), so it logs in with `web_user` from `~/.oprc` and the password
+from the Keychain item `op-cli-web` (`security add-generic-password -U -s op-cli-web -a <user> -w`)
+or `OP_WEB_PASSWORD`. The diff is word-based: text is whitespace-normalised and
+only changed lines print. `--json` prints `[{journal_id, created_at, author, before, after}]`
+with the full normalised texts.
 
 Authors are real names (looked up once per user). Timestamps are UTC. A comment
 body prints under its header, indented.

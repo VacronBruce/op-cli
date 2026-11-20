@@ -147,6 +147,7 @@ op search AR-178 --field key       # Search a different custom field (substring 
 op search AR-178 --scan --project app  # Scan activity journals when a key only exists in history
 op search --text "paywall"         # Subject search across projects (add -p app to scope)
 op activity 12345                  # Full history: status/field changes and comments (aliases: activities, history)
+op activity 12345 --description    # How the description changed, before/after per edit (needs web_user; add --json for scripts)
 op api statuses                    # Call any API endpoint with your configured key (GET by default)
 op start 12345                     # Start work: branch <project>-12345-<slug>, In Progress, assign to you
 ```
