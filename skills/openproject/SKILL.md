@@ -74,7 +74,7 @@ Consult these before constructing a command — don't guess flags or values:
 12. **"is this ticket ready?"** → `op check <id>` (Definition-of-Ready gate: prints a deterministic completeness percent and READY / NEEDS WORK; a FAIL blocks, a WARN is advisory). Teams can tune which checks apply per type via a DoR config file pointed to by `OP_DOR_CONFIG` (see `references/commands.md`).
 13. **"check sprint quality"** → `op check --sprint`
 14. **"what's the discussion on X?"** → `op comment <id>` (or `op comment list <id>`)
-14a. **"history / what changed / who moved it to X / status changes"** → `op activity <id>` (aliases `activities`, `history`; every status and field change plus comments, oldest first). There is no `op show --comments`.
+14a. **"history / what changed / who moved it to X / status changes"** → `op activity <id>` (aliases `activities`, `history`; every status and field change plus comments, oldest first). For "what changed in the description" use `op activity <id> --description` (word diff per edit, `[-old-]{+new+}`; `--json` gives full before/after; needs `web_user` in ~/.oprc and the Keychain item `op-cli-web` or `OP_WEB_PASSWORD`; text is whitespace-normalised). There is no `op show --comments`.
 15. **"leave a comment"** → show the exact text first (see Writes that notify people), then `op comment <id> "message"`
 15a. **"edit/fix my comment"** → `op comment <id>` to find the comment ID, then `op comment <id> "new text" --edit=<comment-id>`
 16. **"list sprints"** → `op sprint list`
