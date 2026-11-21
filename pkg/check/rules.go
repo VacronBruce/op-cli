@@ -79,17 +79,19 @@ func CheckAcceptanceCriteria(wp *api.WorkPackage, _ CheckInput) Result {
 }
 
 var (
-	gwtLine = func(word string) *regexp.Regexp {
-		return regexp.MustCompile(`(?im)^[ \t>*_+\-\d.)]*` + word + `\b`)
+	gwtPrefix = `(?im)^[ \t>*_+\-\d.)#|]*(?:\[[ x]\][ \t]*)?`
+	gwtLine   = func(word string) *regexp.Regexp {
+		return regexp.MustCompile(gwtPrefix + word + `(?:_|\b)`)
 	}
 	givenRe, whenRe, thenRe = gwtLine("given"), gwtLine("when"), gwtLine("then")
-	gwtInlineRe             = regexp.MustCompile(`(?im)^[ \t>*_+\-\d.)]*(?:\*\*[^*\n]+\*\*\s*:?\s*|[^:\n]{1,60}:\s+)?given\b[^\n]*\bwhen\b[^\n]*\bthen\b`)
+	gwtInlineRe             = regexp.MustCompile(gwtPrefix + `(?:\*\*[^*\n]+\*\*\s*:?\s*|[^:\n]{1,60}:\s+)?given(?:_|\b)[^\n]*\bwhen\b[^\n]*\bthen\b`)
 	expectedRe              = regexp.MustCompile(`(?i)\bexpected\b`)
 	actualRe                = regexp.MustCompile(`(?i)\bactual\b`)
 	checklistRe             = regexp.MustCompile(`(?im)^\s*[-*]\s+\[[ x]\]`)
 	tableSepRe              = regexp.MustCompile(`^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$`)
+	htmlTableRe             = regexp.MustCompile(`(?i)<table\b`)
 	inlineImageRe           = regexp.MustCompile(`!\[[^\]]*\]\([^)]+\)|(?i)<img\b[^>]*\bsrc=`)
-	uiWordsRe               = regexp.MustCompile(`(?i)\b(ui|ux|design|layout|screen|page|button|icon|colou?r|font|banner|dark mode|tablet|ipad|carousel|menu|tab|header|footer|dialog|style|spacing|card|widget|onboarding)s?\b`)
+	uiWordsRe               = regexp.MustCompile(`(?i)\b(ui|ux|design|redesign|layout|screen|page|button|icon|colou?r|font|banner|dark mode|tablet|ipad|carousel|menu|tab|header|footer|dialog|style|spacing|card|widget|onboarding)s?\b`)
 	uiCJK                   = []string{"頁面", "設計", "设计", "樣式", "样式", "按鈕", "按钮", "版面", "介面", "界面"}
 )
 
@@ -106,7 +108,10 @@ func hasGenericAC(raw string) bool {
 	return containsAny(strings.ToLower(raw), "acceptance criteria", "ac:", "- [ ]", "- [x]", "given", "when", "then", "scenario")
 }
 
-func hasMarkdownTable(raw string) bool {
+func hasTable(raw string) bool {
+	if htmlTableRe.MatchString(raw) {
+		return true
+	}
 	lines := strings.Split(raw, "\n")
 	for i := 1; i < len(lines); i++ {
 		if strings.Contains(lines[i-1], "|") && tableSepRe.MatchString(lines[i]) {
@@ -128,7 +133,7 @@ func CheckDoneCriteria(wp *api.WorkPackage, _ CheckInput) Result {
 	raw := wp.Description.Raw
 	lower := strings.ToLower(raw)
 	if hasGWT(raw) || containsAny(lower, "done when", "parity", "regression") ||
-		hasMarkdownTable(raw) || len(checklistRe.FindAllString(raw, -1)) >= 2 {
+		hasTable(raw) || len(checklistRe.FindAllString(raw, -1)) >= 2 {
 		return Result{Name: name, Level: Pass}
 	}
 	if hasGenericAC(raw) {
@@ -334,7 +339,7 @@ func CheckDesignLink(wp *api.WorkPackage, in CheckInput) Result {
 
 func linksToHost(text string, hosts []string) bool {
 	for _, h := range hosts {
-		re := regexp.MustCompile(`(?i)https?://(?:[\w-]+\.)*` + regexp.QuoteMeta(h) + `\b`)
+		re := regexp.MustCompile(`(?i)https?://(?:[\w-]+\.)*` + regexp.QuoteMeta(h) + `(?:[/:?#]|$|[^\w.-])`)
 		if re.MatchString(text) {
 			return true
 		}
