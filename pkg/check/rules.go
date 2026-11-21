@@ -83,6 +83,7 @@ var (
 		return regexp.MustCompile(`(?im)^[ \t>*_+\-\d.)]*` + word + `\b`)
 	}
 	givenRe, whenRe, thenRe = gwtLine("given"), gwtLine("when"), gwtLine("then")
+	gwtInlineRe             = regexp.MustCompile(`(?im)^[ \t>*_+\-\d.)]*(?:\*\*[^*\n]+\*\*\s*:?\s*|[^:\n]{1,60}:\s+)?given\b[^\n]*\bwhen\b[^\n]*\bthen\b`)
 	expectedRe              = regexp.MustCompile(`(?i)\bexpected\b`)
 	actualRe                = regexp.MustCompile(`(?i)\bactual\b`)
 	checklistRe             = regexp.MustCompile(`(?im)^\s*[-*]\s+\[[ x]\]`)
@@ -92,10 +93,13 @@ var (
 	uiCJK                   = []string{"頁面", "設計", "设计", "樣式", "样式", "按鈕", "按钮", "版面", "介面", "界面"}
 )
 
-// hasGWT reports whether given, when and then each start a line, tolerating
-// bullets, numbering, quote markers and markdown emphasis before the word.
+// hasGWT reports whether the text has a Given/When/Then scenario: given, when
+// and then each starting a line, or one line that opens with given (after
+// bullets, numbering, quote markers, emphasis or a "Label:") and continues
+// with when and then.
 func hasGWT(raw string) bool {
-	return givenRe.MatchString(raw) && whenRe.MatchString(raw) && thenRe.MatchString(raw)
+	return gwtInlineRe.MatchString(raw) ||
+		givenRe.MatchString(raw) && whenRe.MatchString(raw) && thenRe.MatchString(raw)
 }
 
 func hasGenericAC(raw string) bool {
