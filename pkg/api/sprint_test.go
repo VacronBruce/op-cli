@@ -71,6 +71,20 @@ func TestSelectActiveSprint_PrefersDateRangeContainingToday(t *testing.T) {
 	}
 }
 
+// A long-running open bucket version (e.g. a year-long "Done" bucket) also
+// contains today; the two-week sprint inside it is the current one, wherever
+// the API lists it.
+func TestSelectActiveSprint_PrefersShortestRangeContainingToday(t *testing.T) {
+	bucket := Version{ID: 2008, Name: "Year bucket", Status: "open", StartDate: "2026-05-01", EndDate: "2026-12-31"}
+	sprint := Version{ID: 2056, Name: "Sprint", Status: "open", StartDate: "2026-11-17", EndDate: "2026-11-30"}
+	for _, versions := range [][]Version{{bucket, sprint}, {sprint, bucket}} {
+		v := selectActiveSprint(versions, "2026-11-21")
+		if v == nil || v.ID != 2056 {
+			t.Fatalf("expected the two-week sprint (ID 2056), got %v", v)
+		}
+	}
+}
+
 // Inclusive on both ends.
 func TestSelectActiveSprint_BoundaryInclusive(t *testing.T) {
 	versions := []Version{{ID: 7, Name: "S", Status: "open", StartDate: "2026-05-15", EndDate: "2026-05-28"}}
