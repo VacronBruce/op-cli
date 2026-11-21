@@ -32,8 +32,11 @@ op search --text "paywall"            # Subject contains the words, all projects
 op search --text "paywall" -p app     # ...only in project app
 op activity <id>                      # Full history, oldest first (aliases: activities, history)
 op activity <id> --description        # Description edits as word diffs (--json: before/after per edit)
-op start <id>                         # Start work: create/checkout branch <project>-<id>-<slug>,
-                                      #   move ticket to In Progress, assign it to you (run in a git repo)
+op start <id>                         # Start work: print the readiness report, then create/checkout branch
+                                      #   <project>-<id>-<slug>, move ticket to In Progress, assign it to you (run in a git repo)
+op start <id> --require-ready         # Refuse with no writes if any check FAILs or the check cannot run (WARN never blocks)
+                                      #   start_hook (~/.oprc / OP_START_HOOK): sh -c command run after a start,
+                                      #   JSON ticket_start event on stdin, 30s timeout, failures only warn
 ```
 
 > **No project set?** With neither `-p` nor `OP_PROJECT`, `op my` auto-detects
