@@ -243,8 +243,10 @@ default for bug/feature/task, not epic), `done_criteria` (task default in place 
 `acceptance_criteria`: Given/When/Then, "Done when", parity, regression, a table or
 2+ checklist items), `design_link` (default for bug/feature/task; advisory: a design
 host link, inline image, or image/video attachment on the ticket or its parent;
-warns only when the subject reads like UI work). Given/When/Then counts only when
-`given`, `when` and `then` each start a line. Design hosts default to `figma.com`;
+warns only when the subject reads like UI work). Given/When/Then counts when
+`given`, `when` and `then` each start a line, or when one line opens with `Given`
+(after a bullet or a `Label:`) and goes on to `when` and `then`. An inline image is
+markdown `![]()` or an HTML `<img>`. Design hosts default to `figma.com`;
 set `design_hosts` in `~/.oprc` or `OP_DESIGN_HOSTS=figma.com,zeplin.io`.
 The `attachments` check also counts the parent's attachments. Story/User Story fold onto
 `feature`; the `""` key is the fallback for unknown types. An unknown ID, missing
