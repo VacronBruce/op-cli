@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
@@ -15,7 +16,21 @@ type CheckInput struct {
 	AttachmentCount int
 	// BlockedByCount is how many other work packages this one depends on
 	// (is blocked by). The runner computes it from the relations collection.
-	BlockedByCount int
+	BlockedByCount        int
+	ParentAttachmentCount int
+	// HasVisualAttachment is true when the ticket or its parent carries an image
+	// or video attachment.
+	HasVisualAttachment bool
+	ParentDescription   string
+	DesignHosts         []string
+	// OpenUpstream lists related work packages that look upstream (API, backend,
+	// web) and are not yet ready.
+	OpenUpstream []Upstream
+}
+
+type Upstream struct {
+	ID     int
+	Status string
 }
 
 // CheckFunc is the signature for individual check functions.
@@ -54,17 +69,68 @@ func CheckAcceptanceCriteria(wp *api.WorkPackage, _ CheckInput) Result {
 	if wp.Description == nil {
 		return Result{Name: name, Level: Fail, Message: "No description to check"}
 	}
-	raw := strings.ToLower(wp.Description.Raw)
-	if strings.Contains(raw, "given") && strings.Contains(raw, "when") && strings.Contains(raw, "then") {
+	if hasGWT(wp.Description.Raw) {
 		return Result{Name: name, Level: Pass}
 	}
-	keywords := []string{"acceptance criteria", "ac:", "- [ ]", "- [x]", "given", "when", "then", "scenario"}
-	for _, kw := range keywords {
-		if strings.Contains(raw, kw) {
-			return Result{Name: name, Level: Warn, Message: "Acceptance criteria present but not in Given/When/Then form"}
-		}
+	if hasGenericAC(wp.Description.Raw) {
+		return Result{Name: name, Level: Warn, Message: "Acceptance criteria present but not in Given/When/Then form"}
 	}
 	return Result{Name: name, Level: Fail, Message: "No acceptance criteria section found"}
+}
+
+var (
+	gwtLine = func(word string) *regexp.Regexp {
+		return regexp.MustCompile(`(?im)^[ \t>*_+\-\d.)]*` + word + `\b`)
+	}
+	givenRe, whenRe, thenRe = gwtLine("given"), gwtLine("when"), gwtLine("then")
+	expectedRe              = regexp.MustCompile(`(?i)\bexpected\b`)
+	actualRe                = regexp.MustCompile(`(?i)\bactual\b`)
+	checklistRe             = regexp.MustCompile(`(?im)^\s*[-*]\s+\[[ x]\]`)
+	tableSepRe              = regexp.MustCompile(`^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$`)
+	inlineImageRe           = regexp.MustCompile(`!\[[^\]]*\]\([^)]+\)`)
+	uiWordsRe               = regexp.MustCompile(`(?i)\b(ui|ux|design|layout|screen|page|button|icon|colou?r|font|banner|dark mode|tablet|ipad|carousel|menu|tab|header|footer|dialog|style|spacing|card|widget|onboarding)s?\b`)
+	uiCJK                   = []string{"頁面", "設計", "设计", "樣式", "样式", "按鈕", "按钮", "版面", "介面", "界面"}
+)
+
+// hasGWT reports whether given, when and then each start a line, tolerating
+// bullets, numbering, quote markers and markdown emphasis before the word.
+func hasGWT(raw string) bool {
+	return givenRe.MatchString(raw) && whenRe.MatchString(raw) && thenRe.MatchString(raw)
+}
+
+func hasGenericAC(raw string) bool {
+	return containsAny(strings.ToLower(raw), "acceptance criteria", "ac:", "- [ ]", "- [x]", "given", "when", "then", "scenario")
+}
+
+func hasMarkdownTable(raw string) bool {
+	lines := strings.Split(raw, "\n")
+	for i := 1; i < len(lines); i++ {
+		if strings.Contains(lines[i-1], "|") && tableSepRe.MatchString(lines[i]) {
+			return true
+		}
+	}
+	return false
+}
+
+// CheckDoneCriteria is the task-shaped counterpart of CheckAcceptanceCriteria:
+// a "Done when" list, parity table, regression note or checklist specifies a
+// task as well as Given/When/Then does. Generic acceptance-criteria wording
+// alone is a Warn.
+func CheckDoneCriteria(wp *api.WorkPackage, _ CheckInput) Result {
+	name := "Done criteria"
+	if wp.Description == nil {
+		return Result{Name: name, Level: Fail, Message: "No description to check"}
+	}
+	raw := wp.Description.Raw
+	lower := strings.ToLower(raw)
+	if hasGWT(raw) || containsAny(lower, "done when", "parity", "regression") ||
+		hasMarkdownTable(raw) || len(checklistRe.FindAllString(raw, -1)) >= 2 {
+		return Result{Name: name, Level: Pass}
+	}
+	if hasGenericAC(raw) {
+		return Result{Name: name, Level: Warn, Message: "Criteria present but no Given/When/Then, 'Done when' list, table or checklist"}
+	}
+	return Result{Name: name, Level: Fail, Message: "No done criteria found"}
 }
 
 // CheckBusinessValue looks for the Impact Map "why/who" — a beneficiary and the
@@ -116,12 +182,10 @@ func CheckReproductionSteps(wp *api.WorkPackage, _ CheckInput) Result {
 	if wp.Description == nil {
 		return Result{Name: name, Level: Fail, Message: "No description to check"}
 	}
-	raw := strings.ToLower(wp.Description.Raw)
-	keywords := []string{"steps to reproduce", "reproduce", "step 1", "expected behavior", "actual behavior", "expected:", "actual:"}
-	for _, kw := range keywords {
-		if strings.Contains(raw, kw) {
-			return Result{Name: name, Level: Pass}
-		}
+	raw := wp.Description.Raw
+	if containsAny(strings.ToLower(raw), "steps to reproduce", "reproduce", "step 1", "expected behavior", "actual behavior", "expected:", "actual:") ||
+		hasGWT(raw) || (expectedRe.MatchString(raw) && actualRe.MatchString(raw)) {
+		return Result{Name: name, Level: Pass}
 	}
 	return Result{Name: name, Level: Fail, Message: "No reproduction steps found"}
 }
@@ -160,7 +224,7 @@ func CheckPriority(wp *api.WorkPackage, _ CheckInput) Result {
 // CheckAttachments verifies attachments are present.
 func CheckAttachments(_ *api.WorkPackage, in CheckInput) Result {
 	name := "Has attachments"
-	if in.AttachmentCount > 0 {
+	if in.AttachmentCount+in.ParentAttachmentCount > 0 {
 		return Result{Name: name, Level: Pass}
 	}
 	return Result{Name: name, Level: Warn, Message: "No attachments (mockups/screenshots recommended)"}
@@ -223,12 +287,55 @@ func CheckAtomic(wp *api.WorkPackage, _ CheckInput) Result {
 // truly ready to start. Advisory only (Warn, never Fail) — a dependency is a
 // scheduling signal, not proof the ticket is malformed. The blocked-by count is
 // computed by the runner from the work package's relations (see blockedByCount).
-func CheckIndependent(_ *api.WorkPackage, in CheckInput) Result {
+func CheckIndependent(wp *api.WorkPackage, in CheckInput) Result {
 	name := "Independent (no blocking dependencies)"
+	var msgs []string
 	if in.BlockedByCount > 0 {
-		return Result{Name: name, Level: Warn, Message: fmt.Sprintf("Blocked by %d other work package(s) — confirm they are done, not prerequisites", in.BlockedByCount)}
+		msgs = append(msgs, fmt.Sprintf("Blocked by %d other work package(s) — confirm they are done, not prerequisites", in.BlockedByCount))
+	}
+	if status := wp.Links.Status.Title; strings.EqualFold(status, "Pending") || strings.EqualFold(status, "Needs Update") {
+		msgs = append(msgs, fmt.Sprintf("Ticket status is %s", status))
+	}
+	if len(in.OpenUpstream) > 0 {
+		parts := make([]string, len(in.OpenUpstream))
+		for i, u := range in.OpenUpstream {
+			parts[i] = fmt.Sprintf("#%d %s", u.ID, u.Status)
+		}
+		msgs = append(msgs, "Related upstream not done: "+strings.Join(parts, ", "))
+	}
+	if len(msgs) > 0 {
+		return Result{Name: name, Level: Warn, Message: strings.Join(msgs, "; ")}
 	}
 	return Result{Name: name, Level: Pass}
+}
+
+// CheckDesignLink asks whether a UI change has a design: a link to a design
+// host, an inline image, or an image/video attachment on the ticket or its
+// parent. Advisory only — a missing design warns only when the subject reads
+// like UI work.
+func CheckDesignLink(wp *api.WorkPackage, in CheckInput) Result {
+	name := "Design reference"
+	text := in.ParentDescription
+	if wp.Description != nil {
+		text += "\n" + wp.Description.Raw
+	}
+	if in.HasVisualAttachment || inlineImageRe.MatchString(text) || linksToHost(text, in.DesignHosts) {
+		return Result{Name: name, Level: Pass}
+	}
+	if uiWordsRe.MatchString(wp.Subject) || containsAny(wp.Subject, uiCJK...) {
+		return Result{Name: name, Level: Warn, Message: "UI change with no design link, image or video attached"}
+	}
+	return Result{Name: name, Level: Pass, Message: "no UI change detected"}
+}
+
+func linksToHost(text string, hosts []string) bool {
+	for _, h := range hosts {
+		re := regexp.MustCompile(`(?i)https?://(?:[\w-]+\.)*` + regexp.QuoteMeta(h) + `\b`)
+		if re.MatchString(text) {
+			return true
+		}
+	}
+	return false
 }
 
 // RulesForType returns the check functions for a work package type per the

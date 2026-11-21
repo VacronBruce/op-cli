@@ -530,12 +530,9 @@ func TestRunner(t *testing.T) {
 				},
 			}, nil
 		},
-		GetFn: func(path string, result interface{}) error {
-			// Mock attachments response
-			if att, ok := result.(*attachmentCollection); ok {
-				att.Total = 1
-			}
-			return nil
+		GetFn: func(path string, result interface{}) error { return nil },
+		ListAttachmentsFn: func(wpID int) (*api.AttachmentCollection, error) {
+			return &api.AttachmentCollection{Total: 1}, nil
 		},
 	}
 
@@ -571,11 +568,9 @@ func TestRunner_CountsInlineCommentImages(t *testing.T) {
 				Links:   api.WPLinks{Type: api.Link{Title: "Bug"}},
 			}, nil
 		},
-		GetFn: func(path string, result interface{}) error {
-			if att, ok := result.(*attachmentCollection); ok {
-				att.Total = 0 // no work-package-level attachments
-			}
-			return nil
+		GetFn: func(path string, result interface{}) error { return nil },
+		ListAttachmentsFn: func(wpID int) (*api.AttachmentCollection, error) {
+			return &api.AttachmentCollection{}, nil
 		},
 		ListActivitiesFn: func(wpID int) (*api.ActivityCollection, error) {
 			ac := &api.ActivityCollection{}
@@ -957,6 +952,12 @@ func parentMock(parentDesc string, parentAtts, ownAtts []api.Attachment) *testut
 
 func TestRunner_CountsParentAttachments(t *testing.T) {
 	mock := parentMock("epic", []api.Attachment{{ID: 1, ContentType: "application/pdf"}}, nil)
+	inner := mock.GetWorkPackageFn
+	mock.GetWorkPackageFn = func(id int) (*api.WorkPackage, error) {
+		wp, err := inner(id)
+		wp.Links.Type.Title = "Bug"
+		return wp, err
+	}
 	rep, err := (&Runner{Client: mock}).Run(100)
 	if err != nil {
 		t.Fatal(err)

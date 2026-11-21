@@ -3,11 +3,13 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
 	"github.com/chenhuijun/op-cli/pkg/check"
 	"github.com/chenhuijun/op-cli/pkg/display"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var checkCmd = &cobra.Command{
@@ -45,7 +47,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("loading Definition of Ready: %w", err)
 	}
-	runner := &check.Runner{Client: client, Config: dor}
+	runner := &check.Runner{Client: client, Config: dor, DesignHosts: designHosts()}
 
 	if sprint {
 		return runCheckSprint(cmd, runner, strict, comment)
@@ -170,4 +172,18 @@ func promoteWarnings(report *check.Report) {
 			report.Results[i].Level = check.Fail
 		}
 	}
+}
+
+// designHosts reads the design_hosts config key (OP_DESIGN_HOSTS, comma-separated,
+// or a YAML list in ~/.oprc). Empty means the check package default.
+func designHosts() []string {
+	var hosts []string
+	for _, v := range viper.GetStringSlice("design_hosts") {
+		for h := range strings.SplitSeq(v, ",") {
+			if h = strings.TrimSpace(h); h != "" {
+				hosts = append(hosts, h)
+			}
+		}
+	}
+	return hosts
 }

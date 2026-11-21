@@ -273,7 +273,11 @@ op check --sprint --component=android  # Check android tickets only
 averaged (reproducible, not a model guess) and the gate reads `READY` unless a
 check FAILs (a WARN is advisory). Tune which checks apply per work-package type
 with a JSON file pointed to by `OP_DOR_CONFIG` — including the opt-in QUS checks
-`well_formed` and `atomic`. See `skills/openproject/references/commands.md` for the
+`well_formed` and `atomic`. The checks are type-aware: bugs accept Given/When/Then
+or expected/actual as reproduction, tasks use `done_criteria`, `no_blockers` flags
+unfinished upstream `relates` tickets, `attachments` counts the parent's, and
+`design_link` asks UI work for a design (hosts: `design_hosts` / `OP_DESIGN_HOSTS`,
+default `figma.com`). See `skills/openproject/references/commands.md` for the
 check IDs and config format.
 
 `op start` runs the same readiness check as `op check` first and prints the report.

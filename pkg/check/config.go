@@ -16,16 +16,17 @@ type DoRConfig struct {
 }
 
 // defaultDoR is the Definition of Ready that ships with op. bug, feature/story,
-// and task carry the advisory INVEST "no_blockers" (Independent) check; feature/
+// and task carry the advisory INVEST "no_blockers" (Independent) and "design_link"
+// checks; task uses "done_criteria" in place of acceptance_criteria; feature/
 // story additionally carry the advisory QUS "well_formed" check. epic omits
 // no_blockers — epics aggregate dependent work by design. The "" entry is the
 // fallback for unknown types. The noisier QUS "atomic" check is registered but
 // intentionally left out of the defaults — enable it per team via a config file.
 var defaultDoR = &DoRConfig{
 	Types: map[string][]string{
-		"bug":     {"description", "reproduction_steps", "story_points", "assignee", "priority", "attachments", "parent_epic", "component", "no_blockers"},
-		"feature": {"description", "acceptance_criteria", "use_case", "business_value", "well_formed", "story_points", "assignee", "priority", "attachments", "parent_epic", "component", "no_blockers"},
-		"task":    {"description", "acceptance_criteria", "story_points", "assignee", "priority", "parent_epic", "component", "no_blockers"},
+		"bug":     {"description", "reproduction_steps", "story_points", "assignee", "priority", "attachments", "parent_epic", "component", "no_blockers", "design_link"},
+		"feature": {"description", "acceptance_criteria", "use_case", "business_value", "well_formed", "story_points", "assignee", "priority", "attachments", "parent_epic", "component", "no_blockers", "design_link"},
+		"task":    {"description", "done_criteria", "story_points", "assignee", "priority", "parent_epic", "component", "no_blockers", "design_link"},
 		"epic":    {"description", "acceptance_criteria", "business_value", "component"},
 		"":        {"description", "story_points", "assignee", "priority", "component"},
 	},

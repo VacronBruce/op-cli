@@ -236,8 +236,17 @@ type without a code change. Check IDs: `description`, `acceptance_criteria`,
 `use_case`, `business_value`, `reproduction_steps`, `story_points`, `assignee`,
 `priority`, `attachments`, `parent_epic`, `component`, `well_formed` (QUS role+means),
 `atomic` (QUS one-feature-per-story; opt-in, advisory), `no_blockers` (INVEST
-Independent — advisory Warn when the ticket is blocked by other work; default for
-bug/feature/task, not epic). Story/User Story fold onto
+Independent — advisory Warn when the ticket is blocked by other work, is Pending or
+Needs Update, or has a `relates` ticket that looks upstream (api, backend, server,
+web, wp, wordpress in the subject) and is not Done/Closed/Completed/Ready for Release;
+default for bug/feature/task, not epic), `done_criteria` (task default in place of
+`acceptance_criteria`: Given/When/Then, "Done when", parity, regression, a table or
+2+ checklist items), `design_link` (default for bug/feature/task; advisory: a design
+host link, inline image, or image/video attachment on the ticket or its parent;
+warns only when the subject reads like UI work). Given/When/Then counts only when
+`given`, `when` and `then` each start a line. Design hosts default to `figma.com`;
+set `design_hosts` in `~/.oprc` or `OP_DESIGN_HOSTS=figma.com,zeplin.io`.
+The `attachments` check also counts the parent's attachments. Story/User Story fold onto
 `feature`; the `""` key is the fallback for unknown types. An unknown ID, missing
 file, or bad JSON fails loudly rather than silently dropping a check.
 ```json
