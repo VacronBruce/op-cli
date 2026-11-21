@@ -149,7 +149,8 @@ op search --text "paywall"         # Subject search across projects (add -p app 
 op activity 12345                  # Full history: status/field changes and comments (aliases: activities, history)
 op activity 12345 --description    # How the description changed, before/after per edit (needs web_user; add --json for scripts)
 op api statuses                    # Call any API endpoint with your configured key (GET by default)
-op start 12345                     # Start work: branch <project>-12345-<slug>, In Progress, assign to you
+op start 12345                     # Start work: print readiness report, branch <project>-12345-<slug>, In Progress, assign to you
+op start 12345 --require-ready     # Refuse (no writes) if the readiness report has a FAIL
 ```
 
 > **No project set?** With neither `-p` nor `OP_PROJECT`, `op my` auto-detects the
@@ -274,6 +275,23 @@ check FAILs (a WARN is advisory). Tune which checks apply per work-package type
 with a JSON file pointed to by `OP_DOR_CONFIG` — including the opt-in QUS checks
 `well_formed` and `atomic`. See `skills/openproject/references/commands.md` for the
 check IDs and config format.
+
+`op start` runs the same readiness check as `op check` first and prints the report.
+`--require-ready` refuses to start (no branch, no status or assignee change, non-zero
+exit) when any check FAILs or the check cannot run; WARNs never block.
+
+To log starts, set `start_hook` in `~/.oprc` (or `OP_START_HOOK`) to a shell command.
+After a successful start it runs via `sh -c` with a JSON event on stdin, a 30s timeout,
+and its output sent to stderr. A failing hook only prints a warning.
+
+```json
+{"event":"ticket_start","at":"2026-01-01T09:00:00Z","id":123,"subject":"...","type":"Bug",
+ "project":"app","branch":"app-123-...",
+ "check":{"readiness":"READY","score":5,"total":8,"percent":78,
+          "results":[{"name":"...","level":"PASS|WARN|FAIL","message":"..."}]}}
+```
+
+When the check could not run, `check` is `null` and `check_error` holds the reason.
 
 ### Project & CLI info
 
