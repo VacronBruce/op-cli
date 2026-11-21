@@ -76,6 +76,10 @@ func TestCheckAcceptanceCriteria(t *testing.T) {
 		{"checkbox only, no GWT", "## Done when\n- [ ] thing works", Warn, "Acceptance criteria present but not in Given/When/Then form"},
 		{"partial given/when, no then", "Given a user\nWhen they click", Warn, "Acceptance criteria present but not in Given/When/Then form"},
 		{"full given/when/then", "Given a user\nWhen they click\nThen it works", Pass, ""},
+		{"bulleted bold given/when/then", "- **Given** a user\n- **When** they click\n- **Then** it works", Pass, ""},
+		{"numbered given/when/then", "1. Given a user\n2. When they click\n3. Then it works", Pass, ""},
+		{"quoted given/when/then, mixed case", "> GIVEN a user\n> when they click\n> Then it works", Pass, ""},
+		{"given/when/then words only in prose", "The user is given a card when they click, then it flips.", Warn, "Acceptance criteria present but not in Given/When/Then form"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -191,6 +195,10 @@ func TestCheckReproductionSteps(t *testing.T) {
 		{"no steps", "App crashes sometimes", Fail},
 		{"has steps to reproduce", "## Steps to Reproduce\n1. Open app", Pass},
 		{"has expected/actual", "Expected: no crash\nActual: crash", Pass},
+		{"line-anchored given/when/then", "- **Given** a logged-in user\n- **When** they open settings\n- **Then** the app crashes", Pass},
+		{"expected and actual in prose", "I expected the list to refresh but the actual result was a blank screen", Pass},
+		{"only expected marker", "I expected the list to refresh", Fail},
+		{"given/when/then words only in prose", "Given a user, when they tap it, then it hangs", Fail},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -321,23 +329,35 @@ func TestCheckParentEpic(t *testing.T) {
 }
 
 // CheckIndependent implements INVEST "Independent": a ticket blocked by other
-// work is advisory-Warn (never Fail — a dependency is a scheduling fact, not a
-// malformed ticket). Zero blockers passes.
+// work, parked in Pending/Needs Update, or waiting on an unfinished upstream
+// (API/backend/web) ticket is advisory-Warn, never Fail.
 func TestCheckIndependent(t *testing.T) {
+	withStatus := func(title string) func(*api.WorkPackage) {
+		return func(wp *api.WorkPackage) { wp.Links.Status.Title = title }
+	}
 	tests := []struct {
 		name    string
-		blocked int
+		opts    []func(*api.WorkPackage)
+		in      CheckInput
 		level   Level
+		message string
 	}{
-		{"no blockers", 0, Pass},
-		{"one blocker", 1, Warn},
-		{"several blockers", 3, Warn},
+		{"no blockers", nil, CheckInput{}, Pass, ""},
+		{"one blocker", nil, CheckInput{BlockedByCount: 1}, Warn, "Blocked by 1 other work package(s)"},
+		{"several blockers", nil, CheckInput{BlockedByCount: 3}, Warn, "Blocked by 3 other work package(s)"},
+		{"own status pending", []func(*api.WorkPackage){withStatus("Pending")}, CheckInput{}, Warn, "Pending"},
+		{"own status needs update, any case", []func(*api.WorkPackage){withStatus("needs update")}, CheckInput{}, Warn, "needs update"},
+		{"own status in progress", []func(*api.WorkPackage){withStatus("In Progress")}, CheckInput{}, Pass, ""},
+		{"open upstream names each", nil, CheckInput{OpenUpstream: []Upstream{{ID: 201, Status: "To Do"}, {ID: 202, Status: "Needs Update"}}}, Warn, "Related upstream not done: #201 To Do, #202 Needs Update"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := CheckIndependent(makeWP("Task", "l1\nl2\nl3"), CheckInput{BlockedByCount: tt.blocked})
+			r := CheckIndependent(makeWP("Task", "l1\nl2\nl3", tt.opts...), tt.in)
 			if r.Level != tt.level {
 				t.Errorf("got %s, want %s (msg: %s)", r.Level, tt.level, r.Message)
+			}
+			if !strings.Contains(r.Message, tt.message) {
+				t.Errorf("message %q does not contain %q", r.Message, tt.message)
 			}
 		})
 	}
@@ -415,11 +435,11 @@ func TestRulesForType(t *testing.T) {
 		typeName string
 		count    int
 	}{
-		{"Bug", 9},      // + INVEST no_blockers (advisory)
-		{"Feature", 12}, // + QUS well_formed + INVEST no_blockers (advisory)
-		{"User Story", 12},
-		{"Story", 12},
-		{"Task", 8}, // + INVEST no_blockers (advisory)
+		{"Bug", 10},     // + INVEST no_blockers + design_link (advisory)
+		{"Feature", 13}, // + QUS well_formed + no_blockers + design_link (advisory)
+		{"User Story", 13},
+		{"Story", 13},
+		{"Task", 9}, // done_criteria replaces acceptance_criteria; + no_blockers + design_link
 		{"Epic", 4},
 		{"Unknown", 5},
 	}
@@ -691,5 +711,313 @@ func TestRunBatch_FirstErrorInInputOrderWins(t *testing.T) {
 	_, err := r.RunBatch([]api.WorkPackage{{ID: 1}, {ID: 2}, {ID: 3}, {ID: 4}})
 	if err == nil || !strings.Contains(err.Error(), "checking #2") {
 		t.Fatalf("expected first input-order error (#2), got: %v", err)
+	}
+}
+
+func TestCheckDoneCriteria(t *testing.T) {
+	tests := []struct {
+		name  string
+		desc  string
+		level Level
+	}{
+		{"no description", "", Fail},
+		{"nothing", "Just some text here", Fail},
+		{"line-anchored given/when/then", "Given a user\nWhen they click\nThen it works", Pass},
+		{"done when heading", "## Done when\nthe screen matches", Pass},
+		{"parity", "Reach parity with the other platform", Pass},
+		{"regression", "No regression in login", Pass},
+		{"markdown table", "| Field | Old | New |\n| --- | --- | --- |\n| Title | a | b |", Pass},
+		{"table without separator row", "| Field | Old | New |\n| Title | a | b |", Fail},
+		{"two checklist items", "- [ ] one\n- [x] two", Pass},
+		{"one checklist item", "- [ ] one", Warn},
+		{"generic acceptance criteria heading", "## Acceptance Criteria\n- item", Warn},
+		{"given/when/then words only in prose", "A user is given a card when they click, then it flips.", Warn},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wp := makeWP("Task", tt.desc)
+			if tt.desc == "" {
+				wp.Description = nil
+			}
+			r := CheckDoneCriteria(wp, CheckInput{})
+			if r.Level != tt.level {
+				t.Errorf("got %s, want %s (msg: %s)", r.Level, tt.level, r.Message)
+			}
+		})
+	}
+}
+
+func TestDoneCriteriaRegistered(t *testing.T) {
+	if _, ok := CheckByID("done_criteria"); !ok {
+		t.Error("done_criteria not registered")
+	}
+	if _, ok := CheckByID("design_link"); !ok {
+		t.Error("design_link not registered")
+	}
+}
+
+func TestDefaultDoR_TaskUsesDoneCriteria(t *testing.T) {
+	ids := defaultDoR.Types["task"]
+	has := func(id string) bool {
+		for _, x := range ids {
+			if x == id {
+				return true
+			}
+		}
+		return false
+	}
+	if has("acceptance_criteria") || !has("done_criteria") {
+		t.Errorf("task default = %v, want done_criteria instead of acceptance_criteria", ids)
+	}
+	for _, typ := range []string{"bug", "feature", "task"} {
+		found := false
+		for _, id := range defaultDoR.Types[typ] {
+			found = found || id == "design_link"
+		}
+		if !found {
+			t.Errorf("%s default lacks design_link", typ)
+		}
+	}
+}
+
+func TestCheckAttachments_CountsParent(t *testing.T) {
+	r := CheckAttachments(makeWP("Task", "d"), CheckInput{ParentAttachmentCount: 2})
+	if r.Level != Pass {
+		t.Errorf("got %s (%s), want Pass: parent mockups count", r.Level, r.Message)
+	}
+}
+
+func TestCheckDesignLink(t *testing.T) {
+	subject := func(s string) func(*api.WorkPackage) {
+		return func(wp *api.WorkPackage) { wp.Subject = s }
+	}
+	figma := []string{"figma.com"}
+	tests := []struct {
+		name    string
+		desc    string
+		subject string
+		in      CheckInput
+		level   Level
+	}{
+		{"figma link in description", "see https://www.figma.com/design/abc/file", "Add banner", CheckInput{DesignHosts: figma}, Pass},
+		{"figma link in parent description", "no link", "Add banner", CheckInput{DesignHosts: figma, ParentDescription: "Design: https://figma.com/design/x"}, Pass},
+		{"custom design host", "mock at https://zeplin.io/p/1", "Add banner", CheckInput{DesignHosts: []string{"zeplin.io"}}, Pass},
+		{"other host is not a design", "see https://example.com/figma.com", "Add banner", CheckInput{DesignHosts: figma}, Warn},
+		{"inline markdown image", "layout: ![mock](/api/v3/attachments/1/content)", "Add banner", CheckInput{DesignHosts: figma}, Pass},
+		{"image or video attachment", "no link", "Add banner", CheckInput{DesignHosts: figma, HasVisualAttachment: true}, Pass},
+		{"ui subject with nothing", "no link", "Update settings screen", CheckInput{DesignHosts: figma}, Warn},
+		{"cjk ui subject", "no link", "[App] 調整頁面", CheckInput{DesignHosts: figma}, Warn},
+		{"dark mode subject", "no link", "Support dark mode", CheckInput{DesignHosts: figma}, Warn},
+		{"non-ui subject", "no link", "Fix crash when syncing data", CheckInput{DesignHosts: figma}, Pass},
+		{"table is not tab", "no link", "Migrate the orders table", CheckInput{DesignHosts: figma}, Pass},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wp := makeWP("Task", tt.desc, subject(tt.subject))
+			r := CheckDesignLink(wp, tt.in)
+			if r.Level != tt.level {
+				t.Errorf("got %s, want %s (msg: %s)", r.Level, tt.level, r.Message)
+			}
+		})
+	}
+	r := CheckDesignLink(makeWP("Task", "x", subject("Fix crash")), CheckInput{DesignHosts: figma})
+	if r.Message != "no UI change detected" {
+		t.Errorf("message = %q, want %q", r.Message, "no UI change detected")
+	}
+}
+
+func resultByName(t *testing.T, rep *Report, name string) Result {
+	t.Helper()
+	for _, r := range rep.Results {
+		if r.Name == name {
+			return r
+		}
+	}
+	t.Fatalf("no result named %q in %v", name, rep.Results)
+	return Result{}
+}
+
+func relatesRel(from, to int) api.Relation {
+	rel := api.Relation{Type: "relates"}
+	rel.Links.From.Href = fmt.Sprintf("/api/v3/work_packages/%d", from)
+	rel.Links.To.Href = fmt.Sprintf("/api/v3/work_packages/%d", to)
+	return rel
+}
+
+func statusWP(id int, subject, status string) api.WorkPackage {
+	return api.WorkPackage{ID: id, Subject: subject, Links: api.WPLinks{Status: api.Link{Title: status}}}
+}
+
+func upstreamMock(related []api.WorkPackage, listCalls *int) *testutil.MockClient {
+	return &testutil.MockClient{
+		GetWorkPackageFn: func(id int) (*api.WorkPackage, error) {
+			return makeWP("Task", "l1\nl2\nl3"), nil
+		},
+		GetFn:            func(path string, result interface{}) error { return nil },
+		ListActivitiesFn: func(wpID int) (*api.ActivityCollection, error) { return &api.ActivityCollection{}, nil },
+		ListRelationsFn: func(wpID int) (*api.RelationCollection, error) {
+			rc := &api.RelationCollection{}
+			for _, w := range related {
+				rc.Embedded.Elements = append(rc.Embedded.Elements, relatesRel(wpID, w.ID))
+			}
+			return rc, nil
+		},
+		ListAllWorkPackagesFn: func(filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
+			*listCalls++
+			c := &api.WPCollection{}
+			c.Embedded.Elements = related
+			return c, nil
+		},
+	}
+}
+
+func TestRunner_WarnsOnUnfinishedRelatedUpstream(t *testing.T) {
+	calls := 0
+	mock := upstreamMock([]api.WorkPackage{
+		statusWP(201, "[App/Web] Add endpoint", "To Do"),
+		statusWP(202, "[App][Backend] Add field", "Needs Update"),
+		statusWP(203, "Server API change", "Ready for Release"),
+		statusWP(204, "Polish the app icon", "To Do"),
+		statusWP(205, "WordPress template", "Done"),
+	}, &calls)
+	rep, err := (&Runner{Client: mock}).Run(100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := resultByName(t, rep, "Independent (no blocking dependencies)")
+	if r.Level != Warn {
+		t.Fatalf("level = %s (%s), want Warn", r.Level, r.Message)
+	}
+	if !strings.Contains(r.Message, "Related upstream not done: #201 To Do, #202 Needs Update") {
+		t.Errorf("message %q does not name the open upstream tickets", r.Message)
+	}
+	for _, unwanted := range []string{"#203", "#204", "#205"} {
+		if strings.Contains(r.Message, unwanted) {
+			t.Errorf("message %q should not mention %s", r.Message, unwanted)
+		}
+	}
+	if calls != 1 {
+		t.Errorf("related statuses fetched with %d list calls, want 1", calls)
+	}
+}
+
+func TestRunner_RelatedUpstreamDonePasses(t *testing.T) {
+	calls := 0
+	mock := upstreamMock([]api.WorkPackage{statusWP(203, "Backend API change", "Completed")}, &calls)
+	rep, err := (&Runner{Client: mock}).Run(100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := resultByName(t, rep, "Independent (no blocking dependencies)"); r.Level != Pass {
+		t.Errorf("level = %s (%s), want Pass", r.Level, r.Message)
+	}
+}
+
+func TestRunner_UpstreamFetchFailureIsNonFatal(t *testing.T) {
+	calls := 0
+	mock := upstreamMock([]api.WorkPackage{statusWP(201, "Backend API change", "To Do")}, &calls)
+	mock.ListAllWorkPackagesFn = func([]api.Filter, string, int) (*api.WPCollection, error) {
+		return nil, fmt.Errorf("boom")
+	}
+	rep, err := (&Runner{Client: mock}).Run(100)
+	if err != nil {
+		t.Fatalf("Run() error: %v", err)
+	}
+	if r := resultByName(t, rep, "Independent (no blocking dependencies)"); r.Level != Pass {
+		t.Errorf("level = %s (%s), want Pass", r.Level, r.Message)
+	}
+}
+
+func parentMock(parentDesc string, parentAtts, ownAtts []api.Attachment) *testutil.MockClient {
+	atts := func(list []api.Attachment) *api.AttachmentCollection {
+		c := &api.AttachmentCollection{Total: len(list)}
+		c.Embedded.Elements = list
+		return c
+	}
+	return &testutil.MockClient{
+		GetWorkPackageFn: func(id int) (*api.WorkPackage, error) {
+			if id == 10 {
+				return makeWP("Epic", parentDesc), nil
+			}
+			return makeWP("Task", "l1\nl2\nl3", func(wp *api.WorkPackage) {
+				wp.Subject = "Fix data sync"
+				wp.Links.Parent = api.Link{Href: "/api/v3/work_packages/10"}
+			}), nil
+		},
+		GetFn:            func(path string, result interface{}) error { return nil },
+		ListActivitiesFn: func(wpID int) (*api.ActivityCollection, error) { return &api.ActivityCollection{}, nil },
+		ListAttachmentsFn: func(wpID int) (*api.AttachmentCollection, error) {
+			if wpID == 10 {
+				return atts(parentAtts), nil
+			}
+			return atts(ownAtts), nil
+		},
+	}
+}
+
+func TestRunner_CountsParentAttachments(t *testing.T) {
+	mock := parentMock("epic", []api.Attachment{{ID: 1, ContentType: "application/pdf"}}, nil)
+	rep, err := (&Runner{Client: mock}).Run(100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := resultByName(t, rep, "Has attachments"); r.Level != Pass {
+		t.Errorf("attachments = %s (%s), want Pass from parent", r.Level, r.Message)
+	}
+}
+
+func TestRunner_ParentFetchFailureIsNonFatal(t *testing.T) {
+	mock := parentMock("epic", nil, nil)
+	mock.ListAttachmentsFn = func(int) (*api.AttachmentCollection, error) { return nil, fmt.Errorf("boom") }
+	if _, err := (&Runner{Client: mock}).Run(100); err != nil {
+		t.Fatalf("Run() error: %v", err)
+	}
+}
+
+func TestRunner_DesignLinkSources(t *testing.T) {
+	tests := []struct {
+		name   string
+		runner func(*testutil.MockClient) *Runner
+		mock   *testutil.MockClient
+		level  Level
+	}{
+		{"parent description has figma link by default", func(m *testutil.MockClient) *Runner { return &Runner{Client: m} },
+			parentMock("Mockups: https://www.figma.com/design/abc", nil, nil), Pass},
+		{"parent video attachment", func(m *testutil.MockClient) *Runner { return &Runner{Client: m} },
+			parentMock("epic", []api.Attachment{{ID: 1, ContentType: "video/mp4"}}, nil), Pass},
+		{"own image attachment", func(m *testutil.MockClient) *Runner { return &Runner{Client: m} },
+			parentMock("epic", nil, []api.Attachment{{ID: 2, ContentType: "image/png"}}), Pass},
+		{"configured host", func(m *testutil.MockClient) *Runner { return &Runner{Client: m, DesignHosts: []string{"zeplin.io"}} },
+			parentMock("see https://zeplin.io/p/1", nil, nil), Pass},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rep, err := tt.runner(tt.mock).Run(100)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r := resultByName(t, rep, "Design reference"); r.Level != tt.level {
+				t.Errorf("design = %s (%s), want %s", r.Level, r.Message, tt.level)
+			}
+		})
+	}
+}
+
+func TestRunner_UIWorkWithoutDesignWarns(t *testing.T) {
+	mock := parentMock("epic", nil, nil)
+	inner := mock.GetWorkPackageFn
+	mock.GetWorkPackageFn = func(id int) (*api.WorkPackage, error) {
+		wp, err := inner(id)
+		if id != 10 {
+			wp.Subject = "Redesign the settings screen"
+		}
+		return wp, err
+	}
+	rep, err := (&Runner{Client: mock}).Run(100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := resultByName(t, rep, "Design reference"); r.Level != Warn {
+		t.Errorf("design = %s (%s), want Warn", r.Level, r.Message)
 	}
 }

@@ -61,14 +61,14 @@ func TestCheckAtomic(t *testing.T) {
 }
 
 // The default DoR for bug and task is the historical rule set plus the advisory
-// INVEST no_blockers check (bug 8→9, task 7→8), guarding against accidental
+// INVEST no_blockers and design_link checks (bug 8→10, task 7→9), guarding against accidental
 // drift when the config layer changed how rules are resolved.
 func TestDefaultDoR_ParityForBugAndTask(t *testing.T) {
-	if got := len(defaultDoR.Rules("bug")); got != 9 {
-		t.Errorf("bug default has %d checks, want 9", got)
+	if got := len(defaultDoR.Rules("bug")); got != 10 {
+		t.Errorf("bug default has %d checks, want 10", got)
 	}
-	if got := len(defaultDoR.Rules("task")); got != 8 {
-		t.Errorf("task default has %d checks, want 8", got)
+	if got := len(defaultDoR.Rules("task")); got != 9 {
+		t.Errorf("task default has %d checks, want 9", got)
 	}
 	// Unknown types fall back to the "" entry.
 	if got := len(defaultDoR.Rules("Milestone")); got != len(defaultDoR.Types[""]) {
