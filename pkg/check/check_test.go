@@ -80,6 +80,8 @@ func TestCheckAcceptanceCriteria(t *testing.T) {
 		{"numbered given/when/then", "1. Given a user\n2. When they click\n3. Then it works", Pass, ""},
 		{"quoted given/when/then, mixed case", "> GIVEN a user\n> when they click\n> Then it works", Pass, ""},
 		{"given/when/then words only in prose", "The user is given a card when they click, then it flips.", Warn, "Acceptance criteria present but not in Given/When/Then form"},
+		{"labelled inline scenario", "- **Happy path**: Given a user, when they click, then it works", Pass, ""},
+		{"when/then before given on a line", "When ready, then ship it, given time", Warn, "Acceptance criteria present but not in Given/When/Then form"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -198,7 +200,9 @@ func TestCheckReproductionSteps(t *testing.T) {
 		{"line-anchored given/when/then", "- **Given** a logged-in user\n- **When** they open settings\n- **Then** the app crashes", Pass},
 		{"expected and actual in prose", "I expected the list to refresh but the actual result was a blank screen", Pass},
 		{"only expected marker", "I expected the list to refresh", Fail},
-		{"given/when/then words only in prose", "Given a user, when they tap it, then it hangs", Fail},
+		{"inline scenario sentence", "Given a user, when they tap it, then it hangs", Pass},
+		{"labelled inline scenarios", "## Scenarios\n- **Cold start**: Given a signed-out user, when they open the app, then the home feed loads.\n- **Offline**: Given no network, when they pull to refresh, then an error banner shows.", Pass},
+		{"given/when/then words mid-sentence", "The user is given a card when they tap, then it hangs", Fail},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
