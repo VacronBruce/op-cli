@@ -88,7 +88,7 @@ var (
 	actualRe                = regexp.MustCompile(`(?i)\bactual\b`)
 	checklistRe             = regexp.MustCompile(`(?im)^\s*[-*]\s+\[[ x]\]`)
 	tableSepRe              = regexp.MustCompile(`^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$`)
-	inlineImageRe           = regexp.MustCompile(`!\[[^\]]*\]\([^)]+\)`)
+	inlineImageRe           = regexp.MustCompile(`!\[[^\]]*\]\([^)]+\)|(?i)<img\b[^>]*\bsrc=`)
 	uiWordsRe               = regexp.MustCompile(`(?i)\b(ui|ux|design|layout|screen|page|button|icon|colou?r|font|banner|dark mode|tablet|ipad|carousel|menu|tab|header|footer|dialog|style|spacing|card|widget|onboarding)s?\b`)
 	uiCJK                   = []string{"頁面", "設計", "设计", "樣式", "样式", "按鈕", "按钮", "版面", "介面", "界面"}
 )
