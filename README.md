@@ -386,11 +386,12 @@ Slash commands available in Claude Code for natural language access:
 /op:ticket-review 12345            # PM + developer readiness (default)
 /op:ticket-review 12345 --pm       # PM self-review before business review
 /op:ticket-review 12345 --dev      # developer readiness before coding
+/op:ticket-review 12345 --start    # start now? worth doing, parent spec, other repos, designer, tier
 /op:ticket-review 12345 --done     # Definition of Done before closing
 /op:ticket-review WP-23            # a JIRA ID is resolved first
 ```
 
-The PM lens checks completeness, clarity, business justification, acceptance criteria, visual assets and scope, with rewrite suggestions. The developer lens checks implementability, technical gaps, ambiguities, dependencies, risk and estimation, plus team-specific checks (android/ios/web). The DoD lens mirrors the `op check` Definition-of-Ready gate and marks anything the ticket can't prove `UNKNOWN — confirm`; it never changes ticket status. The review is printed; `--post` posts the combined PM + Dev review as one bot comment (used by the op-agent reviewer daemon).
+The PM lens checks completeness, clarity, business justification, acceptance criteria, visual assets and scope, with rewrite suggestions. The developer lens checks implementability, technical gaps, ambiguities, dependencies, risk and estimation, plus team-specific checks (android/ios/web). The start lens runs before `op start`: it reads the parent, siblings and related tickets to judge whether the work is still wanted, whether the real spec lives elsewhere, which other repos to search (from an optional repo map at `$OP_REPO_MAP` or `~/.config/op/repo-map.md`), whether a designer must look, and which tier of process the ticket needs; PM questions are drafted, never posted. The DoD lens mirrors the `op check` Definition-of-Ready gate and marks anything the ticket can't prove `UNKNOWN — confirm`; it never changes ticket status. The review is printed; `--post` posts the combined PM + Dev review as one bot comment (used by the op-agent reviewer daemon).
 
 **`/op:ticket-refine`** — Interactive refinement that writes the improved fields back:
 

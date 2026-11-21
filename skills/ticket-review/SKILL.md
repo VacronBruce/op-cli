@@ -1,9 +1,9 @@
 ---
 name: ticket-review
-description: Reviews an OpenProject ticket for readiness (PM and developer lenses) or completion (Definition of Done) and prints the review; --post adds one bot comment. Use for 'is this ticket ready / done?'.
+description: Reviews an OpenProject ticket for readiness (PM and developer lenses), whether to start it now (start lens) or completion (Definition of Done) and prints the review; --post adds one bot comment. Use for 'is this ticket ready / done?' or 'should I start this?'.
 user_invocable: true
-argument-hint: "<id|JIRA-ID> [--pm] [--dev] [--done] [--post] | --detect"
-allowed-tools: Bash(op *), Read, Write
+argument-hint: "<id|JIRA-ID> [--pm] [--dev] [--start] [--done] [--post] | --detect"
+allowed-tools: Bash(op *), Bash(jq *), Bash(git log *), Bash(git grep *), Bash(git fetch *), Read, Write
 ---
 
 # Ticket Review
@@ -18,6 +18,8 @@ taken back, so by default a person reads the exact text first and decides.
 - Lens, default `--pm --dev`:
   - `--pm` — quality before business review; read `references/pm-rubric.md`.
   - `--dev` — readiness before coding; read `references/dev-rubric.md`.
+  - `--start` — whether to start now and how (worth doing, parent context, other repos,
+    designer, tier); read `references/start-lens.md`. Runs alone, before `op start`.
   - `--done` — Definition of Done before closing; read `references/dod.md`. Runs alone.
 - `--post` — post the combined PM + Dev review as one bot comment. It skips the
   show-first step, so it is meant for the unattended op-agent daemon. By hand, run
@@ -31,9 +33,9 @@ taken back, so by default a person reads the exact text first and decides.
    `op search` matches the JIRA ID custom field across all projects, not titles.
 1. `op show <id>` — subject, author (the creator to address), type, status, component,
    label, points, description, User Story field, attachments.
-2. `op check <id>` (PM / Dev lenses) — the Definition-of-Ready gate: a deterministic
+2. `op check <id>` (PM / Dev / Start lenses) — the Definition-of-Ready gate: a deterministic
    `NN%` and READY / NEEDS WORK. A FAIL blocks; a WARN is advisory.
-3. `op comment <id>` — for `--done` (evidence) and `--post` (idempotency guard).
+3. `op comment <id>` (no text: lists comments, read-only) — for `--done` (evidence) and `--post` (idempotency guard).
 
 Stop and say what failed if any of these errors (auth, unknown ID, unparseable output)
 rather than reviewing a ticket you couldn't read.
@@ -46,7 +48,7 @@ Read the rubric file for each lens that runs and apply it.
   REVIEW and Dev = READY TO BUILD; otherwise NEEDS WORK. Print it in the comment format
   from `references/bot-comment.md`, so what the user reads is exactly what `--post`
   would post, and end with the RESULT line from that file.
-- **`--pm` or `--dev` alone, or `--done`** — print that rubric's own output format.
+- **`--pm` or `--dev` alone, `--start`, or `--done`** — print that rubric's own output format.
   These are never posted.
 
 ## Posting
