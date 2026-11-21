@@ -13,7 +13,7 @@ import (
 
 var defaultDesignHosts = []string{"figma.com"}
 
-var readyStatuses = []string{"done", "closed", "completed", "ready for release"}
+var readyStatuses = []string{"done", "closed", "completed", "resolved", "ready for release"}
 
 // Runner executes checks against work packages.
 type Runner struct {
