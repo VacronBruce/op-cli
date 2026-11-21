@@ -803,6 +803,8 @@ func TestCheckDesignLink(t *testing.T) {
 		{"custom design host", "mock at https://zeplin.io/p/1", "Add banner", CheckInput{DesignHosts: []string{"zeplin.io"}}, Pass},
 		{"other host is not a design", "see https://example.com/figma.com", "Add banner", CheckInput{DesignHosts: figma}, Warn},
 		{"inline markdown image", "layout: ![mock](/api/v3/attachments/1/content)", "Add banner", CheckInput{DesignHosts: figma}, Pass},
+		{"inline html image", `<figure class="image"><img class="op-uc-image" src="/api/v3/attachments/1/content"></figure>`, "Add banner", CheckInput{DesignHosts: figma}, Pass},
+		{"inline html image in parent", "no link", "Add banner", CheckInput{DesignHosts: figma, ParentDescription: `<p><img src="/api/v3/attachments/2/content"></p>`}, Pass},
 		{"image or video attachment", "no link", "Add banner", CheckInput{DesignHosts: figma, HasVisualAttachment: true}, Pass},
 		{"ui subject with nothing", "no link", "Update settings screen", CheckInput{DesignHosts: figma}, Warn},
 		{"cjk ui subject", "no link", "[App] 調整頁面", CheckInput{DesignHosts: figma}, Warn},
