@@ -131,7 +131,7 @@ func startReadiness(id int) (*check.Report, error) {
 	if err != nil {
 		return nil, err
 	}
-	return (&check.Runner{Client: client, Config: dor}).Run(id)
+	return (&check.Runner{Client: client, Config: dor, DesignHosts: designHosts()}).Run(id)
 }
 
 var branchSlugInvalid = regexp.MustCompile(`[^a-z0-9]+`)
