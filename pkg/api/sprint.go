@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -85,10 +86,10 @@ type UpdateVersionRequest struct {
 }
 
 // FindActiveSprint finds the currently active (open) version for a project.
-// When several versions are open, it prefers the one whose date range contains
-// today, so a future sprint that was left open doesn't shadow the real current
-// one. If none contains today (or dates are missing) it falls back to the first
-// open version.
+// When several versions are open, it prefers the shortest one whose date range
+// contains today, so neither a future sprint left open nor a long-running
+// bucket version shadows the real current one. If none contains today (or
+// dates are missing) it falls back to the first open version.
 func (c *Client) FindActiveSprint(project string) (*Version, error) {
 	versions, err := c.ListVersions(project)
 	if err != nil {
@@ -101,13 +102,15 @@ func (c *Client) FindActiveSprint(project string) (*Version, error) {
 	return nil, fmt.Errorf("no active sprint found in project %q", project)
 }
 
-// selectActiveSprint returns the open version whose [StartDate, EndDate] range
-// contains today (YYYY-MM-DD, inclusive), or the first open version if none
-// does, or nil if no version is open. Date comparison is lexicographic, which
-// is correct for ISO-8601 dates; a version is only considered "current" when
-// both of its dates are set.
+// selectActiveSprint returns the open version with the shortest
+// [StartDate, EndDate] range containing today (YYYY-MM-DD, inclusive; the first
+// listed wins a tie), or the first open version if none contains today, or nil
+// if no version is open. Containment compares the ISO-8601 strings
+// lexicographically; a version is only considered "current" when both of its
+// dates are set.
 func selectActiveSprint(versions []Version, today string) *Version {
-	var firstOpen *Version
+	var firstOpen, best *Version
+	var bestDays int
 	for i := range versions {
 		v := &versions[i]
 		if v.Status != "open" {
@@ -116,11 +119,28 @@ func selectActiveSprint(versions []Version, today string) *Version {
 		if firstOpen == nil {
 			firstOpen = v
 		}
-		if v.StartDate != "" && v.EndDate != "" && v.StartDate <= today && today <= v.EndDate {
-			return v
+		if v.StartDate == "" || v.EndDate == "" || today < v.StartDate || v.EndDate < today {
+			continue
+		}
+		if days := spanDays(v); best == nil || days < bestDays {
+			best, bestDays = v, days
 		}
 	}
+	if best != nil {
+		return best
+	}
 	return firstOpen
+}
+
+// spanDays is the length of a version's date range; unparseable dates rank
+// last so a well-formed sprint always wins.
+func spanDays(v *Version) int {
+	start, err1 := time.Parse("2006-01-02", v.StartDate)
+	end, err2 := time.Parse("2006-01-02", v.EndDate)
+	if err1 != nil || err2 != nil {
+		return math.MaxInt
+	}
+	return int(end.Sub(start).Hours() / 24)
 }
 
 // ResolveVersion finds a version by name, or returns the active sprint if name is empty.
