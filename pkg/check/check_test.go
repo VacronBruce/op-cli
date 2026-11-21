@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -81,6 +82,11 @@ func TestCheckAcceptanceCriteria(t *testing.T) {
 		{"quoted given/when/then, mixed case", "> GIVEN a user\n> when they click\n> Then it works", Pass, ""},
 		{"given/when/then words only in prose", "The user is given a card when they click, then it flips.", Warn, "Acceptance criteria present but not in Given/When/Then form"},
 		{"labelled inline scenario", "- **Happy path**: Given a user, when they click, then it works", Pass, ""},
+		{"task-list inline scenario", "- [ ] Given a signed-in user, when they tap Save, then the profile updates", Pass, ""},
+		{"task-list given/when/then lines", "- [ ] Given a user\n- [ ] When they click\n- [x] Then it works", Pass, ""},
+		{"underscore emphasis", "_Given_ a user\n_When_ they click\n_Then_ it works", Pass, ""},
+		{"headings", "#### Given\na user\n#### When\nthey click\n#### Then\nit works", Pass, ""},
+		{"table header row", "| Given | When | Then |\n|---|---|---|\n| a user | they click | it works |", Pass, ""},
 		{"when/then before given on a line", "When ready, then ship it, given time", Warn, "Acceptance criteria present but not in Given/When/Then form"},
 	}
 	for _, tt := range tests {
@@ -727,6 +733,7 @@ func TestCheckDoneCriteria(t *testing.T) {
 		{"regression", "No regression in login", Pass},
 		{"markdown table", "| Field | Old | New |\n| --- | --- | --- |\n| Title | a | b |", Pass},
 		{"table without separator row", "| Field | Old | New |\n| Title | a | b |", Fail},
+		{"html table from the web editor", `<figure class="table"><table><thead><tr><th>Event</th><th>Props</th></tr></thead></table></figure>`, Pass},
 		{"two checklist items", "- [ ] one\n- [x] two", Pass},
 		{"one checklist item", "- [ ] one", Warn},
 		{"generic acceptance criteria heading", "## Acceptance Criteria\n- item", Warn},
@@ -802,6 +809,8 @@ func TestCheckDesignLink(t *testing.T) {
 		{"figma link in parent description", "no link", "Add banner", CheckInput{DesignHosts: figma, ParentDescription: "Design: https://figma.com/design/x"}, Pass},
 		{"custom design host", "mock at https://zeplin.io/p/1", "Add banner", CheckInput{DesignHosts: []string{"zeplin.io"}}, Pass},
 		{"other host is not a design", "see https://example.com/figma.com", "Add banner", CheckInput{DesignHosts: figma}, Warn},
+		{"design host as a prefix of another host", "see https://figma.com.example.io/x", "Add banner", CheckInput{DesignHosts: figma}, Warn},
+		{"redesign subject", "no link", "Redesign login", CheckInput{DesignHosts: figma}, Warn},
 		{"inline markdown image", "layout: ![mock](/api/v3/attachments/1/content)", "Add banner", CheckInput{DesignHosts: figma}, Pass},
 		{"inline html image", `<figure class="image"><img class="op-uc-image" src="/api/v3/attachments/1/content"></figure>`, "Add banner", CheckInput{DesignHosts: figma}, Pass},
 		{"inline html image in parent", "no link", "Add banner", CheckInput{DesignHosts: figma, ParentDescription: `<p><img src="/api/v3/attachments/2/content"></p>`}, Pass},
@@ -858,15 +867,32 @@ func upstreamMock(related []api.WorkPackage, listCalls *int) *testutil.MockClien
 		ListActivitiesFn: func(wpID int) (*api.ActivityCollection, error) { return &api.ActivityCollection{}, nil },
 		ListRelationsFn: func(wpID int) (*api.RelationCollection, error) {
 			rc := &api.RelationCollection{}
-			for _, w := range related {
-				rc.Embedded.Elements = append(rc.Embedded.Elements, relatesRel(wpID, w.ID))
+			for i, w := range related {
+				rel := relatesRel(wpID, w.ID)
+				if i%2 == 1 {
+					rel = relatesRel(w.ID, wpID)
+				}
+				rc.Embedded.Elements = append(rc.Embedded.Elements, rel)
 			}
 			return rc, nil
 		},
 		ListAllWorkPackagesFn: func(filters []api.Filter, sortBy string, pageSize int) (*api.WPCollection, error) {
 			*listCalls++
+			wanted := map[string]bool{}
+			for _, f := range filters {
+				for _, v := range f["id"].Values {
+					wanted[v] = true
+				}
+			}
+			if wanted["100"] {
+				return nil, fmt.Errorf("filter asks for the ticket itself: %v", filters)
+			}
 			c := &api.WPCollection{}
-			c.Embedded.Elements = related
+			for _, w := range related {
+				if wanted[strconv.Itoa(w.ID)] {
+					c.Embedded.Elements = append(c.Embedded.Elements, w)
+				}
+			}
 			return c, nil
 		},
 	}
@@ -880,6 +906,7 @@ func TestRunner_WarnsOnUnfinishedRelatedUpstream(t *testing.T) {
 		statusWP(203, "Server API change", "Ready for Release"),
 		statusWP(204, "Polish the app icon", "To Do"),
 		statusWP(205, "WordPress template", "Done"),
+		statusWP(206, "Backend cleanup", "Resolved"),
 	}, &calls)
 	rep, err := (&Runner{Client: mock}).Run(100)
 	if err != nil {
@@ -892,7 +919,7 @@ func TestRunner_WarnsOnUnfinishedRelatedUpstream(t *testing.T) {
 	if !strings.Contains(r.Message, "Related upstream not done: #201 To Do, #202 Needs Update") {
 		t.Errorf("message %q does not name the open upstream tickets", r.Message)
 	}
-	for _, unwanted := range []string{"#203", "#204", "#205"} {
+	for _, unwanted := range []string{"#203", "#204", "#205", "#206"} {
 		if strings.Contains(r.Message, unwanted) {
 			t.Errorf("message %q should not mention %s", r.Message, unwanted)
 		}
@@ -941,7 +968,7 @@ func parentMock(parentDesc string, parentAtts, ownAtts []api.Attachment) *testut
 				return makeWP("Epic", parentDesc), nil
 			}
 			return makeWP("Task", "l1\nl2\nl3", func(wp *api.WorkPackage) {
-				wp.Subject = "Fix data sync"
+				wp.Subject = "Update settings screen"
 				wp.Links.Parent = api.Link{Href: "/api/v3/work_packages/10"}
 			}), nil
 		},
@@ -996,6 +1023,8 @@ func TestRunner_DesignLinkSources(t *testing.T) {
 			parentMock("epic", nil, []api.Attachment{{ID: 2, ContentType: "image/png"}}), Pass},
 		{"configured host", func(m *testutil.MockClient) *Runner { return &Runner{Client: m, DesignHosts: []string{"zeplin.io"}} },
 			parentMock("see https://zeplin.io/p/1", nil, nil), Pass},
+		{"nothing anywhere", func(m *testutil.MockClient) *Runner { return &Runner{Client: m} },
+			parentMock("epic", nil, nil), Warn},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1003,8 +1032,8 @@ func TestRunner_DesignLinkSources(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if r := resultByName(t, rep, "Design reference"); r.Level != tt.level {
-				t.Errorf("design = %s (%s), want %s", r.Level, r.Message, tt.level)
+			if r := resultByName(t, rep, "Design reference"); r.Level != tt.level || (tt.level == Pass && r.Message != "") {
+				t.Errorf("design = %s (%q), want %s with no message", r.Level, r.Message, tt.level)
 			}
 		})
 	}
