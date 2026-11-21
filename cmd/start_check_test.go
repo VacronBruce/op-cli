@@ -189,7 +189,7 @@ func TestStart_HookReceivesEventOnStdin(t *testing.T) {
 	if !ok {
 		t.Fatalf("check missing: %s", raw)
 	}
-	if chk["readiness"] != "READY" || chk["score"] != float64(0) || chk["total"] != float64(1) || chk["percent"] != float64(0) {
+	if chk["readiness"] != "READY" || chk["score"] != float64(0) || chk["total"] != float64(1) || chk["percent"] != float64(50) {
 		t.Errorf("unexpected check summary: %v", chk)
 	}
 	res := chk["results"].([]any)[0].(map[string]any)
