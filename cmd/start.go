@@ -2,11 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 
 	"github.com/chenhuijun/op-cli/pkg/api"
+	"github.com/chenhuijun/op-cli/pkg/check"
+	"github.com/chenhuijun/op-cli/pkg/display"
 	"github.com/spf13/cobra"
 )
 
@@ -19,14 +22,24 @@ Creates (or switches to) a git branch named <project>-<id>-<slug> derived from
 the ticket's project identifier and subject, moves the ticket to In Progress,
 and assigns it to you. Must be run inside a git repository.
 
-Example:
-  op start 12345   # → branch app-12345-crash-on-save, ticket In Progress, assigned to you`,
+Before changing anything it runs the readiness check and prints the report.
+With --require-ready, a ticket with any FAIL (or a check that cannot run) is
+refused and nothing is written. WARNs never block.
+
+If start_hook is set (~/.oprc or OP_START_HOOK), it is run with sh -c after a
+successful start and receives a JSON ticket_start event on stdin. A failing
+hook only prints a warning.
+
+Examples:
+  op start 12345                  # → branch app-12345-crash-on-save, ticket In Progress, assigned to you
+  op start 12345 --require-ready  # refuse unless the readiness check has no FAIL`,
 	Args: cobra.ExactArgs(1),
 	RunE: runStart,
 }
 
 func init() {
 	rootCmd.AddCommand(startCmd)
+	startCmd.Flags().Bool("require-ready", false, "Refuse to start (no writes) if the readiness check has any FAIL or cannot run")
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
@@ -48,6 +61,22 @@ func runStart(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("fetching work package: %w", err)
 	}
 	fmt.Printf("Starting #%d (%s): %s\n", id, wp.Links.Project.Title, wp.Subject)
+
+	requireReady, _ := cmd.Flags().GetBool("require-ready")
+	report, checkErr := startReadiness(id)
+	if checkErr != nil {
+		fmt.Fprintf(os.Stderr, "warning: readiness check could not run: %v\n", checkErr)
+	} else {
+		display.CheckReport(report)
+	}
+	if requireReady {
+		if checkErr != nil {
+			return fmt.Errorf("not starting #%d: readiness check could not run (--require-ready)", id)
+		}
+		if report.HasFailures() {
+			return fmt.Errorf("not starting #%d: failing readiness checks (--require-ready); fix them or start without the flag", id)
+		}
+	}
 
 	// Resolve the ticket's project identifier (e.g. "app") for the branch
 	// prefix. Done before any git/ticket write so a failure aborts cleanly.
@@ -92,7 +121,17 @@ func runStart(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("#%d → In Progress, assigned to %s\n", id, me.Name)
+
+	runStartHook(newStartEvent(id, wp.Subject, wp.Links.Type.Title, proj.Identifier, branch, report, checkErr))
 	return nil
+}
+
+func startReadiness(id int) (*check.Report, error) {
+	dor, err := check.LoadDoR()
+	if err != nil {
+		return nil, err
+	}
+	return (&check.Runner{Client: client, Config: dor}).Run(id)
 }
 
 var branchSlugInvalid = regexp.MustCompile(`[^a-z0-9]+`)
